@@ -162,7 +162,8 @@
       "number": 39,
       "country": "JP",
       "teamId": "aqua",
-      "active": true
+      "active": true,
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     },
     {
       "id": "d2",
@@ -170,7 +171,8 @@
       "number": 16,
       "country": "IT",
       "teamId": "crimson",
-      "active": true
+      "active": true,
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     },
     {
       "id": "d3",
@@ -178,7 +180,8 @@
       "number": 44,
       "country": "GB",
       "teamId": "nightjar",
-      "active": true
+      "active": true,
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     },
     {
       "id": "d4",
@@ -186,7 +189,8 @@
       "number": 7,
       "country": "SE",
       "teamId": "solstice",
-      "active": true
+      "active": true,
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     },
     {
       "id": "d5",
@@ -194,7 +198,8 @@
       "number": 10,
       "country": "FR",
       "teamId": "polar",
-      "active": true
+      "active": true,
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     },
     {
       "id": "d6",
@@ -202,7 +207,8 @@
       "number": 55,
       "country": "ES",
       "teamId": "crimson",
-      "active": true
+      "active": true,
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     },
     {
       "id": "d7",
@@ -210,7 +216,8 @@
       "number": 1,
       "country": "KR",
       "teamId": "aqua",
-      "active": true
+      "active": true,
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     },
     {
       "id": "d8",
@@ -218,7 +225,8 @@
       "number": 77,
       "country": "FI",
       "teamId": "nightjar",
-      "active": true
+      "active": true,
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     },
     {
       "id": "d9",
@@ -226,7 +234,8 @@
       "number": 31,
       "country": "BE",
       "teamId": "polar",
-      "active": true
+      "active": true,
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     },
     {
       "id": "d10",
@@ -234,7 +243,8 @@
       "number": 23,
       "country": "US",
       "teamId": "solstice",
-      "active": true
+      "active": true,
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     }
   ],
   "calendar": [
@@ -1025,6 +1035,6 @@
     }
   ],
   "meta": {
-    "updated": "2026-11-05T04:11:53.544Z"
+    "updated": "2026-11-05T04:14:30.507Z"
   }
 }
