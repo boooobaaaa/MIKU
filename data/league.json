@@ -2,7 +2,7 @@
   "league": {
     "name": "MIKU Motorsports Association",
     "season": "2026",
-    "tagline": "When did leeks have wheels?",
+    "tagline": "when did leeks have wheels?",
     "logo": "uploads/branding/2026-11-05-migu-copy-zq1w.png",
     "rules": "# Sporting regulations\n\n## Race format\n- Races are **50% distance**, dynamic weather, parc fermé on.\n- One-shot qualifying, 18 minutes.\n- Assists: ABS and traction control allowed; no racing line.\n\n## Conduct\n- Racing incidents are reviewed by the stewards after each round. Submit tickets in Discord within **24 hours**.\n- Penalties: warnings → time penalties → championship points deductions.\n- Three no-shows without notice and your seat goes to a reserve driver.\n\n## Reserves\nReserve drivers score points for the **team**, and keep their own points in the drivers' table.",
     "links": {
@@ -1153,7 +1153,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-05T16:40:47.257Z"
+    "updated": "2026-11-05T16:54:13.675Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1206,7 +1206,7 @@
     "platform": "Roblox F1 26",
     "title": "About MMA",
     "tagline": "",
-    "body": "MIKU Motorsports Association is a ",
+    "body": "MIKU Motorsports Association is a Roblox F1 League created to offer a realistic and properly organized competitive atmosphere for drivers, ranging from all experience levels. The association was founded by creative and experienced minds with the goal of making this community one of best functional leagues.\n\nThe branding, which was once joked as the name being MIKU Motorsports, has now become a reality because of its unique branding.",
     "team": [
       {
         "name": "seo",
@@ -1218,6 +1218,7 @@
         "name": "rox",
         "country": "GB"
       }
-    ]
+    ],
+    "image": "uploads/about/2026-11-05-mikuabouttest-6opq.png"
   }
 }
