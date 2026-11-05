@@ -677,3 +677,70 @@ body, .card, .table-wrap, .topbar { transition: background-color .3s, color .3s,
 .brand-text b, .brand-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-toggle, .mode-toggle { flex-shrink: 0; }
 @media (max-width: 760px) { .topbar { gap: 10px; } }
+
+/* =========================================================
+   v3 additions
+   ========================================================= */
+/* driver cards: keep text clear of the photo */
+.driver-card.has-photo .dc-pos, .driver-card.has-photo .dc-name, .driver-card.has-photo .dc-team { max-width: 58%; }
+.driver-card .dc-team span { overflow-wrap: anywhere; }
+.driver-card .dc-photo { max-width: 42%; height: 82%; }
+
+/* avatars / headshots */
+.avatar { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; flex-shrink: 0; vertical-align: middle;
+  background: color-mix(in srgb, var(--tc, var(--miku)) 28%, var(--surface)); border: 2px solid color-mix(in srgb, var(--tc, var(--miku)) 75%, transparent);
+  font: 700 12px var(--f-mono); color: var(--text); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%; }
+.avatar.sm { width: 28px; height: 28px; font-size: 10px; margin-right: 10px; border-width: 1.5px; }
+.avatar.lg { width: 76px; height: 76px; font-size: 22px; border-width: 3px; }
+.team-card .tc-driver { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.team-card .tc-driver > div { min-width: 0; }
+.team-card .tc-car { display: block; width: 100%; max-height: 150px; object-fit: contain; margin-top: 16px; position: relative; z-index: 1; filter: drop-shadow(0 12px 16px rgba(0, 0, 0, .35)); }
+.profile-hero .ph-car { display: block; max-width: min(600px, 100%); margin-top: 22px; position: relative; filter: drop-shadow(0 14px 20px rgba(0, 0, 0, .35)); }
+
+/* driver of the day */
+.dotd { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 26px; align-items: center;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tc) 24%, transparent), var(--card) 62%); border: 1px solid var(--line-strong); border-radius: 22px; padding: 24px; }
+.dotd::after { content: "★"; position: absolute; right: 16px; top: -26px; font-size: 130px; line-height: 1; color: color-mix(in srgb, var(--tc) 16%, transparent); pointer-events: none; }
+.dotd-main { display: flex; gap: 18px; align-items: center; min-width: 0; position: relative; z-index: 1; }
+.dotd-name { font-family: var(--f-head); font-size: 26px; line-height: 1.15; }
+.dotd-name a { color: var(--text); }
+.dotd-bars { display: grid; gap: 9px; position: relative; z-index: 1; }
+.bar { display: grid; grid-template-columns: 96px 1fr 54px; gap: 10px; align-items: center; font-size: 13px; }
+.bar .bl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.bar .track { height: 10px; border-radius: 99px; background: color-mix(in srgb, var(--text) 8%, transparent); overflow: hidden; }
+.bar .track i { display: block; height: 100%; border-radius: 99px; }
+.bar .bp { font-family: var(--f-mono); text-align: right; color: var(--text-2); }
+
+/* steward documents, news photos, lightbox */
+.sd-docs { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+.sd-doc { max-width: 100%; max-height: 560px; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+.prose figure { margin: 1.5em 0; }
+.prose img.md-img { max-width: 100%; border-radius: 16px; border: 1px solid var(--line); display: block; margin: 0 auto; }
+.prose figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
+img.zoomable { cursor: zoom-in; }
+.lightbox { position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, .86); display: grid; place-items: center; padding: 24px; cursor: zoom-out; animation: rise .2s ease; }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 12px; }
+
+/* admin: upload fields */
+.img-field { display: flex; gap: 8px; align-items: center; }
+.img-field input { flex: 1; min-width: 0; }
+.img-field .thumb { width: 42px; height: 42px; object-fit: cover; border-radius: 9px; border: 1px solid var(--line); flex-shrink: 0; background: var(--card-hi); }
+.doc-list { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 10px; }
+.doc-item { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+.doc-item img { width: 46px; height: 46px; object-fit: cover; border-radius: 6px; }
+.doc-item .doc-ic { width: 46px; text-align: center; font-size: 22px; }
+.doc-item .mono { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 8px; align-items: end; }
+
+@media (max-width: 760px) {
+  .dotd { grid-template-columns: 1fr; }
+  .driver-card.has-photo .dc-name, .driver-card.has-photo .dc-team { max-width: 62%; }
+}
+.lightbox img { max-width: calc(100vw - 48px); max-height: calc(100vh - 48px); object-fit: contain; }
+.sd-doc { max-height: 420px; }
+.driver-card.has-photo .dc-pos { max-width: none; padding-right: 70px; }
+section > .dotd, .page > section:has(> .dotd) { margin-top: 24px; }
+.article .back { display: flex; width: fit-content; }
+.fgrid.dotd-grid { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
+.rtable td.c-sm select, .rtable td.c-sm input { min-width: 76px; }

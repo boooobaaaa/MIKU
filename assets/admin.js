@@ -37,6 +37,7 @@ const F = {
   check: (label, path, val) => `<label class="chk"><input type="checkbox" data-path="${path}" data-reload ${val ? 'checked' : ''}><span>${label}</span></label>`,
   select: (label, path, val, opts, extra = 'data-reload') => `<label class="fld"><span>${label}</span><select data-path="${path}" ${extra}>${opts.map(([v, l]) => opt(v, l, val)).join('')}</select></label>`,
   dt: (label, path, val) => `<label class="fld"><span>${label}</span><input type="datetime-local" data-dt data-path="${path}" value="${toLocalInput(val)}"></label>`,
+  image: (label, path, val, folder, maxDim = 1600) => `<div class="fld wide"><span>${label}</span><div class="img-field">${val ? `<img class="thumb" src="${esc(LG.asset(val))}" alt="" onerror="this.style.visibility='hidden'">` : ''}<input type="text" data-path="${path}" data-reload value="${esc(val || '')}" placeholder="Upload, or paste an image link"><button class="btn sm" data-act="upload" data-mode="set" data-target="${path}" data-folder="${folder}" data-max="${maxDim}">⬆ Upload</button>${val ? `<button class="iconbtn del" data-act="clear-field" data-target="${path}" title="Remove">✕</button>` : ''}</div></div>`,
   date: (label, path, val) => `<label class="fld"><span>${label}</span><input type="date" data-path="${path}" value="${esc(val || '')}"></label>`
 };
 function toLocalInput(iso) { if (!iso) return ''; const t = new Date(iso); if (isNaN(t)) return ''; return new Date(t - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); }
@@ -81,7 +82,7 @@ function secLeague(d) {
       ${F.text('League name', 'league.name', L.name, 'data-reload')}
       ${F.text('Season label', 'league.season', L.season, 'data-reload')}
       ${F.text('Tagline (home page)', 'league.tagline', L.tagline, 'wide')}
-      ${F.text('Logo image URL (square works best)', 'league.logo', L.logo, 'wide data-reload')}
+      ${F.image('League logo (square works best)', 'league.logo', L.logo, 'branding', 600)}
     </div></div>
     <div class="a-card"><h3>Links (shown in footer)</h3><div class="fgrid">
       ${F.text('Discord invite', 'league.links.discord', L.links.discord)}
@@ -112,7 +113,8 @@ function secDrivers(d) {
         ${F.select('Team', p + '.teamId', x.teamId, teamOpts(d))}
         ${F.text('Gamertag / PSN / Steam', p + '.gamertag', x.gamertag)}
         ${F.check('Active on the grid', p + '.active', x.active !== false)}
-        ${F.text('Photo / avatar URL (optional)', p + '.photo', x.photo, 'wide')}
+        ${F.image('Driver photo (big image on driver cards & profile)', p + '.photo', x.photo, 'drivers', 1200)}
+        ${F.image('Headshot for the small circles (optional — the photo is used if empty)', p + '.headshot', x.headshot, 'drivers', 400)}
         ${F.area('Bio (optional)', p + '.bio', x.bio)}
       </div>
       <div class="item-actions"><a class="btn sm ghost" href="#/driver/${esc(x.id)}">View page</a><button class="btn sm danger" data-act="del-driver" data-i="${i}">Delete driver</button></div></div>
@@ -135,7 +137,8 @@ function secTeams(d) {
         ${F.text('Team principal', p + '.principal', t.principal)}
         ${F.text('Chassis / car', p + '.car', t.car)}
         ${F.text('Power unit', p + '.engine', t.engine)}
-        ${F.text('Logo URL (optional)', p + '.logo', t.logo, 'wide')}
+        ${F.image('Team logo', p + '.logo', t.logo, 'teams', 600)}
+        ${F.image('Car image (side view — transparent PNG looks best)', p + '.carImage', t.carImage, 'teams', 1800)}
         ${F.area('About (optional)', p + '.bio', t.bio)}
       </div>
       <div class="item-actions"><a class="btn sm ghost" href="#/team/${esc(t.id)}">View page</a><button class="btn sm danger" data-act="del-team" data-i="${i}">Delete team</button></div></div>
@@ -221,7 +224,22 @@ function secResults(d) {
         ${list.length ? '<button class="btn sm danger" data-act="clear-session">Clear session</button>' : ''}
         <a class="btn sm ghost" href="#/results/${esc(r.id)}/${sess}">Preview →</a>
       </div>
-    </div>`;
+    </div>${dotdAdmin(d, r)}`;
+}
+function dotdAdmin(d, r) {
+  const v = (d.results[r.id] && d.results[r.id].dotd) || {}, dp = `results.${r.id}.dotd`, run = v.runners || [];
+  const opts = [['', '— not set —'], ...driverOpts(d)];
+  return `<div class="a-card"><h3>⭐ Driver of the Day · R${esc(r.round)}</h3>
+    <div class="fgrid dotd-grid">
+      <div class="pair">${F.select('Winner', dp + '.driverId', v.driverId, opts)}${F.num('Vote %', dp + '.pct', v.pct, 'data-reload')}</div>
+      ${[0, 1, 2, 3].map(k => `<div class="pair">${F.select('Runner-up ' + (k + 1), `${dp}.runners.${k}.driverId`, (run[k] || {}).driverId, opts)}${F.num('%', `${dp}.runners.${k}.pct`, (run[k] || {}).pct, 'data-reload')}</div>`).join('')}
+      ${F.text('Link to the Discord poll (optional)', dp + '.link', v.link, 'wide')}
+    </div>
+    <p class="hint">Run the poll in Discord, then enter the result here. Runner-ups are optional — with percentages they show as a vote breakdown. ${v.driverId ? '<button class="btn xs danger" data-act="clear-dotd">Clear</button>' : ''}</p></div>`;
+}
+function newSD(d) {
+  const r = LG.lastRound(d) || LG.nextRound(d);
+  return { id: uid('sd'), roundId: r ? r.id : '', session: 'race', lap: '', title: 'New incident', driverId: '', involved: '', status: 'Under investigation', penalty: '', points: '', teamToo: false, decision: '', docs: [] };
 }
 
 const PRESETS = {
@@ -278,8 +296,9 @@ function secNews(d) {
       ${F.text('Tag (e.g. Race report, Announcement)', `news.${i}.tag`, n.tag)}
       ${F.check('Pin to top', `news.${i}.pinned`, n.pinned)}
       ${F.check('Hidden (draft post)', `news.${i}.hidden`, n.hidden)}
-      ${F.text('Cover image URL (optional)', `news.${i}.image`, n.image, 'wide')}
-      ${F.area('Post body — supports # headings, **bold**, *italic*, - lists, [links](https://…)', `news.${i}.body`, n.body, 'tall')}
+      ${F.image('Cover photo', `news.${i}.image`, n.image, 'news', 1920)}
+      ${F.area('Post body — # headings, **bold**, *italic*, - lists, [links](https://…), photos', `news.${i}.body`, n.body, 'tall')}
+      <div class="wide toolbar"><button class="btn sm" data-act="upload" data-mode="insert" data-target="news.${i}.body" data-folder="news" data-max="1920" data-multiple="1">🖼 Insert photo(s) at cursor</button><span class="hint" style="margin:0">Adds <code>![caption](link)</code> — the text inside [ ] becomes the caption (leave it empty for none).</span></div>
     </div><div class="item-actions"><a class="btn sm ghost" href="#/news/${esc(n.id)}">Preview post →</a><button class="btn sm danger" data-act="del-news" data-id="${esc(n.id)}">Delete post</button></div></div>` : '';
   return head('News posts', 'Race reports, signings, announcements. Posts show on the home page and the News tab.', `<button class="btn primary" data-act="new-news">+ New post</button>`) +
     editor + `<div class="a-card"><h3>All posts</h3>${list.length ? list.map(x => `<div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)">
@@ -382,12 +401,17 @@ function secStewards(d) {
         ${F.text('Penalty shown (e.g. +5s, 3-place grid drop)', p + '.penalty', x.penalty)}
         ${F.num('Championship points (e.g. -3)', p + '.points', x.points, 'data-reload')}
         ${F.check('Also apply points to their team', p + '.teamToo', x.teamToo)}
-        ${F.area('Decision & reasoning (shown publicly)', p + '.decision', x.decision)}
+        ${F.area('Decision & reasoning (optional if you upload your report)', p + '.decision', x.decision)}
+        <div class="wide"><div class="fld"><span>Report document(s) — your template as an image or PDF</span></div>
+          <div class="doc-list">${(x.docs || []).map((u, k) => `<div class="doc-item">${LG.isImg(u) ? `<img src="${esc(LG.asset(u))}" alt="">` : '<span class="doc-ic">📄</span>'}<span class="mono">${esc(String(u).split('/').pop())}</span><button class="iconbtn del" data-act="del-doc" data-i="${i}" data-k="${k}" title="Remove">✕</button></div>`).join('')}</div>
+          <div class="toolbar"><button class="btn sm" data-act="upload" data-mode="push" data-target="${p}.docs" data-folder="stewards" data-max="2600" data-multiple="1" data-accept="image/*,application/pdf">⬆ Upload report file(s)</button><input type="text" data-adddoc="${i}" placeholder="…or paste a link and press Enter" style="max-width:320px"></div>
+        </div>
       </div><div class="item-actions"><a class="btn sm ghost" href="#/stewards">View page</a><button class="btn sm danger" data-act="del-sd" data-i="${i}">Delete report</button></div></div>
     </details>`;
   }).join('');
   return head("Stewards' reports", "Log incidents and decisions. They show on the Stewards page and under that round's results. Championship points entered here are applied to the standings automatically.", '<button class="btn primary" data-act="add-sd">+ New report</button>') +
-    `<div class="a-card">${items || '<p class="muted">No reports yet.</p>'}</div>
+    `<div class="a-card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><button class="btn primary" data-act="upload" data-mode="new-sd" data-folder="stewards" data-max="2600" data-multiple="1" data-accept="image/*,application/pdf">⬆ New report(s) from files</button><span class="hint" style="margin:0">Pick one or more filled-in templates — each becomes a report on the latest round. Then just set the dropdowns.</span></div>
+    <div class="a-card">${items || '<p class="muted">No reports yet.</p>'}</div>
     <p class="hint">Time penalties that change the finishing order still need the driver moved down in <a href="#/admin/results">Results</a>.</p>`;
 }
 
@@ -480,6 +504,7 @@ document.addEventListener('change', e => {
   if (!inAdmin(el)) return;
   if (el.dataset.ctl === 'round') { A.roundId = el.value; return rerender(); }
   if (el.dataset.ctl === 'import') return importFile(el.files[0]);
+  if (el.dataset.adddoc !== undefined) { const v = el.value.trim(); if (v) { const x = D().stewards[Number(el.dataset.adddoc)]; (x.docs = x.docs || []).push(v); commit(); } return; }
   if (!el.dataset.path) return;
   setPath(D(), el.dataset.path, readVal(el));
   // picking a driver in results auto-fills their current team
@@ -565,7 +590,7 @@ document.addEventListener('click', async e => {
     case 'theme-preset': d.theme = Object.assign({}, d.theme, THEMES[b.dataset.k]); toast(b.dataset.k + ' theme applied — publish to make it live'); return commit();
     case 'theme-reset': d.theme = clone(LG.DEFAULT_THEME); return commit();
     case 'clear-mode': try { localStorage.removeItem(LG.MODE_KEY); } catch (x) { } toast('Using the site default mode again'); return rerender();
-    case 'add-sd': { const r = LG.lastRound(d) || LG.nextRound(d); const x = { id: uid('sd'), roundId: r ? r.id : '', session: 'race', lap: '', title: 'New incident', driverId: '', involved: '', status: 'Under investigation', penalty: '', points: '', teamToo: false, decision: '' }; d.stewards.push(x); A.open['sd-' + x.id] = true; return commit(); }
+    case 'add-sd': { const x = newSD(d); d.stewards.push(x); A.open['sd-' + x.id] = true; return commit(); }
     case 'del-sd': if (confirm('Delete this report?')) { d.stewards.splice(i, 1); commit(); } return;
     case 'archive-now': {
       if (d.history.some(h => String(h.season) === String(d.league.season)) && !confirm(`Season ${d.league.season} is already in the Hall of fame. Add another entry anyway?`)) return;
@@ -574,6 +599,10 @@ document.addEventListener('click', async e => {
     case 'add-hist': { const h = { id: uid('season'), season: '', driverChampion: '', driverTeam: '', driverColor: '#39c5bb', driverPoints: '', teamChampion: '', teamColor: '#39c5bb', teamPoints: '', notes: '' }; d.history.push(h); A.open['hist-' + h.id] = true; return commit(); }
     case 'del-hist': if (confirm('Remove this season from the Hall of fame?')) { d.history.splice(i, 1); commit(); } return;
     case 'drop-snapshot': delete d.history[i].standings; delete d.history[i].winners; return commit();
+    case 'upload': if (!ghReady()) return; return pickFiles({ mode: b.dataset.mode, target: b.dataset.target, folder: b.dataset.folder || 'misc', maxDim: Number(b.dataset.max) || 1920, multiple: !!b.dataset.multiple, accept: b.dataset.accept || 'image/*' });
+    case 'clear-field': setPath(d, b.dataset.target, ''); return commit();
+    case 'del-doc': d.stewards[i].docs.splice(Number(b.dataset.k), 1); return commit();
+    case 'clear-dotd': delete d.results[A.roundId].dotd; return commit();
     case 'publish': return publish(b);
     case 'discard-draft': if (confirm('Throw away all unpublished changes?')) LG.discardDraft(); return;
     case 'reload-live': return reloadLive();
@@ -588,6 +617,67 @@ document.addEventListener('click', async e => {
     }
   }
 });
+
+/* ---------------- uploads (straight into the repo) ---------------- */
+const fileInput = Object.assign(document.createElement('input'), { type: 'file', hidden: true });
+document.body.appendChild(fileInput);
+let pending = null;
+function pickFiles(o) { pending = o; fileInput.accept = o.accept; fileInput.multiple = o.multiple; fileInput.value = ''; fileInput.click(); }
+fileInput.addEventListener('change', () => { const files = [...fileInput.files], o = pending; pending = null; if (files.length && o) handleUpload(files, o); });
+const lastCursor = {};
+document.addEventListener('focusout', e => { const t = e.target; if (t.tagName === 'TEXTAREA' && t.dataset.path) lastCursor[t.dataset.path] = t.selectionStart; });
+function getPath(obj, path) { return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj); }
+const prettyName = n => n.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim();
+
+async function shrinkImage(file, maxDim) {
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return file;
+  let bmp; try { bmp = await createImageBitmap(file); } catch (e) { return file; }
+  const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+  if (scale === 1 && file.size < 1.5e6) return file;
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  const out = await new Promise(r => c.toBlob(r, file.type, 0.88));
+  return out && out.size < file.size ? out : file;
+}
+const blobToB64 = blob => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = rej; fr.readAsDataURL(blob); });
+async function uploadToGitHub(g, blob, name, folder) {
+  if (blob.size > 25e6) throw new Error('file is over 25 MB');
+  const ext = ((name.match(/\.([a-z0-9]+)$/i) || [])[1] || 'bin').toLowerCase();
+  const base = name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'file';
+  const path = `uploads/${folder}/${new Date().toISOString().slice(0, 10)}-${base}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+  const api = `https://api.github.com/repos/${encodeURIComponent(g.c.owner)}/${encodeURIComponent(g.c.repo)}/contents/${path}`;
+  const r = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, g.headers), body: JSON.stringify({ message: `Upload ${path}`, content: await blobToB64(blob), branch: g.c.branch }) });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || r.status);
+  return path;
+}
+async function handleUpload(files, o) {
+  const g = ghReady(); if (!g) return;
+  const d = D(), done = [];
+  for (const f of files) {
+    try {
+      toast(`Uploading ${f.name}…`);
+      const blob = await shrinkImage(f, o.maxDim);
+      const path = await uploadToGitHub(g, blob, f.name, o.folder);
+      LG.ASSET_CACHE[path] = URL.createObjectURL(blob);
+      done.push({ path, name: f.name });
+    } catch (err) { toast(`Upload failed (${f.name}): ${err.message}`, 'err'); }
+  }
+  if (!done.length) return;
+  if (o.mode === 'set') setPath(d, o.target, done[0].path);
+  else if (o.mode === 'push') { const arr = getPath(d, o.target) || []; done.forEach(x => arr.push(x.path)); setPath(d, o.target, arr); }
+  else if (o.mode === 'insert') {
+    const ta = document.querySelector(`textarea[data-path="${o.target}"]`);
+    const cur = getPath(d, o.target) || '';
+    const pos = ta && lastCursor[o.target] !== undefined ? Math.min(lastCursor[o.target], cur.length) : cur.length;
+    const snippet = done.map(x => `\n![${prettyName(x.name)}](${x.path})\n`).join('');
+    setPath(d, o.target, cur.slice(0, pos) + snippet + cur.slice(pos));
+  } else if (o.mode === 'new-sd') {
+    done.forEach(x => { const s = Object.assign(newSD(d), { title: prettyName(x.name), docs: [x.path] }); d.stewards.push(s); A.open['sd-' + s.id] = true; });
+  }
+  toast(done.length > 1 ? `${done.length} files uploaded ✓` : 'Uploaded ✓ — publish so it shows on the live site');
+  commit();
+}
 
 /* ---------------- GitHub publishing ---------------- */
 function b64(str) {
