@@ -24,12 +24,20 @@ const DEFAULT_SCORING = {
   fastestLap: 1, fastestLapTopN: 10, sprintFastestLap: 0, pole: 0
 };
 
+const DEFAULT_THEME = { accent: '#39c5bb', accentSoft: '#86cecb', accentDeep: '#137a7f', highlight: '#e12885', bgDark: '#07090c', bgLight: '#f2f8f7', defaultMode: 'dark', allowToggle: true, effects: true };
+const DEFAULT_SIGNUPS = { open: false, title: 'Join the grid', intro: '', requirements: '', formUrl: '', seatsPerTeam: 2, showBuilder: true };
+const MODE_KEY = 'league.mode';
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } };
+const isHex = v => /^#[0-9a-f]{6}$/i.test(v || '');
+
 function emptyLeague() {
   return {
     league: { name: 'My F1 League', season: String(new Date().getFullYear()), tagline: '', logo: '', rules: '', links: {} },
     settings: { adminHash: '' },
     scoring: clone(DEFAULT_SCORING),
-    teams: [], drivers: [], calendar: [], results: {}, adjustments: [], news: [],
+    teams: [], drivers: [], calendar: [], results: {}, adjustments: [], news: [], stewards: [], history: [],
+    theme: clone(DEFAULT_THEME), signups: clone(DEFAULT_SIGNUPS),
     meta: { updated: null }
   };
 }
@@ -41,10 +49,36 @@ function normalize(x) {
   d.league.links = d.league.links || {};
   d.settings = Object.assign({ adminHash: '' }, d.settings || {});
   d.scoring = Object.assign(clone(DEFAULT_SCORING), d.scoring || {});
-  ['teams', 'drivers', 'calendar', 'adjustments', 'news'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+  d.theme = Object.assign(clone(DEFAULT_THEME), d.theme || {});
+  d.signups = Object.assign(clone(DEFAULT_SIGNUPS), d.signups || {});
+  ['teams', 'drivers', 'calendar', 'adjustments', 'news', 'stewards', 'history'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
   if (!d.results || typeof d.results !== 'object' || Array.isArray(d.results)) d.results = {};
   d.meta = d.meta || { updated: null };
   return d;
+}
+
+function themeMode(d) {
+  const t = d.theme;
+  let m = (t.allowToggle !== false && lsGet(MODE_KEY)) || t.defaultMode || 'dark';
+  if (m === 'system') m = window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  return m === 'light' ? 'light' : 'dark';
+}
+function applyTheme(d) {
+  const t = d.theme, r = document.documentElement;
+  const set = (k, v, f) => r.style.setProperty(k, isHex(v) ? v : f);
+  set('--miku', t.accent, DEFAULT_THEME.accent);
+  set('--miku-soft', t.accentSoft, DEFAULT_THEME.accentSoft);
+  set('--miku-deep', t.accentDeep, DEFAULT_THEME.accentDeep);
+  set('--pink', t.highlight, DEFAULT_THEME.highlight);
+  set('--bg-dark', t.bgDark, DEFAULT_THEME.bgDark);
+  set('--bg-light', t.bgLight, DEFAULT_THEME.bgLight);
+  const mode = themeMode(d);
+  r.dataset.theme = mode;
+  r.dataset.effects = t.effects === false ? 'off' : 'on';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = mode === 'light' ? (isHex(t.bgLight) ? t.bgLight : DEFAULT_THEME.bgLight) : (isHex(t.bgDark) ? t.bgDark : DEFAULT_THEME.bgDark);
+  const mt = document.getElementById('mode-toggle');
+  if (mt) { mt.hidden = t.allowToggle === false; mt.textContent = mode === 'light' ? '☾' : '☀'; mt.title = mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'; }
 }
 
 function flag(cc, cls = '') {
@@ -234,6 +268,17 @@ function computeStandings(d) {
     row.points += p; row.adj += p;
     if (a.roundId) { const rr = row.rounds[a.roundId] || (row.rounds[a.roundId] = { pts: 0 }); rr.pts += p; rr.adj = (rr.adj || 0) + p; }
   }
+  for (const s of d.stewards) {
+    const p = Number(s.points) || 0;
+    if (!s.driverId || !p) continue;
+    const bump = row => { row.points += p; row.adj += p; if (s.roundId) { const rr = row.rounds[s.roundId] || (row.rounds[s.roundId] = { pts: 0 }); rr.pts += p; rr.adj = (rr.adj || 0) + p; } };
+    bump(dRow(s.driverId));
+    if (s.teamToo) {
+      const ent = s.roundId ? [...session(d, s.roundId, 'race'), ...session(d, s.roundId, 'sprint')].find(e => e.driverId === s.driverId) : null;
+      const tid = (ent && ent.teamId) || (byId(d.drivers, s.driverId) || {}).teamId;
+      if (tid) bump(tRow(tid));
+    }
+  }
   const cmp = (a, b) => b.points - a.points || countback(a, b);
   const drivers = Object.values(D).filter(x => {
     const drv = byId(d.drivers, x.id);
@@ -322,7 +367,7 @@ function pageHome(d) {
         <div class="eyebrow">Season ${esc(d.league.season)}${total ? ` · Round ${Math.min(done + (nx ? 1 : 0), total)} of ${total}` : ''}</div>
         <h1>${title}</h1>
         ${d.league.tagline ? `<p>${esc(d.league.tagline)}</p>` : ''}
-        <div class="hero-cta"><a class="btn primary" href="#/standings">Championship standings</a><a class="btn ghost" href="#/results">Latest results</a></div>
+        <div class="hero-cta"><a class="btn primary" href="#/standings">Championship standings</a><a class="btn ghost" href="#/results">Latest results</a>${d.signups.open ? '<a class="btn ghost" href="#/join">✦ Join the league</a>' : ''}</div>
       </div>
       ${nextCard}
     </section>
@@ -426,6 +471,8 @@ function pageRound(d, rid, sess) {
   }).join('');
 
   const tabs = avail.length > 1 ? `<div class="tabs">${avail.map(s => `<a href="#/results/${esc(rid)}/${s}" class="${s === sess ? 'active' : ''}">${sessionName(s)}</a>`).join('')}</div>` : '';
+  const sds = d.stewards.filter(x => x.roundId === rid);
+  const sdHTML = sds.length ? `<section><div class="section-title"><h2>Stewards' decisions</h2><a href="#/stewards/${esc(rid)}">All for this round →</a></div><div class="sd-list">${sds.map(x => stewardCard(d, x, true)).join('')}</div></section>` : '';
   const notes = r.notes ? `<div class="card" style="margin-top:20px"><div class="prose">${md(r.notes)}</div></div>` : '';
 
   return `<div class="page">
@@ -440,13 +487,14 @@ function pageRound(d, rid, sess) {
     ${cl.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th class="hide-sm">No</th><th>Driver</th><th>Team</th>${isQ ? '' : '<th class="hide-sm">Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / Retired'}</th>${isQ ? '' : '<th class="r">Pts</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`
       : empty(r.cancelled ? 'This round was cancelled' : 'No results yet', r.start ? `<p>${esc(sessionName(sess))} scheduled for ${fmtDate(r.start)} · ${fmtTime(r.start)}</p>` : '')}
     ${notes}
+    ${sdHTML}
   </div>`;
 }
 
 function pageStandings(d, view) {
-  view = ['drivers', 'teams', 'grid'].includes(view) ? view : 'drivers';
+  view = ['drivers', 'teams', 'grid', 'progress'].includes(view) ? view : 'drivers';
   const st = computeStandings(d);
-  const tabs = `<div class="tabs">${[['drivers', 'Drivers'], ['teams', 'Constructors'], ['grid', 'Season grid']].map(([k, l]) => `<a href="#/standings/${k}" class="${k === view ? 'active' : ''}">${l}</a>`).join('')}</div>`;
+  const tabs = `<div class="tabs">${[['drivers', 'Drivers'], ['teams', 'Constructors'], ['grid', 'Season grid'], ['progress', 'Progression']].map(([k, l]) => `<a href="#/standings/${k}" class="${k === view ? 'active' : ''}">${l}</a>`).join('')}</div>`;
   let body = '';
   if (view === 'drivers') {
     body = st.drivers.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Driver</th><th class="hide-sm">Nat</th><th>Team</th><th class="r hide-sm">Wins</th><th class="r hide-sm">Podiums</th><th class="r">Pts</th></tr></thead><tbody>
@@ -456,6 +504,8 @@ function pageStandings(d, view) {
     body = st.teams.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Team</th><th class="hide-sm">Drivers</th><th class="r hide-sm">Wins</th><th class="r hide-sm">Podiums</th><th class="r">Pts</th></tr></thead><tbody>
       ${st.teams.map(x => { const t = teamLabel(d, x.id); const drs = d.drivers.filter(p => p.teamId === x.id && p.active !== false).map(p => esc(p.name.split(' ').pop())).join(' / '); return `<tr class="${x.position <= 3 ? 'top' + x.position : ''}"><td class="pos">${x.position}</td><td><a href="#/team/${esc(x.id)}">${teamCell(t)}</a>${x.adj ? `<span class="adj-note">(${x.adj > 0 ? '+' : ''}${fmtPts(x.adj)})</span>` : ''}</td><td class="muted hide-sm">${drs}</td><td class="r mono hide-sm">${x.wins}</td><td class="r mono hide-sm">${x.podiums}</td><td class="pts">${fmtPts(x.points)}</td></tr>`; }).join('')}
       </tbody></table></div>` : empty('No teams yet');
+  } else if (view === 'progress') {
+    body = progressChart(d, st);
   } else {
     const rs = rounds(d).filter(r => !r.cancelled);
     const cellFor = (x, r) => {
@@ -510,7 +560,8 @@ function pageDriver(d, id) {
       <td class="mono">${race ? (race.pos ? race.pos : `<span class="status">${esc(race.label)}</span>`) + (race.fl ? '<span class="tag-fl">FL</span>' : '') : '<span class="muted">—</span>'}</td>
       <td class="pts">${fmtPts(rr.pts)}${rr.adj ? `<span class="adj-note">(${rr.adj > 0 ? '+' : ''}${fmtPts(rr.adj)})</span>` : ''}</td></tr>`;
   }).join('');
-  const adjs = d.adjustments.filter(a => a.type !== 'team' && a.targetId === id);
+  const adjs = d.adjustments.filter(a => a.type !== 'team' && a.targetId === id)
+    .concat(d.stewards.filter(x => x.driverId === id && Number(x.points)).map(x => ({ points: Number(x.points), reason: (x.title || "Stewards' decision") + (x.penalty ? ' — ' + x.penalty : ''), roundId: x.roundId })));
   return `<div class="page">
     <a class="back" href="#/drivers">← All drivers</a>
     <div class="profile-hero" style="--tc:${esc(teamColor(t))}">
@@ -634,10 +685,180 @@ function pageRules(d) {
   </div>`;
 }
 
+/* ---------------- progression chart ---------------- */
+function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+function chartSVG(series, key, rs, title) {
+  if (!series.length) return '';
+  const W = 960, H = 400, L = 46, R = 190, T = 18, B = 40, n = rs.length;
+  const all = series.flatMap(x => x.pts);
+  const hi = Math.max(...all, 1), lo = Math.min(0, ...all);
+  const step = niceStep(Math.max(10, hi - lo) / 5);
+  const top = Math.ceil(hi / step) * step, bot = Math.floor(lo / step) * step;
+  const x = i => L + (W - L - R) * (n ? i / n : 0);
+  const y = v => T + (H - T - B) * (1 - (v - bot) / ((top - bot) || 1));
+  let g = '';
+  for (let v = bot; v <= top + 1e-9; v += step) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="ax" x="${L - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${fmtPts(v)}</text>`;
+  for (let i = 0; i <= n; i++) g += `<text class="ax" x="${x(i).toFixed(1)}" y="${H - B + 24}" text-anchor="middle">${i ? 'R' + esc(rs[i - 1].round) : 'Start'}</text>`;
+  const ends = series.map((v, i) => ({ i, y: y(v.pts[n]) })).sort((a, b) => a.y - b.y);
+  for (let k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 14) ends[k].y = ends[k - 1].y + 14;
+  const ly = {}; ends.forEach(e => { ly[e.i] = e.y; });
+  const seen = {};
+  const lines = series.map((v, i) => {
+    const dash = seen[v.color] ? ' stroke-dasharray="7 5"' : ''; seen[v.color] = 1;
+    const path = v.pts.map((p, j) => `${j ? 'L' : 'M'}${x(j).toFixed(1)},${y(p).toFixed(1)}`).join(' ');
+    const dots = v.pts.map((p, j) => j ? `<circle cx="${x(j).toFixed(1)}" cy="${y(p).toFixed(1)}" r="3.5" fill="${esc(v.color)}"><title>${esc(v.name)} · R${esc(rs[j - 1].round)}: ${fmtPts(p)} pts</title></circle>` : '').join('');
+    return `<g data-line="${key}-${i}"${i >= 8 ? ' style="display:none"' : ''}><path class="ln" d="${path}" stroke="${esc(v.color)}"${dash}/>${dots}<text class="lbl" x="${W - R + 10}" y="${(ly[i] + 4).toFixed(1)}" fill="${esc(v.color)}">${esc(v.short)} · ${fmtPts(v.pts[n])}</text></g>`;
+  }).join('');
+  const chips = series.map((v, i) => `<button data-series="${key}-${i}" class="${i >= 8 ? 'off' : ''}" style="--c:${esc(v.color)}"><i></i>${esc(v.short)}</button>`).join('');
+  return `<div class="card"><div class="card-title"><h3>${esc(title)}</h3><span class="muted" style="font-size:13px">Tap names to show / hide</span></div>
+    <div style="overflow-x:auto"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}" style="min-width:640px">${g}${lines}</svg></div><div class="chips">${chips}</div></div>`;
+}
+function progressChart(d, st) {
+  const rs = rounds(d).filter(r => !r.cancelled && isDone(d, r));
+  if (!rs.length) return empty('No races completed yet', '<p>The chart fills in after the first round.</p>');
+  const mk = (rows, isTeam) => rows.map(x => {
+    const ent = isTeam ? teamLabel(d, x.id) : driverLabel(d, x.id);
+    const t = isTeam ? ent : driverTeam(d, ent, x);
+    let c = 0; const pts = [0];
+    rs.forEach(r => { c += x.rounds[r.id] ? x.rounds[r.id].pts : 0; pts.push(c); });
+    pts[pts.length - 1] += x.points - c;
+    const short = isTeam ? (ent.name.length > 17 ? ent.name.slice(0, 16) + '…' : ent.name) : ent.name.split(' ').pop();
+    return { name: ent.name, short, color: teamColor(t), pts };
+  });
+  return `<div class="grid" style="gap:24px">${chartSVG(mk(st.drivers, false), 'drv', rs, 'Drivers · points progression')}${chartSVG(mk(st.teams, true), 'team', rs, 'Constructors · points progression')}</div>`;
+}
+
+/* ---------------- hall of fame ---------------- */
+function snapshotSeason(d) {
+  const st = computeStandings(d);
+  const dr = st.drivers.map(x => { const p = driverLabel(d, x.id), t = driverTeam(d, p, x); return { name: p.name, team: t ? t.name : '', color: teamColor(t), country: p.country || '', points: x.points, wins: x.wins, podiums: x.podiums }; });
+  const tm = st.teams.map(x => { const t = teamLabel(d, x.id); return { name: t.name, color: teamColor(t), points: x.points, wins: x.wins }; });
+  const winners = rounds(d).filter(r => isDone(d, r)).map(r => {
+    const w = classify(session(d, r.id, 'race'), 'race', d.scoring).find(e => e.pos === 1);
+    const p = w ? driverLabel(d, w.driverId) : null, t = w ? teamLabel(d, w.teamId) : null;
+    return { round: r.round, name: r.name, country: r.country || '', winner: p ? p.name : '', team: t ? t.name : '', color: teamColor(t) };
+  });
+  const c = dr[0], ct = tm[0];
+  return { id: uid('season'), season: d.league.season, driverChampion: c ? c.name : '', driverTeam: c ? c.team : '', driverColor: c ? c.color : '#39c5bb', driverPoints: c ? c.points : '',
+    teamChampion: ct ? ct.name : '', teamColor: ct ? ct.color : '#39c5bb', teamPoints: ct ? ct.points : '', notes: '', standings: { drivers: dr, teams: tm }, winners };
+}
+const seasonSort = (a, b) => String(b.season).localeCompare(String(a.season), undefined, { numeric: true });
+function champCard(h, current) {
+  return `<div class="champ-card ${current ? 'current' : ''}" style="--tc:${esc(h.driverColor || '#39c5bb')}">
+    <div class="cc-season">${esc(h.season)}</div>
+    <div class="cc-block"><div class="cc-label">${current ? 'Championship leader' : "🏆 Drivers' champion"}</div><div class="cc-name">${h.driverChampion ? nameHTML(h.driverChampion) : '<span class="muted">—</span>'}</div><div class="cc-sub">${esc(h.driverTeam || '')}${h.driverPoints !== '' && h.driverPoints != null ? ` · ${fmtPts(h.driverPoints)} pts` : ''}</div></div>
+    <div class="cc-block"><div class="cc-label">${current ? 'Leading constructor' : "Constructors' champion"}</div><div class="cc-name" style="font-size:19px"><span class="swatch" style="--tc:${esc(h.teamColor || '#39c5bb')}"></span>${esc(h.teamChampion || '—')}</div><div class="cc-sub">${h.teamPoints !== '' && h.teamPoints != null ? `${fmtPts(h.teamPoints)} pts` : ''}</div></div>
+    ${h.notes ? `<div class="prose">${md(h.notes)}</div>` : ''}
+    ${current ? '<a class="btn sm" href="#/standings">Live standings →</a>' : h.standings ? `<a class="btn sm" href="#/history/${esc(h.id)}">Final standings →</a>` : ''}
+  </div>`;
+}
+function pageHistory(d) {
+  const list = [...d.history].sort(seasonSort);
+  const st = computeStandings(d);
+  const started = rounds(d).some(r => isDone(d, r));
+  const cur = started && !d.history.some(h => String(h.season) === String(d.league.season)) && st.drivers[0] ? (() => {
+    const p = driverLabel(d, st.drivers[0].id), t = driverTeam(d, p, st.drivers[0]), ct = st.teams[0] && teamLabel(d, st.teams[0].id);
+    return champCard({ season: d.league.season, driverChampion: p.name, driverTeam: t ? t.name : '', driverColor: teamColor(t), driverPoints: st.drivers[0].points, teamChampion: ct ? ct.name : '', teamColor: teamColor(ct), teamPoints: st.teams[0] ? st.teams[0].points : '' }, true);
+  })() : '';
+  const tally = {};
+  list.forEach(h => { if (h.driverChampion) tally[h.driverChampion] = (tally[h.driverChampion] || 0) + 1; });
+  const multi = Object.entries(tally).filter(([, n]) => n > 1).sort((a, b) => b[1] - a[1]);
+  return `<div class="page">${head('Legacy', 'Hall of fame', 'Every champion in league history.')}
+    ${multi.length ? `<div class="card" style="margin-bottom:20px"><div class="card-title"><h3>Multiple champions</h3></div><div class="toolbar" style="display:flex;gap:10px;flex-wrap:wrap">${multi.map(([nm, n]) => `<span class="chip">${'🏆'.repeat(Math.min(n, 5))} ${esc(nm)} × ${n}</span>`).join('')}</div></div>` : ''}
+    ${cur || list.length ? `<div class="champ-grid">${cur}${list.map(h => champCard(h)).join('')}</div>` : empty('No champions crowned yet', '<p>When a season ends, the admin archives it here.</p>')}
+  </div>`;
+}
+function pageHistorySeason(d, id) {
+  const h = byId(d.history, id);
+  if (!h) return notFound();
+  const sd = (h.standings && h.standings.drivers) || [], tm = (h.standings && h.standings.teams) || [], w = h.winners || [];
+  return `<div class="page"><a class="back" href="#/history">← Hall of fame</a>${head('Season ' + h.season, 'Final standings', '')}
+    <div class="grid grid-2">
+      <div><div class="section-title"><h2>Drivers</h2></div>${sd.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Driver</th><th class="hide-sm">Team</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>${sd.map((x, i) => `<tr class="${i < 3 ? 'top' + (i + 1) : ''}"><td class="pos">${i + 1}</td><td><span class="swatch" style="--tc:${esc(x.color)}"></span>${nameHTML(x.name)} ${flag(x.country)}</td><td class="hide-sm team-name">${esc(x.team)}</td><td class="r mono">${x.wins ?? ''}</td><td class="pts">${fmtPts(x.points)}</td></tr>`).join('')}</tbody></table></div>` : empty('No data')}</div>
+      <div><div class="section-title"><h2>Constructors</h2></div>${tm.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Team</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>${tm.map((x, i) => `<tr class="${i < 3 ? 'top' + (i + 1) : ''}"><td class="pos">${i + 1}</td><td><span class="swatch" style="--tc:${esc(x.color)}"></span>${esc(x.name)}</td><td class="r mono">${x.wins ?? ''}</td><td class="pts">${fmtPts(x.points)}</td></tr>`).join('')}</tbody></table></div>` : empty('No data')}</div>
+    </div>
+    ${w.length ? `<section><div class="section-title"><h2>Race winners</h2></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Rd</th><th>Grand Prix</th><th>Winner</th><th class="hide-sm">Team</th></tr></thead><tbody>${w.map(x => `<tr><td class="pos">${esc(x.round)}</td><td>${flag(x.country)}&nbsp; ${esc(x.name)}</td><td>${x.winner ? nameHTML(x.winner) : '—'}</td><td class="hide-sm"><span class="swatch" style="--tc:${esc(x.color)}"></span><span class="team-name">${esc(x.team)}</span></td></tr>`).join('')}</tbody></table></div></section>` : ''}
+  </div>`;
+}
+
+/* ---------------- stewards ---------------- */
+const STATUS_CLS = { 'Penalty': 'st-pen', 'Warning': 'st-warn', 'Reprimand': 'st-warn', 'No further action': 'st-nfa', 'Under investigation': 'st-inv' };
+function stewardCard(d, s, hideRound) {
+  const r = byId(d.calendar, s.roundId);
+  const drv = s.driverId ? driverLabel(d, s.driverId) : null;
+  const ent = r && drv ? [...session(d, r.id, 'race'), ...session(d, r.id, 'sprint')].find(e => e.driverId === drv.id) : null;
+  const t = byId(d.teams, (ent && ent.teamId) || (drv && drv.teamId));
+  const pts = Number(s.points) || 0;
+  return `<div class="sd-card" style="--tc:${esc(teamColor(t))}">
+    <div class="sd-top">${r && !hideRound ? `<a class="chip" href="#/results/${esc(r.id)}">R${esc(r.round)} · ${esc(r.name)}</a>` : ''}<span class="muted">${esc(sessionName(s.session || 'race'))}${s.lap ? ` · ${esc(s.lap)}` : ''}</span><span class="badge ${STATUS_CLS[s.status] || 'st-inv'}">${esc(s.status || 'Under investigation')}</span></div>
+    <h3>${esc(s.title || 'Incident')}</h3>
+    ${drv ? `<div class="sd-who"><span class="swatch" style="--tc:${esc(teamColor(t))}"></span><a href="#/driver/${esc(drv.id)}">${nameHTML(drv.name)}</a>${s.involved ? `<span class="muted"> · involving ${esc(s.involved)}</span>` : ''}</div>` : (s.involved ? `<div class="sd-who muted">Involving ${esc(s.involved)}</div>` : '')}
+    ${s.decision ? `<div class="prose sd-body">${md(s.decision)}</div>` : ''}
+    ${s.penalty || pts ? `<div class="sd-pen">${s.penalty ? `<span class="tag-fl">${esc(s.penalty)}</span>` : ''}${pts ? `<span class="tag-pole">${pts > 0 ? '+' : ''}${fmtPts(pts)} championship pts${s.teamToo ? ' · driver & team' : ''}</span>` : ''}</div>` : ''}
+  </div>`;
+}
+function pageStewards(d, rid) {
+  const rorder = x => { const r = byId(d.calendar, x.roundId); return r ? Number(r.round) || 0 : -1; };
+  const all = [...d.stewards].sort((a, b) => rorder(b) - rorder(a));
+  const withDec = rounds(d).filter(r => all.some(x => x.roundId === r.id));
+  const list = rid ? all.filter(x => x.roundId === rid) : all;
+  const picker = withDec.length > 1 ? `<div class="round-picker"><a href="#/stewards" class="${!rid ? 'active' : ''}">All rounds</a>${withDec.map(r => `<a href="#/stewards/${esc(r.id)}" class="${r.id === rid ? 'active' : ''}">${flag(r.country)} R${esc(r.round)}</a>`).join('')}</div>` : '';
+  const groups = [];
+  list.forEach(x => { const g = groups.find(y => y.id === (x.roundId || '')); if (g) g.items.push(x); else groups.push({ id: x.roundId || '', items: [x] }); });
+  const body = groups.map(g => { const r = byId(d.calendar, g.id); return `<section><div class="section-title"><h2>${r ? `${flag(r.country)} R${esc(r.round)} · ${esc(r.name)}` : 'General'}</h2><span class="muted">${g.items.length} decision${g.items.length > 1 ? 's' : ''}</span></div><div class="sd-list">${g.items.map(x => stewardCard(d, x, true)).join('')}</div></section>`; }).join('');
+  return `<div class="page">${head('Race control', "Stewards' decisions", 'Incident reviews, penalties and outcomes from every round.')}
+    ${picker}${list.length ? body : empty('No decisions published', '<p>Clean racing so far. 🩵</p>')}</div>`;
+}
+
+/* ---------------- sign-ups ---------------- */
+function pageJoin(d) {
+  const s = d.signups, per = Number(s.seatsPerTeam) || 2;
+  const seats = d.teams.map(t => ({ t, n: per - d.drivers.filter(x => x.teamId === t.id && x.active !== false).length })).filter(x => x.n > 0);
+  const total = seats.reduce((a, b) => a + b.n, 0);
+  const taken = d.drivers.filter(x => x.active !== false && x.number !== '' && x.number != null).map(x => Number(x.number)).sort((a, b) => a - b);
+  const discord = d.league.links && d.league.links.discord;
+  const applyBtn = s.formUrl ? `<a class="btn primary" href="${esc(s.formUrl)}" target="_blank" rel="noopener">Apply now →</a>` : discord ? `<a class="btn primary" href="${esc(discord)}" target="_blank" rel="noopener">Apply on Discord →</a>` : '';
+  return `<div class="page">${head('Season ' + d.league.season, esc(s.title || 'Join the grid'), '')}
+    <div class="card" style="margin-bottom:20px"><div class="join-status"><span class="badge ${s.open ? 'next' : 'cancel'}" style="${s.open ? '' : 'text-decoration:none'}">${s.open ? 'Sign-ups open' : 'Sign-ups closed'}</span>${s.open && total ? `<span class="muted">${total} seat${total > 1 ? 's' : ''} available</span>` : ''}<span style="margin-left:auto">${s.open ? applyBtn : ''}</span></div>
+      ${s.intro ? `<div class="prose" style="margin-top:16px">${md(s.intro)}</div>` : `<p class="muted" style="margin:14px 0 0">${s.open ? 'We\'re looking for drivers! Read the requirements and send in an application.' : 'Sign-ups are closed right now — keep an eye on the news page or Discord for the next window.'}</p>`}
+    </div>
+    <div class="grid grid-2">
+      <div class="card"><div class="card-title"><h3>Open seats</h3></div>${seats.length ? `<ul class="mini">${seats.map(x => `<li><span class="swatch" style="--tc:${esc(teamColor(x.t))}"></span><span class="grow">${esc(x.t.name)}</span><span class="v">${x.n} seat${x.n > 1 ? 's' : ''}</span></li>`).join('')}</ul>` : '<p class="muted">Every race seat is filled — you can still apply as a reserve driver.</p>'}</div>
+      <div class="card"><div class="card-title"><h3>Requirements</h3></div>${s.requirements ? `<div class="prose" style="font-size:15px">${md(s.requirements)}</div>` : `<p class="muted">Check the <a href="#/rules">rules</a> before applying.</p>`}</div>
+    </div>
+    ${s.open && s.showBuilder !== false ? `<section class="card" style="margin-top:20px"><div class="card-title"><h3>Build your application</h3><span class="muted" style="font-size:13px">Fill it in, copy, and paste it ${s.formUrl ? 'into the form' : 'in Discord'}</span></div>
+      <div class="pform">
+        <label class="fld"><span>Name</span><input id="ap-name" type="text"></label>
+        <label class="fld"><span>Gamertag / PSN / Steam</span><input id="ap-tag" type="text"></label>
+        <label class="fld"><span>Platform</span><select id="ap-platform"><option>PC</option><option>PlayStation</option><option>Xbox</option></select></label>
+        <label class="fld"><span>Country</span><input id="ap-country" type="text"></label>
+        <label class="fld"><span>Preferred number</span><input id="ap-number" type="number" min="1" max="99"></label>
+        <label class="fld"><span>Availability</span><input id="ap-avail" type="text" placeholder="e.g. every Wednesday 8pm CT"></label>
+        <label class="fld wide"><span>Racing experience</span><textarea id="ap-exp" placeholder="Leagues, lap times, favourite tracks…"></textarea></label>
+        ${taken.length ? `<div class="wide"><span class="muted" style="font-size:13px">Numbers already taken:</span><div class="taken">${taken.map(n => `<span>#${n}</span>`).join('')}</div></div>` : ''}
+        <div class="wide" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" data-act="copy-app">Copy application</button>${applyBtn.replace('btn primary', 'btn')}</div>
+        <label class="fld wide" hidden><span>Your application</span><textarea id="ap-out" readonly rows="8"></textarea></label>
+      </div></section>` : ''}
+  </div>`;
+}
+function copyApplication() {
+  const v = id => ((document.getElementById('ap-' + id) || {}).value || '').trim();
+  if (!v('name')) return toast('Add your name first', 'err');
+  const num = v('number');
+  if (num && S.data.drivers.some(x => x.active !== false && String(x.number) === num)) return toast(`#${num} is already taken — pick another`, 'err');
+  const txt = [`**Driver application · ${S.data.league.name}**`, `Name: ${v('name')}`, `Gamertag: ${v('tag') || '—'}`, `Platform: ${v('platform')}`, `Country: ${v('country') || '—'}`, `Preferred number: ${num || 'Any'}`, `Availability: ${v('avail') || '—'}`, `Experience: ${v('exp') || '—'}`].join('\n');
+  const out = document.getElementById('ap-out');
+  if (out) { out.value = txt; out.closest('label').hidden = false; }
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
+    .then(() => toast('Application copied! Paste it ' + (S.data.signups.formUrl ? 'into the form.' : 'in Discord.')))
+    .catch(() => { if (out) out.select(); toast('Copy the text below and paste it in Discord.'); });
+}
+
 const notFound = () => `<div class="page">${empty('Page not found', '<p><a href="#/">Back to home</a></p>')}</div>`;
 
 /* ---------------- router & chrome ---------------- */
-const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News'], ['rules', 'Rules']];
+const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News']];
+const MORE = [['stewards', 'Stewards'], ['history', 'Hall of fame'], ['join', 'Join the league'], ['rules', 'Rules']];
 const ROUTES = [
   [/^$/, d => pageHome(d)],
   [/^schedule$/, d => pageSchedule(d)],
@@ -651,24 +872,31 @@ const ROUTES = [
   [/^news$/, d => pageNews(d)],
   [/^news\/([^/]+)$/, (d, m) => pageArticle(d, m[1])],
   [/^rules$/, d => pageRules(d)],
+  [/^stewards(?:\/([^/]+))?$/, (d, m) => pageStewards(d, m[1])],
+  [/^history$/, d => pageHistory(d)],
+  [/^history\/([^/]+)$/, (d, m) => pageHistorySeason(d, m[1])],
+  [/^join$/, d => pageJoin(d)],
   [/^admin(?:\/(\w+))?$/, (d, m) => window.Admin ? window.Admin.render(m[1]) : notFound()]
 ];
 
 function chrome() {
   const d = S.data, L = d.league;
+  applyTheme(d);
   document.title = (L.name || 'F1 League') + (L.season ? ` · ${L.season}` : '');
   document.getElementById('brand-name').textContent = L.name || 'F1 League';
   document.getElementById('brand-season').textContent = L.season ? 'Season ' + L.season : '';
   const mark = document.getElementById('brand-mark');
   mark.innerHTML = L.logo ? `<img src="${esc(L.logo)}" alt="" onerror="this.remove()">` : esc((L.name || 'F1').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase());
-  const path = location.hash.replace(/^#\/?/, '');
-  const top = path.split('/')[0];
-  const alias = { driver: 'drivers', team: 'teams' };
-  document.getElementById('nav').innerHTML = NAV.map(([k, l]) => `<a href="#/${k}" class="${(alias[top] || top) === k ? 'active' : ''}">${l}</a>`).join('');
+  const top = location.hash.replace(/^#\/?/, '').split('/')[0];
+  const cur = ({ driver: 'drivers', team: 'teams' })[top] || top;
+  const link = ([k, l]) => `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${l}${k === 'join' && d.signups.open ? '<span class="dot" title="Sign-ups open"></span>' : ''}</a>`;
+  const moreOn = MORE.some(([k]) => k === cur);
+  document.getElementById('nav').innerHTML = NAV.map(link).join('') +
+    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More ▾${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.map(link).join('')}</div></div>`;
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · Season ${esc(L.season)}<br><span style="font-size:12px">Fan-run sim racing league. Not affiliated with Formula 1.</span></div>
-    <div class="links">${ext}<a href="#/rules">Rules</a><a href="#/admin">Admin</a></div></div>`;
+    <div class="links">${ext}<a href="#/stewards">Stewards</a><a href="#/history">Hall of fame</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/admin">Admin</a></div></div>`;
 }
 
 function render(resetScroll) {
@@ -688,12 +916,26 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-act="discard-draft"]');
   if (b && confirm('Throw away all unpublished changes in this browser?')) discardDraft();
 });
+document.addEventListener('click', e => {
+  const more = e.target.closest('[data-act="more"]');
+  document.querySelectorAll('.more.open').forEach(m => { if (!more || !m.contains(more)) m.classList.remove('open'); });
+  if (more) { more.parentNode.classList.toggle('open'); return; }
+  const ser = e.target.closest('[data-series]');
+  if (ser) { const off = ser.classList.toggle('off'); const g = document.querySelector(`[data-line="${ser.dataset.series}"]`); if (g) g.style.display = off ? 'none' : ''; return; }
+  if (e.target.closest('[data-act="copy-app"]')) copyApplication();
+});
+document.getElementById('mode-toggle').addEventListener('click', () => {
+  lsSet(MODE_KEY, themeMode(S.data) === 'light' ? 'dark' : 'light');
+  applyTheme(S.data);
+});
+if (window.matchMedia) matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (S.data) applyTheme(S.data); });
 document.getElementById('nav-toggle').addEventListener('click', () => document.getElementById('nav').classList.toggle('open'));
 window.addEventListener('hashchange', () => render(true));
 
 /* expose helpers for the admin console */
 window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
-  rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING };
+  rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
+  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound };
 
 load().then(() => render(false));
 })();
