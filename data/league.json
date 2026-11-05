@@ -2,11 +2,11 @@
   "league": {
     "name": "MIKU Motorsports Association",
     "season": "2026",
-    "tagline": "Wednesday night wheel-to-wheel. Clean racing, cosy vibes, one championship.",
-    "logo": "",
+    "tagline": "When did leeks have wheels?",
+    "logo": "https://media.discordapp.net/attachments/1213166349577224353/1567746896511107134/migu.png?ex=6aed4d93&is=6aebfc13&hm=7bcef84613d5541d02f7d4a3da4b778565415846b55a9791381879b1fcc7a7db&=&format=webp&quality=lossless&width=2029&height=1768",
     "rules": "# Sporting regulations\n\n## Race format\n- Races are **50% distance**, dynamic weather, parc fermé on.\n- One-shot qualifying, 18 minutes.\n- Assists: ABS and traction control allowed; no racing line.\n\n## Conduct\n- Racing incidents are reviewed by the stewards after each round. Submit tickets in Discord within **24 hours**.\n- Penalties: warnings → time penalties → championship points deductions.\n- Three no-shows without notice and your seat goes to a reserve driver.\n\n## Reserves\nReserve drivers score points for the **team**, and keep their own points in the drivers' table.",
     "links": {
-      "discord": "https://discord.gg/your-invite",
+      "discord": "https://discord.gg/cuY4QGXA39",
       "youtube": "",
       "twitch": ""
     }
@@ -959,6 +959,6 @@
     }
   ],
   "meta": {
-    "updated": "2026-11-05T03:44:58.560Z"
+    "updated": "2026-11-05T03:47:02.585Z"
   }
 }
