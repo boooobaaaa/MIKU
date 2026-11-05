@@ -307,7 +307,7 @@ function htmlToMd(html) {
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 
-const plain = src => String(src || '').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/[#*_\[\]()>-]/g, '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim();
+const plain = src => String(src || '').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[#*_\[\]()>|]/g, '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim();
 
 function toast(msg, kind = 'ok') {
   const box = document.getElementById('toasts');
@@ -582,6 +582,7 @@ function pageHome(d) {
     </section>
 
     ${(() => { const r = rounds(d).filter(x => dotdOf(d, x.id)).pop(); return r ? `<section>${dotdCard(d, r.id, true)}</section>` : ''; })()}
+    ${fiaHomeSection(d)}
     ${ytSection(d)}
     <section>
       <div class="section-title"><h2>Latest news</h2><a href="#/news">All news →</a></div>
@@ -1175,7 +1176,7 @@ function pageAbout(d) {
 function searchIndex(d) {
   const items = [];
   const add = (type, title, sub, href, hay, img) => items.push({ type, title, sub, href, hay: (title + ' ' + (hay || '') + ' ' + (sub || '')).toLowerCase(), img });
-  [['Home', '#/'], ['Calendar', '#/schedule'], ['Results', '#/results'], ['Standings', '#/standings'], ['Constructors standings', '#/standings/teams'], ['Points progression', '#/standings/progress'], ['Drivers', '#/drivers'], ['Teams', '#/teams'], ['News', '#/news'], ['Rules', '#/rules'], [rcName(d), '#/stewards'], ['Hall of fame', '#/history'], ['Head to head', '#/h2h'], ['About', '#/about'], ['Join the league', '#/join']]
+  [['Home', '#/'], ['Calendar', '#/schedule'], ['Results', '#/results'], ['Standings', '#/standings'], ['Constructors standings', '#/standings/teams'], ['Points progression', '#/standings/progress'], ['Drivers', '#/drivers'], ['Teams', '#/teams'], ['News', '#/news'], ['Rules', '#/rules'], [rcName(d), '#/fia'], ['Fantasy league', '#/fantasy'], ['Hall of fame', '#/history'], ['Head to head', '#/h2h'], ['About', '#/about'], ['Join the league', '#/join']]
     .forEach(([t, h]) => add('Pages', t, '', h, ''));
   d.drivers.forEach(x => { const t = byId(d.teams, x.teamId); add('Drivers', x.name, `${hasVal(x.number) ? '#' + x.number + ' · ' : ''}${t ? t.name : 'Free agent'}`, '#/driver/' + x.id, `${x.number} ${x.gamertag || ''} ${x.country || ''}`, { drv: x, t }); });
   d.teams.forEach(t => {
@@ -1189,6 +1190,7 @@ function searchIndex(d) {
   const R = rulebookData(d);
   if (R) R.chapters.forEach(c => c.sections.forEach(x => add('Rules', `${x.num} ${x.title || x.label || ''}`.trim(), c.title, `#/rules/${c.id}/${x.id}`, plain(x.body).slice(0, 400))));
   d.stewards.forEach(x => { const r = byId(d.calendar, x.roundId); add(rcName(d), x.title || 'Decision', `${r ? 'R' + r.round + ' · ' : ''}${x.status || ''}`, '#/stewards' + (r ? '/' + r.id : ''), `${x.penalty || ''} ${plain(x.decision)} ${(byId(d.drivers, x.driverId) || {}).name || ''}`); });
+  fiaNewsList(d).forEach(x => add(rcName(d), x.title, `Announcement${x.date ? ' · ' + fmtDate(x.date) : ''}`, '#/fia/announcements', plain(x.body).slice(0, 400)));
   d.history.forEach(h => add('Hall of fame', `Season ${h.season}`, `${h.driverChampion || ''}${h.teamChampion ? ' · ' + h.teamChampion : ''}`, h.standings ? '#/history/' + h.id : '#/history', ''));
   return items;
 }
@@ -1494,17 +1496,45 @@ function docsHTML(docs) {
     ? `<img class="sd-doc zoomable" src="${esc(asset(u))}" alt="Official document" loading="lazy">`
     : `<a class="btn sm" href="${esc(asset(u))}" target="_blank" rel="noopener">📄 ${/\.pdf$/i.test(u) ? 'Open full report (PDF)' : 'Open document'}</a>`).join('')}</div>`;
 }
+const FIA_CATS = { notice: ['Notice', 'var(--miku)'], document: ['Document', '#9aa5ff'], penalty: ['Penalty', 'var(--pink)'], schedule: ['Schedule', '#f3d27a'], regulation: ['Regulation', '#86cecb'] };
+const fiaNewsList = d => [...(d.fiaNews || [])].filter(x => x && x.title && !x.hidden).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || String(b.date || '').localeCompare(String(a.date || '')));
+function fiaCard(d, x, short) {
+  const c = FIA_CATS[x.category] || FIA_CATS.notice, r = byId(d.calendar, x.roundId);
+  const body = short ? `<p>${esc(plain(x.body).slice(0, 170))}${plain(x.body).length > 170 ? '…' : ''}</p>` : `<div class="prose">${md(x.body || '')}</div>${docsHTML(x.docs)}`;
+  return `<article class="fia-card" style="--fc:${c[1]}">
+    <div class="fia-top"><span class="sd-org">${esc(rcName(d))}</span><span class="fia-cat">${esc(c[0])}</span>${x.pinned ? '<span title="Pinned">📌</span>' : ''}<span class="muted fia-date">${x.date ? esc(fmtDate(x.date, { day: 'numeric', month: 'short', year: 'numeric' })) + (String(x.date).length > 10 ? ' · ' + esc(fmtTime(x.date)) : '') : ''}</span></div>
+    <h3>${short ? `<a href="#/fia/announcements">${esc(x.title)}</a>` : esc(x.title)}</h3>
+    ${r ? `<a class="chip" href="#/results/${esc(r.id)}" style="margin-bottom:8px;display:inline-block">${flag(r.country)} R${esc(r.round)} · ${esc(r.name)}</a>` : ''}
+    ${body}
+  </article>`;
+}
+function fiaHomeSection(d) {
+  const list = fiaNewsList(d).slice(0, 3);
+  if (!list.length) return '';
+  return `<section><div class="section-title"><h2>Latest from the ${esc(rcName(d))}</h2><a href="#/fia/announcements">All ${esc(rcName(d))} announcements →</a></div><div class="fia-grid">${list.map(x => fiaCard(d, x, true)).join('')}</div></section>`;
+}
 function pageStewards(d, rid) {
+  const feed = d.fiaFeed || {};
+  const hasLive = /^\d{5,}$/.test(String(feed.server || '').trim()) && /^\d{5,}$/.test(String(feed.channel || '').trim());
+  const news = fiaNewsList(d);
+  let tab = rid === 'announcements' || rid === 'decisions' || rid === 'live' ? rid : rid ? 'decisions' : (news.length ? 'announcements' : 'decisions');
+  if (rid === 'decisions' || rid === 'announcements' || rid === 'live') rid = null;
+  const tabs = `<div class="tabs"><a href="#/fia/announcements" class="${tab === 'announcements' ? 'active' : ''}">Announcements${news.length ? ` <span class="muted">${news.length}</span>` : ''}</a><a href="#/fia/decisions" class="${tab === 'decisions' ? 'active' : ''}">Decisions${d.stewards.length ? ` <span class="muted">${d.stewards.length}</span>` : ''}</a>${hasLive ? `<a href="#/fia/live" class="${tab === 'live' ? 'active' : ''}">● Live from Discord</a>` : ''}</div>`;
+  const top = head('Race control', esc(rcName(d)), 'Official announcements, documents, incident reviews and penalties.');
+  if (tab === 'announcements') return `<div class="page">${top}${tabs}${news.length ? `<div class="fia-list">${news.map(x => fiaCard(d, x)).join('')}</div>` : empty('No announcements yet')}</div>`;
+  if (tab === 'live') return `<div class="page">${top}${tabs}<div class="fia-live"><iframe src="https://e.widgetbot.io/channels/${esc(String(feed.server).trim())}/${esc(String(feed.channel).trim())}" title="${esc(rcName(d))} Discord channel" loading="lazy" allow="clipboard-write; fullscreen"></iframe></div><p class="hint">Live view of the league's Discord channel.</p></div>`;
+  return `<div class="page">${top}${tabs}${pageStewardsBody(d, rid)}</div>`;
+}
+function pageStewardsBody(d, rid) {
   const rorder = x => { const r = byId(d.calendar, x.roundId); return r ? Number(r.round) || 0 : -1; };
   const all = [...d.stewards].sort((a, b) => rorder(b) - rorder(a));
   const withDec = rounds(d).filter(r => all.some(x => x.roundId === r.id));
   const list = rid ? all.filter(x => x.roundId === rid) : all;
-  const picker = withDec.length > 1 ? `<div class="round-picker"><a href="#/stewards" class="${!rid ? 'active' : ''}">All rounds</a>${withDec.map(r => `<a href="#/stewards/${esc(r.id)}" class="${r.id === rid ? 'active' : ''}">${flag(r.country)} R${esc(r.round)}</a>`).join('')}</div>` : '';
+  const picker = withDec.length > 1 ? `<div class="round-picker"><a href="#/fia/decisions" class="${!rid ? 'active' : ''}">All rounds</a>${withDec.map(r => `<a href="#/stewards/${esc(r.id)}" class="${r.id === rid ? 'active' : ''}">${flag(r.country)} R${esc(r.round)}</a>`).join('')}</div>` : '';
   const groups = [];
   list.forEach(x => { const g = groups.find(y => y.id === (x.roundId || '')); if (g) g.items.push(x); else groups.push({ id: x.roundId || '', items: [x] }); });
   const body = groups.map(g => { const r = byId(d.calendar, g.id); return `<section><div class="section-title"><h2>${r ? `${flag(r.country)} R${esc(r.round)} · ${esc(r.name)}` : 'General'}</h2><span class="muted">${g.items.length} decision${g.items.length > 1 ? 's' : ''}</span></div><div class="sd-list">${g.items.map(x => stewardCard(d, x, true)).join('')}</div></section>`; }).join('');
-  return `<div class="page">${head('Race control', esc(rcName(d)), 'Official documents, incident reviews and penalties from every round.')}
-    ${picker}${list.length ? body : empty('No decisions published', '<p>Clean racing so far. 🩵</p>')}</div>`;
+  return `${picker}${list.length ? body : empty('No decisions published', '<p>Clean racing so far. 🩵</p>')}`;
 }
 
 /* ---------------- sign-ups ---------------- */
@@ -1694,7 +1724,7 @@ const notFound = () => `<div class="page">${empty('Page not found', '<p><a href=
 
 /* ---------------- router & chrome ---------------- */
 const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News']];
-const MORE = [['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['rules', 'Rules'], ['about', 'About'], ['join', 'Join the league']];
+const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['join', 'Join the league']];
 const ROUTES = [
   [/^$/, d => pageHome(d)],
   [/^schedule$/, d => pageSchedule(d)],
@@ -1714,6 +1744,7 @@ const ROUTES = [
   [/^join$/, d => pageJoin(d)],
   [/^h2h(?:\/(drivers|teams))?(?:\/([^/]+))?(?:\/([^/]+))?$/, (d, m) => pageH2H(d, m[1], m[2], m[3])],
   [/^about$/, d => pageAbout(d)],
+  [/^fantasy(?:\/(\w+))?$/, (d, m) => window.Fantasy ? window.Fantasy.page(d, m[1]) : notFound()],
   [/^search(?:\/(.*))?$/, (d, m) => pageSearch(d, m[1] || '')],
   [/^admin(?:\/(\w+))?$/, (d, m) => window.Admin ? window.Admin.render(m[1]) : notFound()]
 ];
@@ -1758,7 +1789,8 @@ function chrome() {
   raceBar();
   const link = ([k, l]) => `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${l}${k === 'join' && d.signups.open ? '<span class="dot" title="Sign-ups open"></span>' : ''}</a>`;
   const moreOn = MORE.some(([k]) => k === cur);
-  document.getElementById('nav').innerHTML = NAV.map(link).join('') +
+  const navItems = d.fantasy && d.fantasy.enabled ? [...NAV, ['fantasy', 'Fantasy']] : NAV;
+  document.getElementById('nav').innerHTML = navItems.map(link).join('') +
     `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More ▾${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
@@ -1830,7 +1862,7 @@ window.addEventListener('hashchange', () => render(true));
 /* expose helpers for the admin console */
 window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
   rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
-  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
+  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 
 load().then(() => render(false));
 })();

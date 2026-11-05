@@ -13,7 +13,7 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'FIA reports', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -147,6 +147,7 @@ function secDrivers(d) {
         ${F.text('Country code (e.g. GB, JP, US)', p + '.country', x.country, 'maxlength="2" data-reload')}
         ${F.select('Team', p + '.teamId', x.teamId, teamOpts(d))}
         ${F.text('Gamertag / PSN / Steam', p + '.gamertag', x.gamertag)}
+        ${F.num('Fantasy value (millions)', p + '.fantasyValue', x.fantasyValue, 'placeholder="auto"')}
         ${F.check('Active on the grid', p + '.active', x.active !== false)}
         ${F.image('Driver photo (driver cards, team page & profile)', p + '.photo', x.photo, 'drivers', 1400, 'driverPhoto')}
         ${F.image('Headshot for the small circles (optional — the photo is used if empty)', p + '.headshot', x.headshot, 'drivers', 500, 'headshot')}
@@ -474,6 +475,127 @@ function secTheme(d) {
 
 /* ---------------- stewards ---------------- */
 const SD_STATUS = ['Under investigation', 'No further action', 'Reprimand', 'Warning', 'Penalty'];
+const WH_KEY = 'league.discord.webhook';
+function fiaAnnouncements(d) {
+  const list = (d.fiaNews = d.fiaNews || []);
+  const rs = LG.rounds(d);
+  const order = [...list.keys()].sort((a, b) => String(list[b].date || '').localeCompare(String(list[a].date || '')));
+  const hook = ls.get(WH_KEY) || '';
+  return `<div class="a-card"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0">Announcements</h3><button class="btn sm primary" data-act="add-fia">+ New announcement</button></div>
+    <p class="hint" style="margin:-4px 0 12px">The 3 newest show on the home page under "Latest from the ${esc(d.league.raceControl || 'FIA')}" with a link to all of them.</p>
+    ${order.map(i => { const x = list[i], key = 'fia-' + x.id, pp = `fiaNews.${i}`; return `<details class="item" data-key="${key}" ${A.open[key] ? 'open' : ''}>
+      <summary><span class="chip">${esc((x.category || 'notice'))}</span><b>${esc(x.title || 'Untitled')}</b><span class="muted" style="font-size:13px">${x.date ? LG.fmtDate(x.date) : ''}</span>${x.pinned ? '📌' : ''}${x.posted ? '<span class="pill-inactive">sent to Discord</span>' : ''}${x.hidden ? '<span class="pill-inactive">hidden</span>' : ''}</summary>
+      <div class="body"><div class="fgrid">
+        ${F.text('Title', pp + '.title', x.title, 'wide data-reload')}
+        ${F.dt('Date & time', pp + '.date', x.date)}
+        ${F.select('Category', pp + '.category', x.category || 'notice', [['notice', 'Notice'], ['document', 'Document'], ['penalty', 'Penalty'], ['schedule', 'Schedule'], ['regulation', 'Regulation']])}
+        ${F.select('Round (optional)', pp + '.roundId', x.roundId || '', [['', '— none —'], ...rs.map(r => [r.id, 'R' + r.round + ' ' + r.name])])}
+        ${F.check('Pin to top', pp + '.pinned', x.pinned)}
+        ${F.check('Hidden', pp + '.hidden', x.hidden)}
+        ${F.area('Announcement — you can paste straight from Discord', pp + '.body', x.body || '', 'tall')}
+        <div class="wide"><div class="doc-list">${(x.docs || []).map((u, k) => `<div class="doc-item">${LG.isImg(u) ? `<img src="${esc(LG.asset(u))}" alt="">` : '<span class="doc-ic">📄</span>'}<span class="mono">${esc(String(u).split('/').pop())}</span><button class="iconbtn del" data-act="del-fia-doc" data-i="${i}" data-k="${k}">✕</button></div>`).join('')}</div>
+          <button class="btn sm" data-act="upload" data-mode="push" data-target="${pp}.docs" data-folder="fia" data-max="2600" data-multiple="1" data-accept="image/*,application/pdf">⬆ Attach document(s)</button></div>
+      </div>
+      <div class="item-actions">${hook ? `<button class="btn sm" data-act="post-fia" data-i="${i}">${x.posted ? '↻ Send to Discord again' : '➤ Send to Discord'}</button>` : ''}<a class="btn sm ghost" href="#/fia/announcements">View</a><button class="btn sm danger" data-act="del-fia" data-i="${i}">Delete</button></div></div>
+    </details>`; }).join('') || '<p class="muted">No announcements yet.</p>'}
+  </div>
+  <div class="a-card"><h3>Discord connection</h3>
+    <div class="fgrid">
+      <label class="fld wide"><span>Webhook for your FIA channel — lets you send announcements to Discord from here (saved in this browser only)</span><input type="password" id="wh-url" value="${esc(hook)}" placeholder="https://discord.com/api/webhooks/…" autocomplete="off"></label>
+    </div>
+    <div class="toolbar" style="margin-top:10px"><button class="btn sm" data-act="save-wh">Save webhook</button>${hook ? '<button class="btn sm" data-act="test-wh">Send test message</button><button class="btn sm danger" data-act="forget-wh">Forget</button>' : ''}</div>
+    <p class="hint">Discord → your FIA channel → ⚙ Edit channel → Integrations → Webhooks → New webhook → Copy URL. Keep it private: anyone with it can post in that channel.</p>
+    <div class="fgrid" style="margin-top:14px">
+      ${F.text('Discord server ID (optional live feed)', 'fiaFeed.server', (d.fiaFeed || {}).server || '', 'placeholder="123456789012345678"')}
+      ${F.text('FIA channel ID', 'fiaFeed.channel', (d.fiaFeed || {}).channel || '', 'placeholder="123456789012345678"')}
+    </div>
+    <p class="hint">Optional: shows the real Discord channel live on the ${esc(d.league.raceControl || 'FIA')} page ("Live from Discord" tab). It uses the free <a href="https://widgetbot.io" target="_blank" rel="noopener">WidgetBot</a> service — add their bot to your server first. Get IDs by turning on Discord → Settings → Advanced → Developer Mode, then right-click the server / channel → Copy ID.</p>
+  </div>`;
+}
+async function postToDiscord(x, d) {
+  const hook = ls.get(WH_KEY); if (!hook) return toast('Save a Discord webhook first', 'err');
+  const colors = { notice: 0x39c5bb, document: 0x9aa5ff, penalty: 0xe12885, schedule: 0xf3d27a, regulation: 0x86cecb };
+  const site = location.href.split('#')[0];
+  const files = (x.docs || []).filter(u => !/^https?:/.test(u)).map(u => site + u).concat((x.docs || []).filter(u => /^https?:/.test(u)));
+  const img = files.find(u => LG.isImg(u));
+  const body = { username: d.league.raceControl || 'FIA', embeds: [{ title: x.title, url: site + '#/fia/announcements', description: String(x.body || '').slice(0, 3900) + (files.filter(u => !LG.isImg(u)).length ? '\n\n' + files.filter(u => !LG.isImg(u)).map(u => `📄 ${u}`).join('\n') : ''), color: colors[x.category] || colors.notice, timestamp: x.date || new Date().toISOString(), footer: { text: d.league.name } }] };
+  if (img) body.embeds[0].image = { url: img };
+  try {
+    const r = await fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(r.status + ' ' + (await r.text()).slice(0, 120));
+    return true;
+  } catch (err) { toast('Discord refused it: ' + err.message, 'err'); return false; }
+}
+
+/* ---------------- fantasy admin ---------------- */
+function secFantasy(d) {
+  const FT = window.Fantasy, f = FT.cfg(d), S = FT.standings(d);
+  const priceInput = a => {
+    if (a.kind === 'driver') { const i = d.drivers.findIndex(x => x.id === a.id); return `<input type="number" step="0.5" data-num data-path="drivers.${i}.fantasyValue" value="${esc(d.drivers[i].fantasyValue ?? '')}" placeholder="${esc(a.price)}">`; }
+    return `<input type="number" step="0.5" data-num data-path="fantasy.prices.${a.id}" value="${esc(f.prices[a.id] ?? '')}" placeholder="${esc(a.price)}">`;
+  };
+  const kinds = ['driver', 'principal', 'engineer', 'reserve'];
+  return head('Fantasy league', 'Fans build a team on the site and get an <b>entry code</b>. They post it in Discord, you paste the codes below, then publish — the global leaderboard updates from your race results.', '<a class="btn" href="#/fantasy">View page</a>') + `
+    <div class="a-card"><h3>Setup</h3><div class="fgrid">
+      ${F.check('Fantasy is open (adds the Fantasy tab)', 'fantasy.enabled', f.enabled)}
+      ${F.num('Budget (millions)', 'fantasy.budget', f.budget, 'data-reload')}
+      ${F.num('Max race engineers', 'fantasy.maxEngineers', f.maxEngineers, 'data-reload')}
+      ${F.text('Where fans send codes (link — defaults to your Discord)', 'fantasy.submitUrl', f.submitUrl || '', 'placeholder="https://discord.gg/…"')}
+      ${F.text('Intro line on the Fantasy page', 'fantasy.intro', f.intro || '', 'wide')}
+    </div></div>
+    <div class="a-card"><h3>Scoring</h3><div class="fgrid">
+      <label class="fld wide"><span>Finishing position points (P1, P2, …)</span><input type="text" data-list data-path="fantasy.positions" value="${esc((f.positions || []).join(', '))}"></label>
+      <label class="fld wide"><span>Sprint points (empty = sprints don't count)</span><input type="text" data-list data-path="fantasy.sprint" value="${esc((f.sprint || []).join(', '))}"></label>
+      ${F.num('Captain multiplier', 'fantasy.captainMult', f.captainMult)}
+      ${F.num('Pole position bonus', 'fantasy.pole', f.pole)}
+      ${F.num('Fastest lap bonus', 'fantasy.fastestLap', f.fastestLap)}
+      ${F.num('…only if finishing top N (0 = any)', 'fantasy.fastestLapTopN', f.fastestLapTopN)}
+      ${F.num('DNF / DSQ points (e.g. -5)', 'fantasy.dnf', f.dnf)}
+      ${F.num('Team principal: % of both drivers’ points', 'fantasy.principalPct', f.principalPct)}
+      ${F.num('Race engineer: % of their driver’s points', 'fantasy.engineerPct', f.engineerPct)}
+      ${F.num('Reserve: % of their points when they race', 'fantasy.reservePct', f.reservePct)}
+    </div><p class="hint">Changing scoring recalculates the whole leaderboard instantly. Engineers use the "works with" driver set under Constructors → Team personnel (or the team average if none).</p></div>
+    <div class="a-card"><h3>Market prices <span class="muted" style="font-weight:400;font-size:13px">· millions · leave empty to use the suggested price shown in grey</span></h3>
+      <div class="toolbar" style="margin-bottom:12px"><button class="btn sm" data-act="ft-autoprice">Fill all with suggested prices</button><button class="btn sm danger" data-act="ft-clearprice">Clear all (back to suggested)</button></div>
+      ${kinds.map(k => { const list = S.assets.filter(a => a.kind === k); return list.length ? `<div class="ft-price-h">${FT.KIND_LABEL[k]}s</div><div class="ft-price-grid">${list.map(a => `<label class="ft-price-row"><span class="swatch" style="--tc:${esc(LG.teamColor(a.team))}"></span><span class="ft-pn">${esc(a.name)}<small>${esc(a.team ? a.team.name : '')} · ${LG.fmtPts((S.assetPts[a.id] || {}).total || 0)} pts</small></span>${priceInput(a)}</label>`).join('')}</div>` : ''; }).join('') || '<p class="muted">Add drivers and team personnel first.</p>'}
+      <p class="hint">Principals, race engineers and reserves come from each team's personnel. Prices can change any time — teams already entered keep their picks.</p></div>
+    <div class="a-card"><h3>Add entries from Discord</h3>
+      <p class="hint" style="margin:-4px 0 10px">Copy the messages from your fantasy channel (several at once is fine) and paste them here. Codes start with <code>FTSY1.</code> A new code from someone already in the league replaces their picks from the next race that hasn't started.</p>
+      <textarea id="ft-paste" rows="4" style="width:100%" placeholder="Paste entry codes here…"></textarea>
+      <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="ft-import">Add / update entries</button></div>
+      <div id="ft-import-log"></div>
+    </div>
+    <div class="a-card"><h3>Entries (${f.entries.length})</h3>
+      ${S.table.length ? `<table class="rtable"><thead><tr><th>#</th><th>Team</th><th>Manager</th><th>Discord</th><th>Picks now</th><th>Changes</th><th>Pts</th><th></th></tr></thead><tbody>${S.table.map(x => { const pk = x.picks || {}; const nm = id => (S.aById[id] || {}).name || '?'; const i = f.entries.indexOf(x.entry); return `<tr><td class="c-pos">${x.rank}</td><td><b>${esc(x.entry.team)}</b></td><td>${esc(x.entry.manager)}</td><td class="muted">${esc(x.entry.discord || '')}</td><td style="font-size:12.5px">${esc((pk.d || []).map(id => nm(id).split(' ').pop() + (id === pk.c ? '★' : '')).join(', '))}${pk.tp ? ' · TP ' + esc(nm(pk.tp).split(' ').pop()) : ''}</td><td class="mono">${(x.entry.history || []).length}</td><td class="c-pts">${LG.fmtPts(x.total)}</td><td class="c-act"><button class="iconbtn del" data-act="ft-del" data-i="${i}">✕</button></td></tr>`; }).join('')}</tbody></table>` : '<p class="muted">No entries yet.</p>'}
+    </div>`;
+}
+function importFantasy(d) {
+  const FT = window.Fantasy, f = FT.cfg(d);
+  const codes = FT.readCodes(document.getElementById('ft-paste').value);
+  if (!codes.length) return toast('No entry codes found — they start with FTSY1.', 'err');
+  const log = [];
+  codes.sort((a, b) => String(a.ts).localeCompare(String(b.ts))).forEach(c => {
+    const name = (c.t || '').trim(), mgr = (c.m || '').trim();
+    if (!mgr || !c.p) { log.push(['err', 'A code was missing details — skipped.']); return; }
+    const v = FT.validate(d, c.p);
+    if (!v.ok) { log.push(['err', `${mgr} (${name}): ${v.errs.join(', ')} — skipped.`]); return; }
+    const from = FT.effectiveRoundFor(d, c.ts);
+    const r = byId(d.calendar, from);
+    let en = f.entries.find(e => FT.slug(e.manager) === FT.slug(mgr) && (!e.discord || !c.dc || FT.slug(e.discord) === FT.slug(c.dc)));
+    if (!en) { en = { id: uid('ft'), manager: mgr, team: name, discord: c.dc || '', history: [] }; f.entries.push(en); }
+    en.team = name || en.team; if (c.dc) en.discord = c.dc;
+    const h = en.history;
+    if (h.length && h[h.length - 1].from === from) h[h.length - 1] = { from, picks: c.p, ts: c.ts };
+    else if (!h.some(x => x.ts === c.ts)) h.push({ from: h.length ? from : (LG.rounds(d).some(x => LG.isDone(d, x)) ? from : ''), picks: c.p, ts: c.ts });
+    log.push(['ok', `${mgr} — “${name}” ${h.length > 1 ? 'updated' : 'added'}${r ? `, counts from R${r.round}` : from === '__after__' ? ' (season over — won’t score)' : ''}.`]);
+  });
+  d.fantasy = f;
+  LG.saveDraft(); rerender();
+  const el = document.getElementById('ft-import-log');
+  if (el) el.innerHTML = `<ul class="ft-log">${log.map(([k, m]) => `<li class="${k}">${k === 'ok' ? '✓' : '✕'} ${esc(m)}</li>`).join('')}</ul>`;
+  toast(`${log.filter(x => x[0] === 'ok').length} entr${log.filter(x => x[0] === 'ok').length === 1 ? 'y' : 'ies'} added/updated`);
+}
+
 function secStewards(d) {
   const rs = LG.rounds(d);
   const order = x => { const r = byId(d.calendar, x.roundId); return r ? Number(r.round) || 0 : -1; };
@@ -500,8 +622,8 @@ function secStewards(d) {
       </div><div class="item-actions"><a class="btn sm ghost" href="#/stewards">View page</a><button class="btn sm danger" data-act="del-sd" data-i="${i}">Delete report</button></div></div>
     </details>`;
   }).join('');
-  return head(esc((d.league.raceControl || 'FIA')) + ' reports', "Log incidents and decisions. They show on the " + esc(d.league.raceControl || 'FIA') + " page and under that round's results. Championship points entered here are applied to the standings automatically.", '<button class="btn primary" data-act="add-sd">+ New report</button>') +
-    `<div class="a-card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><button class="btn primary" data-act="upload" data-mode="new-sd" data-folder="stewards" data-max="2600" data-multiple="1" data-accept="image/*,application/pdf">⬆ New report(s) from files</button><span class="hint" style="margin:0">Pick one or more filled-in templates — each becomes a report on the latest round. Then just set the dropdowns.</span></div>
+  return head(esc((d.league.raceControl || 'FIA')), "Log incidents and decisions. They show on the " + esc(d.league.raceControl || 'FIA') + " page and under that round's results. Championship points entered here are applied to the standings automatically.", '<button class="btn primary" data-act="add-sd">+ New report</button>') +
+    fiaAnnouncements(d) + `<h2 style="font-size:20px;margin:26px 0 12px">Decisions & incident reports</h2><div class="a-card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><button class="btn primary" data-act="upload" data-mode="new-sd" data-folder="stewards" data-max="2600" data-multiple="1" data-accept="image/*,application/pdf">⬆ New report(s) from files</button><span class="hint" style="margin:0">Pick one or more filled-in templates — each becomes a report on the latest round. Then just set the dropdowns.</span></div>
     <div class="a-card">${items || '<p class="muted">No reports yet.</p>'}</div>
     <p class="hint">Time penalties that change the finishing order still need the driver moved down in <a href="#/admin/results">Results</a>.</p>`;
 }
@@ -556,7 +678,7 @@ function render(sec) {
   if (!sec) A.section = 'dashboard';
   const d = D();
   if (!unlocked()) return lockHTML();
-  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout }[A.section];
+  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${SECTIONS.map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${l}</a>`).join('')}
@@ -713,6 +835,21 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'add-fia': { d.fiaNews = d.fiaNews || []; const x = { id: uid('fia'), title: 'New announcement', date: new Date().toISOString(), category: 'notice', body: '', roundId: '', docs: [] }; d.fiaNews.push(x); A.open['fia-' + x.id] = true; return commit(); }
+    case 'del-fia': if (confirm('Delete this announcement?')) { d.fiaNews.splice(i, 1); commit(); } return;
+    case 'del-fia-doc': d.fiaNews[i].docs.splice(Number(b.dataset.k), 1); return commit();
+    case 'post-fia': { b.disabled = true; const ok = await postToDiscord(d.fiaNews[i], d); if (ok) { d.fiaNews[i].posted = new Date().toISOString(); toast('Sent to Discord ✓'); commit(); } else b.disabled = false; return; }
+    case 'save-wh': { const v = document.getElementById('wh-url').value.trim(); if (v && !/^https:\/\/(?:\w+\.)?discord(?:app)?\.com\/api\/webhooks\//.test(v)) return toast('That doesn\'t look like a Discord webhook link', 'err'); ls.set(WH_KEY, v); toast(v ? 'Webhook saved in this browser' : 'Webhook removed'); return rerender(); }
+    case 'forget-wh': try { localStorage.removeItem(WH_KEY); } catch (x) { } return rerender();
+    case 'test-wh': { const ok = await postToDiscord({ title: 'Test message', body: 'If you can see this, the website can post announcements here. ✅', category: 'notice' }, d); if (ok) toast('Test sent — check your Discord channel'); return; }
+    case 'ft-import': return importFantasy(d);
+    case 'ft-del': if (confirm('Remove this fantasy team from the league?')) { d.fantasy.entries.splice(i, 1); commit(); } return;
+    case 'ft-autoprice': {
+      const S = window.Fantasy.standings(d);
+      S.assets.forEach(a => { if (a.kind === 'driver') { const x = byId(d.drivers, a.id); if (x && !LG.S.data.drivers.find(z => z.id === a.id).fantasyValue) x.fantasyValue = a.price; } else if (d.fantasy.prices[a.id] === undefined || d.fantasy.prices[a.id] === '') d.fantasy.prices[a.id] = a.price; });
+      toast('Suggested prices filled in — edit any of them'); return commit();
+    }
+    case 'ft-clearprice': if (confirm('Clear every custom price?')) { d.fantasy.prices = {}; d.drivers.forEach(x => { delete x.fantasyValue; }); commit(); } return;
     case 'add-person': { const arr = getPath(d, b.dataset.list) || []; arr.push({}); setPath(d, b.dataset.list, arr); return commit(); }
     case 'del-person': { const arr = getPath(d, b.dataset.list) || []; arr.splice(Number(b.dataset.k), 1); return commit(); }
     case 'rb-clear': if (confirm('Remove the imported rulebook? (The Rules page goes back to your simple rules text.)')) { d.rulebook.md = ''; commit(); } return;
