@@ -7,7 +7,7 @@
     "rules": "# Sporting regulations\n\n## Race format\n- Races are **50% distance**, dynamic weather, parc fermé on.\n- One-shot qualifying, 18 minutes.\n- Assists: ABS and traction control allowed; no racing line.\n\n## Conduct\n- Racing incidents are reviewed by the stewards after each round. Submit tickets in Discord within **24 hours**.\n- Penalties: warnings → time penalties → championship points deductions.\n- Three no-shows without notice and your seat goes to a reserve driver.\n\n## Reserves\nReserve drivers score points for the **team**, and keep their own points in the drivers' table.",
     "links": {
       "discord": "https://discord.gg/cuY4QGXA39",
-      "youtube": "",
+      "youtube": "https://www.youtube.com/@MIKUMotorsports",
       "twitch": ""
     }
   },
@@ -1153,7 +1153,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-05T16:54:13.675Z"
+    "updated": "2026-11-05T17:01:50.850Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1220,5 +1220,9 @@
       }
     ],
     "image": "uploads/about/2026-11-05-mikuabouttest-6opq.png"
+  },
+  "youtube": {
+    "channelUrl": "https://www.youtube.com/@MIKUMotorsports",
+    "channelId": "UCDXs7HTZzy8fO4pXRUR32hQ"
   }
 }
