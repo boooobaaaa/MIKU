@@ -3,7 +3,7 @@
     "name": "MIKU Motorsports Association",
     "season": "2026",
     "tagline": "When did leeks have wheels?",
-    "logo": "https://media.discordapp.net/attachments/1213166349577224353/1567746896511107134/migu.png?ex=6aed4d93&is=6aebfc13&hm=7bcef84613d5541d02f7d4a3da4b778565415846b55a9791381879b1fcc7a7db&=&format=webp&quality=lossless&width=2029&height=1768",
+    "logo": "uploads/branding/2026-11-05-migu-copy-zq1w.png",
     "rules": "# Sporting regulations\n\n## Race format\n- Races are **50% distance**, dynamic weather, parc fermé on.\n- One-shot qualifying, 18 minutes.\n- Assists: ABS and traction control allowed; no racing line.\n\n## Conduct\n- Racing incidents are reviewed by the stewards after each round. Submit tickets in Discord within **24 hours**.\n- Penalties: warnings → time penalties → championship points deductions.\n- Three no-shows without notice and your seat goes to a reserve driver.\n\n## Reserves\nReserve drivers score points for the **team**, and keep their own points in the drivers' table.",
     "links": {
       "discord": "https://discord.gg/cuY4QGXA39",
@@ -132,7 +132,43 @@
       "principal": "Laurent Mekies",
       "engine": "Red Bull Ford",
       "car": "RB22",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752850497347675/rbr.png?ex=6aed531e&is=6aec019e&hm=12231a577145bd2f09b509ac76674dcf37dd208120419adca3b4aa0238b1b45f&"
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752850497347675/rbr.png?ex=6aed531e&is=6aec019e&hm=12231a577145bd2f09b509ac76674dcf37dd208120419adca3b4aa0238b1b45f&",
+      "staff": {
+        "exec": {
+          "title": "Executive Officer",
+          "name": "Seojun Park",
+          "country": "VN",
+          "photo": "uploads/staff/2026-11-05-seocrossedarm1-rz29.png"
+        },
+        "principal": {
+          "name": "Adam Jones",
+          "country": "US",
+          "photo": "uploads/staff/2026-11-05-rbadam-uvai.png"
+        },
+        "race": [
+          {
+            "name": "Adam Jones",
+            "country": "US",
+            "driverId": "drv-8vg761",
+            "photo": "uploads/staff/2026-11-05-rbadam-xc8w.png"
+          },
+          {
+            "name": "Cassidy Leeks",
+            "photo": "uploads/staff/2026-11-05-rbcassidy-lol0.png",
+            "country": "US",
+            "driverId": "drv-ncu50w"
+          }
+        ],
+        "reserves": [
+          {
+            "name": "Alexandros Margaritis",
+            "country": "GR",
+            "number": 54,
+            "photo": "uploads/staff/2026-11-05-rbalexandros-qwds.png"
+          }
+        ]
+      },
+      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/redbullracing/2026redbullracingcarright.webp"
     },
     {
       "id": "team-0tr4e5",
@@ -142,7 +178,28 @@
       "principal": "Alan Permane",
       "engine": "Red Bull Ford",
       "car": "VCARB 03",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752850983878656/vcarb.png?ex=6aed531f&is=6aec019f&hm=0b8a3d2adc85d18b59c1e1cbe2fabd65a85cccddba40452be4a360ac0b365223&"
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752850983878656/vcarb.png?ex=6aed531f&is=6aec019f&hm=0b8a3d2adc85d18b59c1e1cbe2fabd65a85cccddba40452be4a360ac0b365223&",
+      "staff": {
+        "exec": {
+          "title": "Executive Officer",
+          "name": "Seojun Park",
+          "country": "VN",
+          "photo": "uploads/staff/2026-11-05-seocrossedarm1-8un6.png"
+        },
+        "principal": {
+          "name": "Tao Yuze",
+          "country": "CN",
+          "photo": "uploads/staff/2026-11-05-vcarbtao-n7x9.png"
+        },
+        "race": [
+          {
+            "name": "Tao Yuze",
+            "photo": "uploads/staff/2026-11-05-vcarbtao-xm1q.png",
+            "country": "CN"
+          }
+        ]
+      },
+      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/racingbulls/2026racingbullscarright.webp"
     },
     {
       "id": "team-rzql3o",
@@ -1057,12 +1114,12 @@
   "stewards": [],
   "history": [],
   "theme": {
-    "accent": "#39c5bb",
-    "accentSoft": "#86cecb",
-    "accentDeep": "#137a7f",
-    "highlight": "#e12885",
-    "bgDark": "#07090c",
-    "bgLight": "#f2f8f7",
+    "accent": "#f4a6c6",
+    "accentSoft": "#ffd1e3",
+    "accentDeep": "#b2557f",
+    "highlight": "#5fd3c4",
+    "bgDark": "#0d0a0c",
+    "bgLight": "#fbf4f7",
     "defaultMode": "dark",
     "allowToggle": true,
     "effects": true
@@ -1077,6 +1134,6 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-05T06:20:49.575Z"
+    "updated": "2026-11-05T07:17:50.693Z"
   }
 }
