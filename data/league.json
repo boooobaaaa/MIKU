@@ -45,48 +45,48 @@
   "teams": [
     {
       "id": "aqua",
-      "name": "Aqua Vertex Racing",
-      "color": "#39c5bb",
-      "base": "Sapporo, Japan",
-      "principal": "Mei Hoshino",
-      "car": "AVR-26",
+      "name": "BWT Alpine F1 Team",
+      "color": "#f08fbc",
+      "base": "Enstone, United Kingdom",
+      "principal": "Steve Nielsen",
+      "car": "A526",
       "engine": "Mercedes"
     },
     {
       "id": "crimson",
-      "name": "Crimson Lantern GP",
-      "color": "#e2445c",
-      "base": "Maranello, Italy",
-      "principal": "Luca Bassi",
-      "car": "CL-07",
-      "engine": "Ferrari"
+      "name": "Aston Martin Aramco F1 Team",
+      "color": "#2d7b59",
+      "base": "Silverstone, United Kingdom",
+      "principal": "Adrian Newey",
+      "car": "AMR26",
+      "engine": "Honda"
     },
     {
       "id": "nightjar",
-      "name": "Nightjar Motorsport",
-      "color": "#8a7cf8",
-      "base": "Milton Keynes, UK",
-      "principal": "Ada Whitlock",
-      "car": "NJ-3",
-      "engine": "Honda RBPT"
+      "name": "Audi Revolut F1 Team",
+      "color": "#eb4426",
+      "base": "Hinwil, Switzerland",
+      "principal": "Mattia Binotto",
+      "car": "R26",
+      "engine": "Audi"
     },
     {
       "id": "solstice",
-      "name": "Solstice Racing",
-      "color": "#f2a541",
-      "base": "Woking, UK",
-      "principal": "Tom Ashby",
-      "car": "SR26",
-      "engine": "Mercedes"
+      "name": "Cadillac Formula 1 Team",
+      "color": "#b5b5b5",
+      "base": "Silverstone, United Kingdom",
+      "principal": "Marcin Budkowski",
+      "car": "MAC-26",
+      "engine": "Ferrari"
     },
     {
       "id": "polar",
-      "name": "Polar Static",
-      "color": "#6ec1ff",
-      "base": "Enstone, France",
-      "principal": "Claire Dubois",
-      "car": "PS-01",
-      "engine": "Renault"
+      "name": "TGR Haas F1 Team",
+      "color": "#dfe1e2",
+      "base": "Kannapolis, United States",
+      "principal": "Ayao Komatsu",
+      "car": "VF-26",
+      "engine": "Ferrari"
     }
   ],
   "drivers": [
@@ -959,6 +959,6 @@
     }
   ],
   "meta": {
-    "updated": "2026-11-05T03:47:02.585Z"
+    "updated": "2026-11-05T03:55:30.413Z"
   }
 }
