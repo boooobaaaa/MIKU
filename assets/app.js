@@ -338,7 +338,7 @@ function countdownHTML(iso) {
 function tick() {
   document.querySelectorAll('[data-cd-short]').forEach(el => {
     const ms = new Date(el.dataset.cdShort) - Date.now();
-    if (ms <= 0) { raceBar(); return; }
+    if (ms <= 0) { const rb = document.getElementById('race-bar'); if (rb) rb.dataset.key = ''; raceBar(); return; }
     const dd = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, sec = Math.floor(ms / 1e3) % 60;
     el.textContent = 'in ' + (dd ? `${dd}d ${h}h` : h ? `${h}h ${m}m` : `${m}m ${sec}s`);
   });
@@ -406,6 +406,7 @@ function pageHome(d) {
     </section>
 
     ${(() => { const r = rounds(d).filter(x => dotdOf(d, x.id)).pop(); return r ? `<section>${dotdCard(d, r.id, true)}</section>` : ''; })()}
+    ${ytSection(d)}
     <section>
       <div class="section-title"><h2>Latest news</h2><a href="#/news">All news →</a></div>
       ${news.length ? `<div class="news-grid">${news.map(n => newsCard(n)).join('')}</div>` : empty('No news yet', '<p>Posts written in the admin console show up here.</p>')}
@@ -510,12 +511,15 @@ function pageRound(d, rid, sess) {
       </div>
       <div class="rh-meta"><span>${esc(r.track || '')}</span>${r.start ? `<span class="mono">${fmtDate(r.start, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span><span class="mono">${fmtTime(r.start)} your time${trackTz(r) ? ' · ' + esc(fmtIn(r.start, trackTz(r), { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })) + ' track time' : ''}</span>` : ''}${r.laps ? `<span>${esc(r.laps)} laps</span>` : ''}</div>
     </div>
+    ${!isDone(d, r) && !r.cancelled ? weekendSchedule(d, r) : ''}
     ${tabs}
     ${cl.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th class="hide-sm">No</th><th>Driver</th><th>Team</th>${isQ ? '' : '<th class="hide-sm">Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / Retired'}</th>${isQ ? '' : '<th class="r">Pts</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`
       : empty(r.cancelled ? 'This round was cancelled' : 'No results yet', r.start ? `<p>${esc(sessionName(sess))} scheduled for ${fmtDate(r.start)} · ${fmtTime(r.start)}</p>` : '')}
     ${dotdHTML}
     ${notes}
     ${sdHTML}
+    ${isDone(d, r) && (r.sessions || []).some(x => x && x.start) ? weekendSchedule(d, r) : ''}
+    ${relatedArticles(d, 'rounds', rid)}
   </div>`;
 }
 
@@ -613,6 +617,7 @@ function pageDriver(d, id) {
     <div class="section-title"><h2>Season results</h2></div>
     ${rows ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Rd</th><th>Grand Prix</th><th class="hide-sm">Team</th><th>Sprint</th><th>Race</th><th class="r">Pts</th></tr></thead><tbody>${rows}</tbody></table></div>` : empty('No results yet')}
     ${adjs.length ? `<section><div class="section-title"><h2>Penalties & adjustments</h2></div><div class="table-wrap"><table class="tbl"><tbody>${adjs.map(a => `<tr><td class="pts" style="text-align:left;width:80px">${a.points > 0 ? '+' : ''}${fmtPts(a.points)}</td><td>${esc(a.reason || '')}</td><td class="muted">${a.roundId && byId(d.calendar, a.roundId) ? 'R' + esc(byId(d.calendar, a.roundId).round) : ''}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
+    ${relatedArticles(d, 'drivers', id)}
   </div>`;
 }
 
@@ -672,6 +677,7 @@ function pageTeam(d, id) {
     <div class="driver-grid" style="margin-bottom:32px">${drs.length ? drs.map(p => { const ps = st.D[p.id] || { points: 0 }; return `<a class="driver-card" href="#/driver/${esc(p.id)}" style="--tc:${esc(teamColor(T))};min-height:160px"><div class="dc-pos">${ps.position ? 'P' + ps.position : 'Driver'}${p.active === false ? ' · inactive' : ''}</div><div class="dc-pts"><b>${fmtPts(ps.points)}</b><span>PTS</span></div><div class="dc-num">${esc(p.number ?? '')}</div><div class="dc-name">${nameHTML(p.name)}</div><div class="dc-team">${flag(p.country)}</div></a>`; }).join('') : empty('No drivers signed')}</div>
     <div class="section-title"><h2>Race by race</h2></div>
     ${rows ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Rd</th><th>Grand Prix</th>${drIds.map(did => `<th>${esc(driverLabel(d, did).name.split(' ').pop())}</th>`).join('')}<th class="r">Pts</th></tr></thead><tbody>${rows}</tbody></table></div>` : empty('No results yet')}
+    ${relatedArticles(d, 'teams', id)}
   </div>`;
 }
 
@@ -699,7 +705,13 @@ function pageArticle(d, id) {
     <div class="a-meta"><span>${n.date ? fmtDate(n.date + 'T12:00:00', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''}</span>${n.author ? `<span>· by ${esc(n.author)}</span>` : ''}</div>
     ${n.image ? `<div class="a-cover"><img src="${esc(asset(n.image))}" alt="" onerror="this.parentNode.remove()"></div>` : ''}
     <div class="prose">${md(n.body)}</div>
-  </article></div>`;
+    ${(() => { const tags = [...(n.teams || []).map(x => byId(d.teams, x)).filter(Boolean).map(t => `<a class="a-tag" href="#/team/${esc(t.id)}" style="--tc:${esc(teamColor(t))}"><span class="swatch"></span>${esc(t.name)}</a>`),
+      ...(n.drivers || []).map(x => byId(d.drivers, x)).filter(Boolean).map(p => `<a class="a-tag" href="#/driver/${esc(p.id)}">${avatar(p, byId(d.teams, p.teamId), 'sm')}${esc(p.name)}</a>`),
+      ...(n.rounds || []).map(x => byId(d.calendar, x)).filter(Boolean).map(r => `<a class="a-tag" href="#/results/${esc(r.id)}">${flag(r.country)} ${esc(r.name)}</a>`)];
+      return tags.length ? `<div class="a-tags">${tags.join('')}</div>` : ''; })()}
+  </article>
+  ${(() => { const k = (n.teams || [])[0] ? ['teams', n.teams[0]] : (n.drivers || [])[0] ? ['drivers', n.drivers[0]] : null; return k ? `<div style="max-width:1100px;margin:40px auto 0">${relatedArticles(d, k[0], k[1], n.id)}</div>` : ''; })()}
+  </div>`;
 }
 
 function pageRules(d) {
@@ -1026,6 +1038,145 @@ function copyApplication() {
     .catch(() => { if (out) out.select(); toast('Copy the text below and paste it in Discord.'); });
 }
 
+/* ---------------- timing widget (my time / track time + watch) ---------------- */
+const TP_KEY = 'league.timepref';
+let TIMEPREF = lsGet(TP_KEY) === 'track' ? 'track' : 'mine';
+const clockStr = tz => fmtIn(Date.now(), tz || undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+function zoneParts(tz) {
+  try {
+    const f = new Intl.DateTimeFormat('en-GB', { hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23', timeZone: tz || undefined });
+    const o = {}; f.formatToParts(new Date()).forEach(x => { o[x.type] = Number(x.value); }); return o;
+  } catch (e) { const n = new Date(); return { hour: n.getHours(), minute: n.getMinutes(), second: n.getSeconds() }; }
+}
+function watchSVG() {
+  let ticks = '';
+  for (let i = 0; i < 60; i++) {
+    const a = i * 6, big = i % 5 === 0;
+    ticks += `<line x1="50" y1="${big ? 13 : 14.5}" x2="50" y2="${big ? 19 : 16.5}" transform="rotate(${a} 50 50)" class="${big ? 'tk-b' : 'tk'}"/>`;
+  }
+  return `<svg class="watch" viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="50" cy="50" r="48" class="w-bezel"/><circle cx="50" cy="50" r="44" class="w-ring"/><circle cx="50" cy="50" r="37" class="w-face"/>
+    ${ticks}
+    <g class="w-h"><line x1="50" y1="53" x2="50" y2="32"/></g>
+    <g class="w-m"><line x1="50" y1="55" x2="50" y2="22"/></g>
+    <g class="w-s"><line x1="50" y1="58" x2="50" y2="18"/><circle cx="50" cy="50" r="2.4"/></g>
+    <circle cx="50" cy="50" r="1" class="w-pin"/></svg>`;
+}
+function timingWidget(d, tz, cls = '') {
+  const logo = (d.theme && d.theme.timingLogo) || d.league.logo;
+  return `<div class="tw ${cls}" data-tz="${esc(tz || '')}">
+    ${d.theme.timingLogo !== 'none' ? `<span class="tw-logo">${logo && logo !== 'none' ? `<img src="${esc(asset(logo))}" alt="" onerror="this.remove()">` : esc((d.league.name || 'F1').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase())}</span>` : ''}
+    <div class="tw-rows">
+      <button class="tw-row ${TIMEPREF === 'mine' ? 'on' : ''}" data-tp="mine"><i></i><span>My time</span><b class="mono" data-clock="">--:--</b></button>
+      ${tz ? `<button class="tw-row ${TIMEPREF === 'track' ? 'on' : ''}" data-tp="track"><i></i><span>Track time</span><b class="mono" data-clock="${esc(tz)}">--:--</b></button>` : ''}
+    </div>
+    ${watchSVG()}
+  </div>`;
+}
+function tickClocks() {
+  document.querySelectorAll('.tw').forEach(w => {
+    const tz = w.dataset.tz;
+    w.querySelectorAll('[data-clock]').forEach(b => { b.textContent = clockStr(b.dataset.clock); });
+    const p = zoneParts(TIMEPREF === 'track' && tz ? tz : null);
+    const set = (sel, deg) => { const g = w.querySelector(sel); if (g) g.setAttribute('transform', `rotate(${deg} 50 50)`); };
+    set('.w-h', (p.hour % 12) * 30 + p.minute * 0.5);
+    set('.w-m', p.minute * 6 + p.second * 0.1);
+    set('.w-s', p.second * 6);
+  });
+}
+setInterval(tickClocks, 1000);
+function setTimePref(v) {
+  TIMEPREF = v; lsSet(TP_KEY, v);
+  document.querySelectorAll('[data-tp]').forEach(b => b.classList.toggle('on', b.dataset.tp === v));
+  document.querySelectorAll('.wk').forEach(w => { const r = byId(S.data.calendar, w.dataset.round); if (r) w.outerHTML = weekendSchedule(S.data, r); });
+  tickClocks();
+}
+
+/* ---------------- weekend schedule ---------------- */
+const SESSION_PRESETS = ['Practice 1', 'Practice 2', 'Practice 3', 'Sprint Qualifying', 'Sprint', 'Qualifying', 'Race'];
+function weekendSessions(r) {
+  const list = (r.sessions || []).filter(x => x && x.start).map(x => ({ name: x.name || 'Session', start: x.start, end: x.end || '' }));
+  if (!list.length && r.start) list.push({ name: 'Race', start: r.start, end: '' });
+  return list.sort((a, b) => new Date(a.start) - new Date(b.start));
+}
+function weekendSchedule(d, r) {
+  const ss = weekendSessions(r);
+  if (!ss.length) return '';
+  const tz = trackTz(r), useTrack = TIMEPREF === 'track' && tz;
+  const zone = useTrack ? tz : null;
+  const hm = iso => fmtIn(iso, zone, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const now = Date.now();
+  const rows = ss.map(x => {
+    const st = new Date(x.start).getTime(), en = x.end ? new Date(x.end).getTime() : st + 2 * 36e5;
+    const state = now >= en ? 'past' : now >= st ? 'live' : '';
+    return `<div class="wk-row ${state}">
+      <div class="wk-date"><b class="mono">${esc(fmtIn(x.start, zone, { day: '2-digit' }))}</b><span>${esc(fmtIn(x.start, zone, { month: 'short' }).toUpperCase())}</span></div>
+      <div class="wk-name">${esc(x.name)}${state === 'live' ? '<span class="rb-pill live">● Live</span>' : ''}</div>
+      <div class="wk-time mono">${esc(hm(x.start))}${x.end ? ' – ' + esc(hm(x.end)) : ''}</div>
+    </div>`;
+  }).join('');
+  return `<section class="wk" data-round="${esc(r.id)}">
+    <div class="wk-head"><h2>Schedule</h2>${timingWidget(d, tz)}</div>
+    <div class="wk-card">
+      <div class="wk-bar"><button class="btn sm primary" data-act="ics" data-round="${esc(r.id)}">📅 Add to calendar</button>
+        ${tz ? `<div class="tabs seg wk-toggle"><button data-tp="mine" class="${!useTrack ? 'active' : ''}">My time</button><button data-tp="track" class="${useTrack ? 'active' : ''}">Track time</button></div>` : ''}</div>
+      ${rows}
+      <p class="wk-note muted">${useTrack ? `Times shown in track time (${esc(fmtIn(ss[0].start, tz, { timeZoneName: 'short' }).split(' ').pop())}).` : `Times shown in your time zone (${esc(fmtIn(ss[0].start, null, { timeZoneName: 'short' }).split(' ').pop())}).`}</p>
+    </div>
+  </section>`;
+}
+function downloadICS(d, r) {
+  const ss = weekendSessions(r);
+  const z = iso => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const escI = t => String(t).replace(/[,;\\]/g, m => '\\' + m);
+  const ev = ss.map((x, i) => ['BEGIN:VEVENT', `UID:${r.id}-${i}-${z(x.start)}@league`, `DTSTAMP:${z(new Date().toISOString())}`, `DTSTART:${z(x.start)}`,
+    `DTEND:${z(x.end || new Date(new Date(x.start).getTime() + 2 * 36e5).toISOString())}`, `SUMMARY:${escI(`${d.league.name} · R${r.round} ${r.name} · ${x.name}`)}`,
+    `LOCATION:${escI(r.track || r.name)}`, `URL:${location.href.split('#')[0]}#/results/${r.id}`, 'END:VEVENT'].join('\r\n'));
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//League Site//EN', 'CALSCALE:GREGORIAN', ...ev, 'END:VCALENDAR'].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+  a.download = `${(r.name || 'round').replace(/[^\w]+/g, '-')}.ics`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* ---------------- youtube ---------------- */
+function ytVideoId(u) {
+  const m = String(u || '').match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
+  return m ? m[1] : (/^[\w-]{11}$/.test(String(u || '').trim()) ? String(u).trim() : '');
+}
+function ytSection(d) {
+  const y = d.youtube || {};
+  if (y.show === false) return '';
+  const vid = ytVideoId(y.pinned);
+  const ch = String(y.channelId || '').trim();
+  let src = '';
+  if (vid) src = `https://www.youtube-nocookie.com/embed/${vid}?rel=0`;
+  else if (/^UC[\w-]{22}$/.test(ch)) src = `https://www.youtube-nocookie.com/embed/videoseries?list=UU${ch.slice(2)}&rel=0`;
+  if (!src) return '';
+  const chUrl = y.channelUrl || (ch ? `https://www.youtube.com/channel/${ch}` : '');
+  return `<section class="yt">
+    <div class="section-title"><h2>${esc(y.title || 'Latest video')}</h2>${chUrl ? `<a href="${esc(chUrl)}" target="_blank" rel="noopener">${y.subscribe === false ? 'Channel' : 'Subscribe'} →</a>` : ''}</div>
+    <div class="yt-frame"><iframe src="${esc(src)}" title="${esc(y.title || 'Latest video')}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+  </section>`;
+}
+
+/* ---------------- related articles ---------------- */
+function relTime(dateStr) {
+  if (!dateStr) return '';
+  const t = new Date(dateStr.length <= 10 ? dateStr + 'T12:00:00' : dateStr), diff = Date.now() - t;
+  if (diff >= 0 && diff < 864e5) { const h = Math.max(1, Math.round(diff / 36e5)); return `${h} hour${h > 1 ? 's' : ''} ago`; }
+  if (diff >= 864e5 && diff < 2 * 864e5) return 'Yesterday';
+  return t.toLocaleDateString(undefined, { month: 'long', day: '2-digit', year: 'numeric' });
+}
+function relatedArticles(d, key, id, excludeId) {
+  const list = sortedNews(d).filter(n => n.id !== excludeId && (n[key] || []).includes(id)).slice(0, 6);
+  if (!list.length) return '';
+  return `<section class="rel"><div class="section-title"><h2 class="rel-title">Related articles</h2><a href="#/news">View all</a></div>
+    <div class="rel-grid">${list.map(n => `<a class="rel-card" href="#/news/${esc(n.id)}">
+      <div class="rel-img">${n.image ? `<img src="${esc(asset(n.image))}" alt="" loading="lazy" onerror="this.remove()">` : `<span>${esc((n.tag || 'NEWS').slice(0, 4).toUpperCase())}</span>`}</div>
+      <div class="rel-body"><h3>${esc(n.title)}</h3><span class="rel-date">${esc(relTime(n.date))}</span></div></a>`).join('')}</div></section>`;
+}
+
 const notFound = () => `<div class="page">${empty('Page not found', '<p><a href="#/">Back to home</a></p>')}</div>`;
 
 /* ---------------- router & chrome ---------------- */
@@ -1051,19 +1202,30 @@ const ROUTES = [
   [/^admin(?:\/(\w+))?$/, (d, m) => window.Admin ? window.Admin.render(m[1]) : notFound()]
 ];
 
-function barRound(d) { const now = Date.now(); return rounds(d).find(r => !r.cancelled && r.start && new Date(r.start).getTime() + 3 * 36e5 > now); }
+function barRound(d) {
+  const now = Date.now();
+  return rounds(d).find(r => { if (r.cancelled) return false; const ss = weekendSessions(r); if (!ss.length) return false; const last = ss[ss.length - 1]; return new Date(last.end || last.start).getTime() + (last.end ? 0 : 3 * 36e5) > now; });
+}
 function raceBar() {
   const el = document.getElementById('race-bar'); if (!el || !S.data) return;
   const d = S.data, r = d.theme.topBanner === false ? null : barRound(d);
   if (!r) { el.hidden = true; el.innerHTML = ''; return; }
-  const live = new Date(r.start) <= Date.now(), tz = trackTz(r);
-  const o = { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' };
-  const mine = fmtIn(r.start, null, o), track = tz ? fmtIn(r.start, tz, o) : '';
+  const ss = weekendSessions(r), first = ss[0], tz = trackTz(r), now = Date.now();
+  const live = new Date(first.start) <= now;
+  const nextS = ss.find(x => new Date(x.start) > now);
+  const key = `${r.id}|${live}|${nextS ? nextS.start : ''}|${TIMEPREF}`;
+  if (el.dataset.key === key && !el.hidden) return;
+  el.dataset.key = key;
+  const d1 = fmtDate(first.start, { day: '2-digit' }), d2 = fmtDate(ss[ss.length - 1].start, { day: '2-digit', month: 'short' }).toUpperCase();
   el.hidden = false;
   el.innerHTML = `<div class="rb-inner">
-    <a class="rb-round" href="#/results/${esc(r.id)}"><span class="rb-pill ${live ? 'live' : ''}">${live ? '● Live' : 'Next'}</span><span class="mono rb-meta">R${esc(r.round)}<span class="rb-sep">|</span>${esc(fmtDate(r.start, { day: '2-digit', month: 'short' }).toUpperCase())}</span><b>${flag(r.country)} ${esc(r.name)}</b><span class="rb-chev">›</span></a>
-    <div class="rb-times">${live ? '' : `<span class="rb-cd" data-cd-short="${esc(r.start)}"></span>`}<div class="rb-t"><span>Your time</span><b class="mono">${esc(mine)}</b></div>${track ? `<div class="rb-t"><span>Track time</span><b class="mono">${esc(track)}</b></div>` : ''}</div>
+    <a class="rb-round" href="#/results/${esc(r.id)}">
+      <span class="rb-top mono">R${esc(r.round)}<span class="rb-sep">|</span>${d1 === fmtDate(ss[ss.length - 1].start, { day: '2-digit' }) ? '' : esc(d1) + ' – '}${esc(d2)}${live ? '<span class="rb-pill live">● Live</span>' : ''}</span>
+      <b>${flag(r.country)} ${esc(r.name)} <span class="rb-chev">›</span></b>
+    </a>
+    <div class="rb-right">${nextS ? `<span class="rb-cd"><span class="muted">${esc(nextS.name)}</span> <span data-cd-short="${esc(nextS.start)}"></span></span>` : ''}${timingWidget(d, tz, 'dark')}</div>
   </div>`;
+  tickClocks();
 }
 setInterval(() => { if (S.data) raceBar(); }, 60000);
 
@@ -1099,6 +1261,7 @@ function render(resetScroll) {
   updateDraftBanner();
   tick();
   if (document.getElementById('prog')) mountProgress();
+  tickClocks();
   if (resetScroll) window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
@@ -1114,6 +1277,10 @@ document.addEventListener('click', e => {
   if (ser) { const off = ser.classList.toggle('off'); const g = document.querySelector(`[data-line="${ser.dataset.series}"]`); if (g) g.style.display = off ? 'none' : ''; return; }
   const z = e.target.closest('img.zoomable');
   if (z && !z.closest('.admin')) { const o = document.createElement('div'); o.className = 'lightbox'; o.innerHTML = `<img src="${esc(z.currentSrc || z.src)}" alt="">`; o.addEventListener('click', () => o.remove()); document.body.appendChild(o); return; }
+  const tp = e.target.closest('[data-tp]');
+  if (tp && !tp.closest('.admin')) { setTimePref(tp.dataset.tp); const rb = document.getElementById('race-bar'); if (rb) rb.dataset.key = ''; raceBar(); return; }
+  const ic = e.target.closest('[data-act="ics"]');
+  if (ic) { const r = byId(S.data.calendar, ic.dataset.round); if (r) downloadICS(S.data, r); return; }
   if (e.target.closest('[data-act="copy-app"]')) copyApplication();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.lightbox').forEach(o => o.remove()); });
@@ -1128,7 +1295,7 @@ window.addEventListener('hashchange', () => render(true));
 /* expose helpers for the admin console */
 window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
   rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
-  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar };
+  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, SESSION_PRESETS, ytVideoId };
 
 load().then(() => render(false));
 })();

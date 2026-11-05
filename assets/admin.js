@@ -44,6 +44,7 @@ const F = {
   select: (label, path, val, opts, extra = 'data-reload') => `<label class="fld"><span>${label}</span><select data-path="${path}" ${extra}>${opts.map(([v, l]) => opt(v, l, val)).join('')}</select></label>`,
   dt: (label, path, val) => `<label class="fld"><span>${label}</span><input type="datetime-local" data-dt data-path="${path}" value="${toLocalInput(val)}"></label>`,
   image: (label, path, val, folder, maxDim = 1600) => `<div class="fld wide"><span>${label}</span><div class="img-field">${val ? `<img class="thumb" src="${esc(LG.asset(val))}" alt="" onerror="this.style.visibility='hidden'">` : ''}<input type="text" data-path="${path}" data-reload value="${esc(val || '')}" placeholder="Upload, or paste an image link"><button class="btn sm" data-act="upload" data-mode="set" data-target="${path}" data-folder="${folder}" data-max="${maxDim}">⬆ Upload</button>${val ? `<button class="iconbtn del" data-act="clear-field" data-target="${path}" title="Remove">✕</button>` : ''}</div></div>`,
+  tags: (label, path, vals, opts) => `<div class="fld wide"><span>${label}</span><div class="tagpick">${opts.length ? opts.map(o => `<label class="tp ${(vals || []).includes(o.id) ? 'on' : ''}" ${o.color ? `style="--tc:${esc(o.color)}"` : ''}><input type="checkbox" data-tagpath="${path}" value="${esc(o.id)}" ${(vals || []).includes(o.id) ? 'checked' : ''}>${o.color ? '<span class="swatch"></span>' : ''}${esc(o.label)}</label>`).join('') : '<span class="muted">None yet</span>'}</div></div>`,
   date: (label, path, val) => `<label class="fld"><span>${label}</span><input type="date" data-path="${path}" value="${esc(val || '')}"></label>`
 };
 function toLocalInput(iso) { if (!iso) return ''; const t = new Date(iso); if (isNaN(t)) return ''; return new Date(t - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); }
@@ -91,6 +92,15 @@ function secLeague(d) {
       ${F.text('Tagline (home page)', 'league.tagline', L.tagline, 'wide')}
       ${F.image('League logo (square works best)', 'league.logo', L.logo, 'branding', 600)}
     </div></div>
+    <div class="a-card"><h3>YouTube on the home page</h3><div class="fgrid">
+      ${F.check('Show the video player', 'youtube.show', (d.youtube || {}).show !== false)}
+      ${F.text('Section title', 'youtube.title', (d.youtube || {}).title || 'Latest video')}
+      ${F.text('Channel ID (starts with UC…)', 'youtube.channelId', (d.youtube || {}).channelId, 'data-reload placeholder="UCxxxxxxxxxxxxxxxxxxxxxx"')}
+      ${F.text('Channel link (for the Subscribe button)', 'youtube.channelUrl', (d.youtube || {}).channelUrl, 'placeholder="https://youtube.com/@yourleague"')}
+      ${F.text('Pin a specific video instead (optional — paste its link)', 'youtube.pinned', (d.youtube || {}).pinned, 'wide data-reload')}
+    </div>
+    ${(d.youtube || {}).channelId && !/^UC[\w-]{22}$/.test(String(d.youtube.channelId).trim()) ? '<div class="warn" style="margin:12px 0 0">That doesn\'t look like a channel ID — it should be 24 characters starting with <b>UC</b>.</div>' : ''}
+    <p class="hint">With a channel ID the player always shows your newest upload automatically — nothing to update after each race. Find the ID on YouTube: your channel → <b>About</b> (or the channel description) → <b>Share channel</b> → <b>Copy channel ID</b>. Or YouTube Studio → Settings → Channel → Advanced settings. Paste a video link in "Pin" to feature one video until you clear it.</p></div>
     <div class="a-card"><h3>Links (shown in footer)</h3><div class="fgrid">
       ${F.text('Discord invite', 'league.links.discord', L.links.discord)}
       ${F.text('YouTube', 'league.links.youtube', L.links.youtube)}
@@ -170,14 +180,26 @@ function secCalendar(d) {
         ${F.num('Laps', p + '.laps', r.laps)}
         ${F.check('Sprint weekend', p + '.sprint', r.sprint)}
         ${F.check('Cancelled', p + '.cancelled', r.cancelled)}
-        ${F.area('Round notes (shown under results — stewards decisions, etc.)', p + '.notes', r.notes)}
+        ${F.area('Round notes (shown under results)', p + '.notes', r.notes)}
+        <div class="wide"><div class="fld"><span>Weekend schedule (shown on the round page; leave empty to just show the race start)</span></div>
+          ${(r.sessions || []).length ? `<table class="rtable sess"><thead><tr><th>Session</th><th>Start (your local time)</th><th>End (optional)</th><th></th></tr></thead><tbody>${(r.sessions || []).map((x, k) => `<tr>
+            <td><input type="text" list="sess-presets" data-path="${p}.sessions.${k}.name" value="${esc(x.name || '')}"></td>
+            <td><input type="datetime-local" data-dt data-path="${p}.sessions.${k}.start" data-reload value="${toLocalInput(x.start)}"></td>
+            <td><input type="datetime-local" data-dt data-path="${p}.sessions.${k}.end" value="${toLocalInput(x.end)}"></td>
+            <td class="c-act"><button class="iconbtn del" data-act="del-sess" data-i="${i}" data-k="${k}">✕</button></td></tr>`).join('')}</tbody></table>` : ''}
+          <div class="toolbar" style="margin-top:8px"><button class="btn sm" data-act="add-sess" data-i="${i}">+ Add session</button>
+            <button class="btn sm" data-act="sess-preset" data-k="qr" data-i="${i}">Quick: Qualifying + Race</button>
+            <button class="btn sm" data-act="sess-preset" data-k="sprint" data-i="${i}">Quick: Sprint weekend</button>
+            <button class="btn sm" data-act="sess-preset" data-k="full" data-i="${i}">Quick: Full F1 weekend</button></div>
+          <p class="hint">Quick presets are built backwards from the race start above — adjust any time afterwards.</p>
+        </div>
       </div>
       <div class="item-actions"><button class="btn sm" data-act="goto-round" data-id="${esc(r.id)}">Enter results</button><button class="btn sm danger" data-act="del-round" data-i="${i}">Delete round</button></div></div>
     </details>`;
   }).join('');
   return head('Calendar', 'Times are entered in your local time and shown to each visitor in theirs. The site is always ordered by round number.',
     `<button class="btn" data-act="sort-rounds">Sort by round</button><button class="btn primary" data-act="add-round">+ Add round</button>`) +
-    `<div class="a-card">${items || '<p class="muted">No rounds yet.</p>'}</div>`;
+    `<div class="a-card">${items || '<p class="muted">No rounds yet.</p>'}</div><datalist id="sess-presets">${LG.SESSION_PRESETS.map(x => `<option value="${esc(x)}">`).join('')}</datalist>`;
 }
 
 function secResults(d) {
@@ -305,12 +327,15 @@ function secNews(d) {
       ${F.check('Pin to top', `news.${i}.pinned`, n.pinned)}
       ${F.check('Hidden (draft post)', `news.${i}.hidden`, n.hidden)}
       ${F.image('Cover photo', `news.${i}.image`, n.image, 'news', 1920)}
+      ${F.tags('Related teams — the post appears under "Related articles" on these team pages', `news.${i}.teams`, n.teams, d.teams.map(t => ({ id: t.id, label: t.name, color: t.color })))}
+      ${F.tags('Related drivers', `news.${i}.drivers`, n.drivers, d.drivers.filter(x => x.active !== false || (n.drivers || []).includes(x.id)).map(x => ({ id: x.id, label: x.name })))}
+      ${F.tags('Related rounds', `news.${i}.rounds`, n.rounds, LG.rounds(d).map(r => ({ id: r.id, label: 'R' + r.round + ' ' + r.name })))}
       ${F.area('Post body — # headings, **bold**, *italic*, - lists, [links](https://…), photos', `news.${i}.body`, n.body, 'tall')}
       <div class="wide toolbar"><button class="btn sm" data-act="upload" data-mode="insert" data-target="news.${i}.body" data-folder="news" data-max="1920" data-multiple="1">🖼 Insert photo(s) at cursor</button><span class="hint" style="margin:0">Adds <code>![caption](link)</code> — the text inside [ ] becomes the caption (leave it empty for none).</span></div>
     </div><div class="item-actions"><a class="btn sm ghost" href="#/news/${esc(n.id)}">Preview post →</a><button class="btn sm danger" data-act="del-news" data-id="${esc(n.id)}">Delete post</button></div></div>` : '';
   return head('News posts', 'Race reports, signings, announcements. Posts show on the home page and the News tab.', `<button class="btn primary" data-act="new-news">+ New post</button>`) +
     editor + `<div class="a-card"><h3>All posts</h3>${list.length ? list.map(x => `<div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)">
-      <span class="mono muted" style="width:100px">${esc(x.date || '')}</span><b style="flex:1">${x.pinned ? '📌 ' : ''}${esc(x.title || 'Untitled')}</b>${x.hidden ? '<span class="pill-inactive">hidden</span>' : ''}${x.tag ? `<span class="chip">${esc(x.tag)}</span>` : ''}
+      <span class="mono muted" style="width:100px">${esc(x.date || '')}</span><b style="flex:1">${x.pinned ? '📌 ' : ''}${esc(x.title || 'Untitled')}</b>${(x.teams || []).length ? `<span class="chip">${x.teams.length} team${x.teams.length > 1 ? 's' : ''}</span>` : ''}${x.hidden ? '<span class="pill-inactive">hidden</span>' : ''}${x.tag ? `<span class="chip">${esc(x.tag)}</span>` : ''}
       <button class="btn xs ${x.id === A.newsId ? 'primary' : ''}" data-act="edit-news" data-id="${esc(x.id)}">Edit</button></div>`).join('') : '<p class="muted">No posts yet.</p>'}</div>`;
 }
 
@@ -385,6 +410,7 @@ function secTheme(d) {
       ${F.check('Show the ☀ / ☾ toggle in the top bar', 'theme.allowToggle', t.allowToggle !== false)}
       ${F.check('Background glow & dot pattern', 'theme.effects', t.effects !== false)}
       ${F.check('Next-race strip at the very top (your time + track time)', 'theme.topBanner', t.topBanner !== false)}
+      ${F.image('Logo on the clock widget (your league logo is used if empty — or use a real sponsor of yours)', 'theme.timingLogo', t.timingLogo === 'none' ? '' : t.timingLogo, 'branding', 400)}
     </div><p class="hint">A visitor's own toggle choice is remembered in their browser and wins over the default. <button class="btn xs" data-act="clear-mode">Forget my choice</button></p></div>
     <div class="a-card"><h3>Preview</h3><div class="toolbar"><span class="btn primary">Primary</span><span class="btn">Button</span><span class="badge next">Next race</span><span class="badge sprint">Sprint</span><span class="tag-fl">FL</span><span class="tag-pole">POLE</span><span class="cell p1">1</span><span class="cell pts">6</span><span class="cell nopts">14</span><span class="cell dnf">DNF</span></div>
       <p class="hint">Tip: use the ☀ / ☾ button in the top bar to check both modes.</p></div>`;
@@ -513,6 +539,7 @@ document.addEventListener('change', e => {
   if (!inAdmin(el)) return;
   if (el.dataset.ctl === 'round') { A.roundId = el.value; return rerender(); }
   if (el.dataset.ctl === 'import') return importFile(el.files[0]);
+  if (el.dataset.tagpath) { const cur = getPath(D(), el.dataset.tagpath) || []; const v = el.value; setPath(D(), el.dataset.tagpath, el.checked ? [...new Set([...cur, v])] : cur.filter(x => x !== v)); LG.saveDraft(); return rerender(); }
   if (el.dataset.adddoc !== undefined) { const v = el.value.trim(); if (v) { const x = D().stewards[Number(el.dataset.adddoc)]; (x.docs = x.docs || []).push(v); commit(); } return; }
   if (!el.dataset.path) return;
   setPath(D(), el.dataset.path, readVal(el));
@@ -522,6 +549,7 @@ document.addEventListener('change', e => {
     setPath(D(), el.dataset.path.replace(/driverId$/, 'teamId'), drv ? drv.teamId || '' : '');
   }
   if (el.dataset.path.startsWith('calendar.') && el.dataset.path.endsWith('.round')) sortRounds();
+  { const m = el.dataset.path.match(/^calendar\.(\d+)\.sessions\.(\d+)\.start$/); if (m) { const r = D().calendar[+m[1]], x = r.sessions[+m[2]]; if (/^race$/i.test(String(x.name || '').trim()) && x.start) r.start = x.start; } }
   LG.saveDraft();
   if (el.hasAttribute('data-reload') || el.tagName === 'SELECT') rerender();
 });
@@ -612,6 +640,21 @@ document.addEventListener('click', async e => {
     case 'clear-field': setPath(d, b.dataset.target, ''); return commit();
     case 'del-doc': d.stewards[i].docs.splice(Number(b.dataset.k), 1); return commit();
     case 'clear-dotd': delete d.results[A.roundId].dotd; return commit();
+    case 'add-sess': { const r = d.calendar[i]; (r.sessions = r.sessions || []).push({ name: r.sessions.length ? '' : 'Qualifying', start: '', end: '' }); A.open['rnd-' + r.id] = true; return commit(); }
+    case 'del-sess': d.calendar[i].sessions.splice(Number(b.dataset.k), 1); return commit();
+    case 'sess-preset': {
+      const r = d.calendar[i];
+      if (!r.start) return toast('Set the race start first', 'err');
+      if ((r.sessions || []).length && !confirm('Replace this round\'s schedule?')) return;
+      const R = new Date(r.start).getTime(), H = 36e5, D = 24 * H;
+      const mk = (name, off, len) => ({ name, start: new Date(R + off).toISOString(), end: len ? new Date(R + off + len).toISOString() : '' });
+      const P = {
+        qr: [mk('Qualifying', -0.5 * H, 0.33 * H), mk('Race', 0, 0)],
+        sprint: [mk('Practice 1', -2 * D - 1.5 * H, H), mk('Sprint Qualifying', -2 * D + 2 * H, 0.75 * H), mk('Sprint', -D - 2.5 * H, 0.5 * H), mk('Qualifying', -D + H, H), mk('Race', 0, 0)],
+        full: [mk('Practice 1', -2 * D - 1.5 * H, H), mk('Practice 2', -2 * D + 2 * H, H), mk('Practice 3', -D - 2.5 * H, H), mk('Qualifying', -D + H, H), mk('Race', 0, 0)]
+      };
+      r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
+    }
     case 'publish': return publish(b);
     case 'discard-draft': if (confirm('Throw away all unpublished changes?')) LG.discardDraft(); return;
     case 'reload-live': return reloadLive();
