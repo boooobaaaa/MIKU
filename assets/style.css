@@ -744,3 +744,139 @@ section > .dotd, .page > section:has(> .dotd) { margin-top: 24px; }
 .article .back { display: flex; width: fit-content; }
 .fgrid.dotd-grid { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
 .rtable td.c-sm select, .rtable td.c-sm input { min-width: 76px; }
+
+/* =========================================================
+   v4 additions
+   ========================================================= */
+/* ---- team cards: driver boxes line up across a row ---- */
+.team-card { display: flex; flex-direction: column; }
+.team-card .tc-drivers { margin-top: auto; padding-top: 18px; }
+.team-card .tc-head { margin-bottom: 0; }
+.team-card .tc-driver .dname .fn { display: block; }
+.team-card .tc-car-slot { height: 130px; margin-top: 14px; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; }
+.team-card .tc-car-slot .tc-car { max-height: 100%; margin: 0; }
+
+/* ---- next-race strip (always dark, like the F1 site) ---- */
+.race-bar { background: color-mix(in srgb, var(--bg-dark) 80%, #000); border-bottom: 1px solid color-mix(in srgb, var(--miku) 18%, transparent); font-size: 13px; color: #e6f3f2; }
+.race-bar[hidden] { display: none; }
+.rb-inner { padding: 7px clamp(16px, 4vw, 48px); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.rb-round { display: flex; align-items: center; gap: 12px; color: #e6f3f2; min-width: 0; }
+.rb-round:hover { color: #fff; }
+.rb-round b { font-family: var(--f-head); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px; }
+.rb-pill { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: var(--miku); color: #07090c; flex-shrink: 0; }
+.rb-pill.live { background: var(--pink); color: #fff; animation: rbpulse 1.6s ease-in-out infinite; }
+@keyframes rbpulse { 50% { opacity: .55; } }
+.rb-meta { color: #9fb7b6; font-size: 12px; white-space: nowrap; }
+.rb-sep { opacity: .4; margin: 0 6px; }
+.rb-chev { color: var(--miku); font-size: 18px; line-height: 1; }
+.rb-times { display: flex; align-items: center; gap: 22px; flex-shrink: 0; }
+.rb-t { display: flex; flex-direction: column; line-height: 1.15; text-align: right; }
+.rb-t span { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #9fb7b6; font-weight: 600; }
+.rb-t b { font-size: 13px; color: #e6f3f2; white-space: nowrap; }
+.rb-cd { font-family: var(--f-mono); font-size: 12px; color: var(--miku); white-space: nowrap; }
+
+/* ---- progression player ---- */
+.prog-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 18px; }
+.prog-bar .tabs { margin: 0; }
+.prog-play { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 260px; }
+.prog-play .btn { min-width: 104px; }
+.prog-play input[type=range] { flex: 1; accent-color: var(--miku); min-width: 80px; }
+#pg-label { font-size: 13px; color: var(--text-2); min-width: 96px; text-align: right; }
+.chart .now { stroke: var(--miku); stroke-dasharray: 3 4; opacity: .55; }
+.chart .head { stroke: var(--bg); stroke-width: 2; }
+.chips .chip-act { background: none; border-style: dashed; color: var(--muted); }
+.race-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.race-round { font-family: var(--f-head); font-size: 20px; display: flex; gap: 10px; align-items: center; }
+.race { position: relative; }
+.race-row { position: absolute; left: 0; right: 0; top: 0; height: 38px; display: grid; grid-template-columns: 28px 28px minmax(70px, 150px) 1fr 60px; gap: 10px; align-items: center; transition: transform .45s cubic-bezier(.2, .8, .2, 1); }
+.race-row .avatar { margin: 0; }
+.race-row .swatch { margin: 0 auto; height: 22px; }
+.rr-pos { font-family: var(--f-mono); font-weight: 700; color: var(--muted); text-align: right; }
+.rr-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .03em; font-size: 14px; }
+.rr-track { height: 24px; border-radius: 8px; background: color-mix(in srgb, var(--text) 5%, transparent); overflow: hidden; }
+.rr-track i { display: block; height: 100%; width: 0; border-radius: 8px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 50%, transparent), var(--c)); box-shadow: 0 0 18px -4px var(--c); }
+.rr-val { text-align: right; font: 700 14px var(--f-mono); color: var(--accent-text); }
+
+/* ---- FIA cards ---- */
+.sd-org { font: 800 11px var(--f-head); letter-spacing: .14em; padding: 3px 8px; border-radius: 6px; background: color-mix(in srgb, var(--text) 90%, transparent); color: var(--bg); }
+
+/* ---- Hall of Fame: gold trophy room (same look in light & dark) ---- */
+.hof { --g1: #fbe7a1; --g2: #e6b84f; --g3: #a8741a; }
+.hof-hero { position: relative; text-align: center; padding: 52px 20px 38px; margin-bottom: 26px; border-radius: 28px; overflow: hidden; color: #f6efe0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(230, 184, 79, .30), transparent 62%), linear-gradient(180deg, #140e04, #07080a);
+  border: 1px solid rgba(230, 184, 79, .38); box-shadow: 0 30px 70px -40px rgba(230, 184, 79, .55); }
+.hof-hero::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(251, 231, 161, .16) 1px, transparent 1px); background-size: 22px 22px; mask-image: radial-gradient(ellipse at 50% 30%, #000, transparent 72%); pointer-events: none; }
+.hof-hero > * { position: relative; }
+.hof-hero.sm { padding: 34px 20px 26px; }
+.hof-crest svg { width: 62px; height: 62px; filter: drop-shadow(0 6px 18px rgba(230, 184, 79, .55)); }
+.hof-hero.sm .hof-crest svg { width: 44px; height: 44px; }
+.hof-eyebrow { font-size: 12px; letter-spacing: .32em; text-transform: uppercase; color: var(--g2); margin-top: 8px; }
+.hof-title { font-family: "Cinzel", Georgia, serif; font-weight: 800; font-size: clamp(40px, 7vw, 76px); margin: 6px 0 4px; letter-spacing: .04em; line-height: 1.05;
+  background: linear-gradient(180deg, #fff7da 0%, var(--g1) 35%, var(--g2) 68%, var(--g3) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hof-hero.sm .hof-title { font-size: clamp(28px, 5vw, 46px); }
+.hof-subtitle { color: #cbbd9c; font-size: 16px; margin: 0; }
+.hof-stats { display: flex; justify-content: center; gap: 14px; margin-top: 24px; flex-wrap: wrap; }
+.hof-stats div { min-width: 132px; padding: 12px 18px; border-radius: 14px; border: 1px solid rgba(230, 184, 79, .3); background: rgba(230, 184, 79, .06); }
+.hof-stats b { display: block; font-family: "Cinzel", Georgia, serif; font-size: 26px; color: var(--g1); line-height: 1.2; }
+.hof-stats span { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #b9a77f; }
+.hof-multi { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 24px; }
+.hof-chip { padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(230, 184, 79, .45); color: #b98a2a; background: rgba(230, 184, 79, .1); font-size: 14px; }
+:root[data-theme="dark"] .hof-chip { color: var(--g1); }
+.hof-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 22px; }
+.hof-card { position: relative; overflow: hidden; border-radius: 24px; padding: 26px; color: #f6efe0; border: 1.5px solid transparent;
+  background: linear-gradient(165deg, #1a1407, #0a0907 70%) padding-box,
+              linear-gradient(135deg, #fff1b8, var(--g2) 28%, var(--g3) 52%, #fbe7a1 78%, var(--g3)) border-box;
+  box-shadow: 0 22px 50px -26px rgba(230, 184, 79, .55); transition: transform .3s, box-shadow .3s; }
+.hof-card:hover { transform: translateY(-4px); box-shadow: 0 28px 60px -24px rgba(230, 184, 79, .7); }
+.hof-card.current { --g1: #eef2f5; --g2: #b9c4ca; --g3: #6c787f; box-shadow: 0 22px 50px -30px rgba(185, 196, 202, .45);
+  background: linear-gradient(165deg, #12161a, #0a0b0d 70%) padding-box, linear-gradient(135deg, #f4f7f9, var(--g2) 30%, var(--g3) 55%, #e3e9ec 80%, var(--g3)) border-box; }
+.hof-sheen { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 32%, rgba(255, 240, 190, .12) 46%, transparent 60%); transform: translateX(-100%); animation: hofsheen 7s ease-in-out infinite; pointer-events: none; }
+@keyframes hofsheen { 0%, 55% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+.hof-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.hof-season { font-family: "Cinzel", Georgia, serif; font-weight: 800; font-size: 36px; line-height: 1;
+  background: linear-gradient(180deg, #fff7da, var(--g2) 60%, var(--g3)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hof-tag { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--g2) 55%, transparent); color: var(--g1); }
+.hof-driver { display: flex; gap: 16px; align-items: center; }
+.hof-medal { position: relative; width: 88px; height: 88px; border-radius: 50%; flex-shrink: 0; padding: 3px; background: conic-gradient(from 200deg, #fff1b8, var(--g2), var(--g3), var(--g1), var(--g2), #fff1b8); box-shadow: 0 8px 26px -8px color-mix(in srgb, var(--g2) 70%, transparent); }
+.hof-medal .hof-trophy { position: absolute; inset: 3px; border-radius: 50%; display: grid; place-items: center; background: #140f06; font-size: 28px; color: var(--g1); }
+.hof-medal .hof-trophy svg { width: 42px; height: 42px; }
+.hof-medal img { position: relative; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: 50% 8%; background: #140f06; display: block; }
+.hof-label { font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--g2); font-weight: 600; margin-bottom: 4px; }
+.hof-name { font-family: var(--f-head); font-size: 25px; line-height: 1.15; color: #fff7e2; }
+.hof-name .fn { color: #d9cba8; }
+.hof-sub { color: #c2b28c; font-size: 14px; margin-top: 4px; }
+.hof-sub b { color: #fff3cc; }
+.hof-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0 14px; color: var(--g2); font-size: 12px; }
+.hof-divider::before, .hof-divider::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--g2) 60%, transparent), transparent); }
+.hof-tname { display: flex; align-items: center; gap: 4px; font-family: var(--f-head); font-size: 18px; color: #fff7e2; flex-wrap: wrap; }
+.hof-pts { margin-left: auto; font-family: var(--f-mono); font-size: 13px; color: var(--g1); }
+.hof-notes { font-size: 14px; color: #d6c9a8; margin-top: 16px; padding-top: 14px; border-top: 1px dashed color-mix(in srgb, var(--g2) 35%, transparent); }
+.hof-notes strong { color: #fff3cc; }
+.hof-link { display: inline-block; margin-top: 18px; font-size: 13px; letter-spacing: .08em; color: var(--g1); border-bottom: 1px solid color-mix(in srgb, var(--g2) 55%, transparent); }
+.hof-link:hover { color: #fff; }
+.hof-table tr.top1 td { background: rgba(230, 184, 79, .10); }
+
+@media (max-width: 760px) {
+  .rb-meta, .rb-cd { display: none; }
+  .rb-times { gap: 12px; }
+  .rb-t b { font-size: 11px; }
+  .rb-t span { font-size: 9px; }
+  .rb-round b { font-size: 13px; }
+  .rb-chev { display: none; }
+  .race-row { grid-template-columns: 22px 28px minmax(60px, 90px) 1fr 44px; gap: 8px; }
+  .hof-grid { grid-template-columns: 1fr; }
+  .prog-play { min-width: 100%; }
+}
+@media (max-width: 480px) { .rb-pill { display: none; } }
+/* cards with a car: car sits at the bottom, drivers above it; cards without: drivers sit at the bottom */
+.team-card .tc-drivers.has-car { margin-top: auto; }
+.team-card .tc-car-slot { order: 2; }
+/* subgrid: header / drivers / car rows line up across each row of cards */
+@supports (grid-template-rows: subgrid) {
+  .team-grid { row-gap: 0; }
+  .team-card { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 0; margin-bottom: 18px; }
+  .team-card .tc-drivers, .team-card .tc-drivers.has-car { margin-top: 0; padding-top: 18px; align-self: start; }
+  .team-card .tc-car-slot { order: 0; height: auto; min-height: 0; margin-top: 0; }
+  .team-card .tc-car-slot:has(img) { padding-top: 16px; height: 146px; }
+  .team-card .tc-car-slot:empty { display: block; }
+}

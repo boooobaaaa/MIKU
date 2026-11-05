@@ -13,9 +13,15 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', "Stewards' reports", '⚑'], ['news', 'News posts', '✎'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'FIA reports', '⚑'], ['news', 'News posts', '✎'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
+const TZ_OPTS = [['', 'Auto (from country code)'], ['Asia/Bahrain', 'Bahrain'], ['Asia/Riyadh', 'Saudi Arabia'], ['Australia/Melbourne', 'Melbourne'], ['Asia/Tokyo', 'Japan'], ['Asia/Shanghai', 'China'],
+  ['America/New_York', 'Miami / US East'], ['America/Chicago', 'Austin / US Central'], ['America/Los_Angeles', 'Las Vegas / US West'], ['America/Toronto', 'Montréal / Canada'], ['America/Mexico_City', 'Mexico City'],
+  ['America/Sao_Paulo', 'São Paulo'], ['Europe/London', 'Silverstone / UK'], ['Europe/Monaco', 'Monaco'], ['Europe/Rome', 'Imola / Monza'], ['Europe/Madrid', 'Barcelona / Madrid'], ['Europe/Paris', 'France'],
+  ['Europe/Brussels', 'Spa / Belgium'], ['Europe/Amsterdam', 'Zandvoort'], ['Europe/Vienna', 'Austria'], ['Europe/Budapest', 'Hungary'], ['Europe/Berlin', 'Germany'], ['Europe/Lisbon', 'Portugal'],
+  ['Europe/Istanbul', 'Türkiye'], ['Asia/Baku', 'Baku'], ['Asia/Singapore', 'Singapore'], ['Asia/Qatar', 'Qatar'], ['Asia/Dubai', 'Abu Dhabi'], ['Asia/Seoul', 'Korea'], ['Asia/Kuala_Lumpur', 'Malaysia'],
+  ['Asia/Kolkata', 'India'], ['Africa/Johannesburg', 'South Africa'], ['UTC', 'UTC']];
 const D = () => LG.S.data;
 const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } } };
 
@@ -65,7 +71,7 @@ function secDashboard(d) {
     <div class="a-card"><h3>Race-weekend checklist</h3>
       <div class="quick">
         ${nx ? `<a href="#/admin/results" data-act="goto-round" data-id="${esc(nx.id)}">▤ Enter results<small>Round ${esc(nx.round)} · ${esc(nx.name)}</small></a>` : ''}
-        <a href="#/admin/stewards">⚑ Log a stewards decision<small>Incidents, penalties, outcomes</small></a>
+        <a href="#/admin/stewards">⚑ Log an FIA decision<small>Incidents, penalties, documents</small></a>
         <a href="#/admin/adjust">± Adjust points<small>Add or remove points with a reason</small></a>
         <a href="#/admin/news" data-act="new-news">✎ Write a race report<small>New news post</small></a>
         <a href="#/admin/publish">⇪ Publish to the site<small>${LG.S.isDraft ? 'You have unpublished changes' : 'Everything is live'}</small></a>
@@ -81,6 +87,7 @@ function secLeague(d) {
     <div class="a-card"><h3>Identity</h3><div class="fgrid">
       ${F.text('League name', 'league.name', L.name, 'data-reload')}
       ${F.text('Season label', 'league.season', L.season, 'data-reload')}
+      ${F.text('Race control name (shown on decisions)', 'league.raceControl', L.raceControl || 'FIA', 'data-reload')}
       ${F.text('Tagline (home page)', 'league.tagline', L.tagline, 'wide')}
       ${F.image('League logo (square works best)', 'league.logo', L.logo, 'branding', 600)}
     </div></div>
@@ -159,6 +166,7 @@ function secCalendar(d) {
         ${F.text('Circuit', p + '.track', r.track)}
         ${F.text('Country code', p + '.country', r.country, 'maxlength="2" data-reload')}
         ${F.dt('Race start (your local time)', p + '.start', r.start)}
+        ${F.select('Track time zone', p + '.tz', r.tz || '', TZ_OPTS)}
         ${F.num('Laps', p + '.laps', r.laps)}
         ${F.check('Sprint weekend', p + '.sprint', r.sprint)}
         ${F.check('Cancelled', p + '.cancelled', r.cancelled)}
@@ -281,7 +289,7 @@ function secAdjust(d) {
   return head('Penalties & points', 'Add or remove championship points from any driver or team — penalties, bonuses, corrections. Use a negative number to take points away.',
     `<button class="btn primary" data-act="add-adj">+ Add adjustment</button>`) + `
     <div class="a-card" style="overflow-x:auto">${rows ? `<table class="rtable"><thead><tr><th>Applies to</th><th>Who</th><th>Points</th><th>Round</th><th>Reason</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="muted">No adjustments. Standings come purely from results.</p>'}</div>
-    <p class="hint">Points given in <a href="#/admin/stewards">Stewards' reports</a> are applied automatically and don't need repeating here.</p>
+    <p class="hint">Points given in <a href="#/admin/stewards">FIA reports</a> are applied automatically and don't need repeating here.</p>
     <p class="hint">Want to change a finishing position instead (e.g. a time penalty that drops someone a place)? Edit that round in <a href="#/admin/results">Results</a> and move the driver down.</p>`;
 }
 
@@ -344,7 +352,7 @@ function secPublish(d) {
       <button class="btn sm" data-act="download">⬇ Download league.json</button>
       <label class="btn sm">⬆ Import league.json<input type="file" accept=".json,application/json" data-ctl="import" hidden></label>
     </div><p class="hint">Download a backup before big changes. Importing replaces your draft (nothing goes live until you publish).</p></div>
-    <div class="a-card"><h3>New season</h3><p class="hint" style="margin:-6px 0 12px">Saves the final standings to the Hall of fame, downloads a backup, then clears all results, penalties, stewards' reports and the calendar. Drivers, teams, scoring, news and rules are kept.</p>
+    <div class="a-card"><h3>New season</h3><p class="hint" style="margin:-6px 0 12px">Saves the final standings to the Hall of fame, downloads a backup, then clears all results, penalties, FIA reports and the calendar. Drivers, teams, scoring, news and rules are kept.</p>
       <button class="btn sm danger" data-act="new-season">Start a new season</button></div>`;
 }
 
@@ -376,6 +384,7 @@ function secTheme(d) {
       ${F.select('Default mode for visitors', 'theme.defaultMode', t.defaultMode, [['dark', 'Dark'], ['light', 'Light'], ['system', "Match the visitor's device"]])}
       ${F.check('Show the ☀ / ☾ toggle in the top bar', 'theme.allowToggle', t.allowToggle !== false)}
       ${F.check('Background glow & dot pattern', 'theme.effects', t.effects !== false)}
+      ${F.check('Next-race strip at the very top (your time + track time)', 'theme.topBanner', t.topBanner !== false)}
     </div><p class="hint">A visitor's own toggle choice is remembered in their browser and wins over the default. <button class="btn xs" data-act="clear-mode">Forget my choice</button></p></div>
     <div class="a-card"><h3>Preview</h3><div class="toolbar"><span class="btn primary">Primary</span><span class="btn">Button</span><span class="badge next">Next race</span><span class="badge sprint">Sprint</span><span class="tag-fl">FL</span><span class="tag-pole">POLE</span><span class="cell p1">1</span><span class="cell pts">6</span><span class="cell nopts">14</span><span class="cell dnf">DNF</span></div>
       <p class="hint">Tip: use the ☀ / ☾ button in the top bar to check both modes.</p></div>`;
@@ -409,7 +418,7 @@ function secStewards(d) {
       </div><div class="item-actions"><a class="btn sm ghost" href="#/stewards">View page</a><button class="btn sm danger" data-act="del-sd" data-i="${i}">Delete report</button></div></div>
     </details>`;
   }).join('');
-  return head("Stewards' reports", "Log incidents and decisions. They show on the Stewards page and under that round's results. Championship points entered here are applied to the standings automatically.", '<button class="btn primary" data-act="add-sd">+ New report</button>') +
+  return head(esc((d.league.raceControl || 'FIA')) + ' reports', "Log incidents and decisions. They show on the " + esc(d.league.raceControl || 'FIA') + " page and under that round's results. Championship points entered here are applied to the standings automatically.", '<button class="btn primary" data-act="add-sd">+ New report</button>') +
     `<div class="a-card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><button class="btn primary" data-act="upload" data-mode="new-sd" data-folder="stewards" data-max="2600" data-multiple="1" data-accept="image/*,application/pdf">⬆ New report(s) from files</button><span class="hint" style="margin:0">Pick one or more filled-in templates — each becomes a report on the latest round. Then just set the dropdowns.</span></div>
     <div class="a-card">${items || '<p class="muted">No reports yet.</p>'}</div>
     <p class="hint">Time penalties that change the finishing order still need the driver moved down in <a href="#/admin/results">Results</a>.</p>`;

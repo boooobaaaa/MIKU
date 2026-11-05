@@ -30,6 +30,14 @@ const MODE_KEY = 'league.mode';
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } };
 const isHex = v => /^#[0-9a-f]{6}$/i.test(v || '');
+const rcName = d => String((d.league && d.league.raceControl) || 'FIA').trim() || 'FIA';
+const hasVal = x => x !== '' && x !== null && x !== undefined;
+const TZ_BY_CC = { BH: 'Asia/Bahrain', SA: 'Asia/Riyadh', AU: 'Australia/Melbourne', JP: 'Asia/Tokyo', CN: 'Asia/Shanghai', US: 'America/New_York', IT: 'Europe/Rome', MC: 'Europe/Monaco',
+  ES: 'Europe/Madrid', CA: 'America/Toronto', AT: 'Europe/Vienna', GB: 'Europe/London', HU: 'Europe/Budapest', BE: 'Europe/Brussels', NL: 'Europe/Amsterdam', AZ: 'Asia/Baku',
+  SG: 'Asia/Singapore', MX: 'America/Mexico_City', BR: 'America/Sao_Paulo', QA: 'Asia/Qatar', AE: 'Asia/Dubai', FR: 'Europe/Paris', DE: 'Europe/Berlin', PT: 'Europe/Lisbon',
+  TR: 'Europe/Istanbul', RU: 'Europe/Moscow', VN: 'Asia/Ho_Chi_Minh', KR: 'Asia/Seoul', IN: 'Asia/Kolkata', MY: 'Asia/Kuala_Lumpur', AR: 'America/Argentina/Buenos_Aires', ZA: 'Africa/Johannesburg' };
+const trackTz = r => r.tz || TZ_BY_CC[String(r.country || '').toUpperCase()] || '';
+function fmtIn(iso, tz, opts) { try { return new Date(iso).toLocaleString(undefined, Object.assign({}, opts, tz ? { timeZone: tz } : {})); } catch (e) { return ''; } }
 
 function emptyLeague() {
   return {
@@ -328,6 +336,12 @@ function countdownHTML(iso) {
     <div><b data-u="m">00</b><span>Min</span></div><div><b data-u="s">00</b><span>Sec</span></div></div>`;
 }
 function tick() {
+  document.querySelectorAll('[data-cd-short]').forEach(el => {
+    const ms = new Date(el.dataset.cdShort) - Date.now();
+    if (ms <= 0) { raceBar(); return; }
+    const dd = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, sec = Math.floor(ms / 1e3) % 60;
+    el.textContent = 'in ' + (dd ? `${dd}d ${h}h` : h ? `${h}h ${m}m` : `${m}m ${sec}s`);
+  });
   document.querySelectorAll('[data-countdown]').forEach(el => {
     const ms = new Date(el.dataset.countdown) - Date.now();
     if (ms <= 0) { el.className = 'countdown over'; el.removeAttribute('data-countdown'); el.textContent = '🏁 Lights out! Results coming soon.'; return; }
@@ -485,7 +499,7 @@ function pageRound(d, rid, sess) {
   const tabs = avail.length > 1 ? `<div class="tabs">${avail.map(s => `<a href="#/results/${esc(rid)}/${s}" class="${s === sess ? 'active' : ''}">${sessionName(s)}</a>`).join('')}</div>` : '';
   const dotdHTML = dotdOf(d, rid) ? `<section>${dotdCard(d, rid)}</section>` : '';
   const sds = d.stewards.filter(x => x.roundId === rid);
-  const sdHTML = sds.length ? `<section><div class="section-title"><h2>Stewards' decisions</h2><a href="#/stewards/${esc(rid)}">All for this round →</a></div><div class="sd-list">${sds.map(x => stewardCard(d, x, true)).join('')}</div></section>` : '';
+  const sdHTML = sds.length ? `<section><div class="section-title"><h2>${esc(rcName(d))} decisions</h2><a href="#/stewards/${esc(rid)}">All for this round →</a></div><div class="sd-list">${sds.map(x => stewardCard(d, x, true)).join('')}</div></section>` : '';
   const notes = r.notes ? `<div class="card" style="margin-top:20px"><div class="prose">${md(r.notes)}</div></div>` : '';
 
   return `<div class="page">
@@ -494,7 +508,7 @@ function pageRound(d, rid, sess) {
       <div class="round-head">${flag(r.country, 'lg')}<h1 style="margin:0">${esc(r.name)}</h1>
         <div class="round-nav">${prev ? `<a class="btn sm" href="#/results/${esc(prev.id)}">← R${esc(prev.round)}</a>` : ''}${next ? `<a class="btn sm" href="#/results/${esc(next.id)}">R${esc(next.round)} →</a>` : ''}</div>
       </div>
-      <div class="rh-meta"><span>${esc(r.track || '')}</span>${r.start ? `<span class="mono">${fmtDate(r.start, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>` : ''}${r.laps ? `<span>${esc(r.laps)} laps</span>` : ''}</div>
+      <div class="rh-meta"><span>${esc(r.track || '')}</span>${r.start ? `<span class="mono">${fmtDate(r.start, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span><span class="mono">${fmtTime(r.start)} your time${trackTz(r) ? ' · ' + esc(fmtIn(r.start, trackTz(r), { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })) + ' track time' : ''}</span>` : ''}${r.laps ? `<span>${esc(r.laps)} laps</span>` : ''}</div>
     </div>
     ${tabs}
     ${cl.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th class="hide-sm">No</th><th>Driver</th><th>Team</th>${isQ ? '' : '<th class="hide-sm">Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / Retired'}</th>${isQ ? '' : '<th class="r">Pts</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`
@@ -575,7 +589,7 @@ function pageDriver(d, id) {
       <td class="pts">${fmtPts(rr.pts)}${rr.adj ? `<span class="adj-note">(${rr.adj > 0 ? '+' : ''}${fmtPts(rr.adj)})</span>` : ''}</td></tr>`;
   }).join('');
   const adjs = d.adjustments.filter(a => a.type !== 'team' && a.targetId === id)
-    .concat(d.stewards.filter(x => x.driverId === id && Number(x.points)).map(x => ({ points: Number(x.points), reason: (x.title || "Stewards' decision") + (x.penalty ? ' — ' + x.penalty : ''), roundId: x.roundId })));
+    .concat(d.stewards.filter(x => x.driverId === id && Number(x.points)).map(x => ({ points: Number(x.points), reason: (x.title || rcName(d) + ' decision') + (x.penalty ? ' — ' + x.penalty : ''), roundId: x.roundId })));
   return `<div class="page">
     <a class="back" href="#/drivers">← All drivers</a>
     <div class="profile-hero" style="--tc:${esc(teamColor(t))}">
@@ -611,8 +625,8 @@ function pageTeams(d) {
     return `<a class="team-card" href="#/team/${esc(t.id)}" style="--tc:${esc(teamColor(t))}">
       <div class="tc-head"><div><div class="tc-pos">${s.position ? 'P' + s.position : 'Team'}</div><h3>${esc(t.name)}</h3><div class="muted" style="font-size:14px">${esc(t.car || t.base || '')}</div></div>
       <div style="display:flex;gap:12px;align-items:center">${t.logo ? `<img class="tc-logo" src="${esc(asset(t.logo))}" alt="" onerror="this.remove()">` : ''}<div class="tc-pts"><b>${fmtPts(s.points)}</b><span>PTS</span></div></div></div>
-      <div class="tc-drivers">${drs.length ? drs.map(x => `<div class="tc-driver">${avatar(x, t)}<div><small>#${esc(x.number ?? '')}</small>${nameHTML(x.name)}</div></div>`).join('') : '<div class="tc-driver muted">No drivers yet</div>'}</div>
-      ${t.carImage ? `<img class="tc-car" src="${esc(asset(t.carImage))}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+      <div class="tc-drivers ${t.carImage ? 'has-car' : ''}">${drs.length ? drs.map(x => `<div class="tc-driver">${avatar(x, t)}<div><small>#${esc(x.number ?? '')}</small>${nameHTML(x.name)}</div></div>`).join('') : '<div class="tc-driver muted">No drivers yet</div>'}</div>
+      <div class="tc-car-slot">${t.carImage ? `<img class="tc-car" src="${esc(asset(t.carImage))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
     </a>`;
   }).join('');
   return `<div class="page">${head('Season ' + d.league.season, 'Teams', `${d.teams.length} constructors fighting for the title.`)}
@@ -723,48 +737,128 @@ function dotdCard(d, rid, withRound) {
   </div>`;
 }
 
-/* ---------------- progression chart ---------------- */
+/* ---------------- progression: animated graph + bar race ---------------- */
+const PG = { kind: 'drv', mode: 'graph', t: null, n: 0, playing: false, hidden: {}, raf: 0, data: null };
 function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
-function chartSVG(series, key, rs, title) {
-  if (!series.length) return '';
-  const W = 960, H = 400, L = 46, R = 190, T = 18, B = 40, n = rs.length;
-  const all = series.flatMap(x => x.pts);
-  const hi = Math.max(...all, 1), lo = Math.min(0, ...all);
-  const step = niceStep(Math.max(10, hi - lo) / 5);
-  const top = Math.ceil(hi / step) * step, bot = Math.floor(lo / step) * step;
-  const x = i => L + (W - L - R) * (n ? i / n : 0);
-  const y = v => T + (H - T - B) * (1 - (v - bot) / ((top - bot) || 1));
-  let g = '';
-  for (let v = bot; v <= top + 1e-9; v += step) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="ax" x="${L - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${fmtPts(v)}</text>`;
-  for (let i = 0; i <= n; i++) g += `<text class="ax" x="${x(i).toFixed(1)}" y="${H - B + 24}" text-anchor="middle">${i ? 'R' + esc(rs[i - 1].round) : 'Start'}</text>`;
-  const ends = series.map((v, i) => ({ i, y: y(v.pts[n]) })).sort((a, b) => a.y - b.y);
-  for (let k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 14) ends[k].y = ends[k - 1].y + 14;
-  const ly = {}; ends.forEach(e => { ly[e.i] = e.y; });
-  const seen = {};
-  const lines = series.map((v, i) => {
-    const dash = seen[v.color] ? ' stroke-dasharray="7 5"' : ''; seen[v.color] = 1;
-    const path = v.pts.map((p, j) => `${j ? 'L' : 'M'}${x(j).toFixed(1)},${y(p).toFixed(1)}`).join(' ');
-    const dots = v.pts.map((p, j) => j ? `<circle cx="${x(j).toFixed(1)}" cy="${y(p).toFixed(1)}" r="3.5" fill="${esc(v.color)}"><title>${esc(v.name)} · R${esc(rs[j - 1].round)}: ${fmtPts(p)} pts</title></circle>` : '').join('');
-    return `<g data-line="${key}-${i}"${i >= 8 ? ' style="display:none"' : ''}><path class="ln" d="${path}" stroke="${esc(v.color)}"${dash}/>${dots}<text class="lbl" x="${W - R + 10}" y="${(ly[i] + 4).toFixed(1)}" fill="${esc(v.color)}">${esc(v.short)} · ${fmtPts(v.pts[n])}</text></g>`;
-  }).join('');
-  const chips = series.map((v, i) => `<button data-series="${key}-${i}" class="${i >= 8 ? 'off' : ''}" style="--c:${esc(v.color)}"><i></i>${esc(v.short)}</button>`).join('');
-  return `<div class="card"><div class="card-title"><h3>${esc(title)}</h3><span class="muted" style="font-size:13px">Tap names to show / hide</span></div>
-    <div style="overflow-x:auto"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}" style="min-width:640px">${g}${lines}</svg></div><div class="chips">${chips}</div></div>`;
-}
 function progressChart(d, st) {
   const rs = rounds(d).filter(r => !r.cancelled && isDone(d, r));
-  if (!rs.length) return empty('No races completed yet', '<p>The chart fills in after the first round.</p>');
+  if (!rs.length) return empty('No races completed yet', '<p>The progression fills in after the first round.</p>');
   const mk = (rows, isTeam) => rows.map(x => {
     const ent = isTeam ? teamLabel(d, x.id) : driverLabel(d, x.id);
     const t = isTeam ? ent : driverTeam(d, ent, x);
     let c = 0; const pts = [0];
     rs.forEach(r => { c += x.rounds[r.id] ? x.rounds[r.id].pts : 0; pts.push(c); });
     pts[pts.length - 1] += x.points - c;
-    const short = isTeam ? (ent.name.length > 17 ? ent.name.slice(0, 16) + '…' : ent.name) : ent.name.split(' ').pop();
-    return { name: ent.name, short, color: teamColor(t), pts };
+    const short = isTeam ? (ent.name.length > 18 ? ent.name.slice(0, 17) + '…' : ent.name) : ent.name.split(' ').pop();
+    return { name: ent.name, short, color: teamColor(t), pts, drv: isTeam ? null : ent, team: t };
   });
-  return `<div class="grid" style="gap:24px">${chartSVG(mk(st.drivers, false), 'drv', rs, 'Drivers · points progression')}${chartSVG(mk(st.teams, true), 'team', rs, 'Constructors · points progression')}</div>`;
+  const n = rs.length;
+  if (PG.n !== n || PG.t === null) { PG.t = n; PG.hidden = {}; }
+  PG.n = n; PG.data = { rs, drv: mk(st.drivers, false), team: mk(st.teams, true) };
+  const seg = (attr, cur, opts) => `<div class="tabs seg">${opts.map(([k, l]) => `<button data-${attr}="${k}" class="${cur === k ? 'active' : ''}">${l}</button>`).join('')}</div>`;
+  return `<div class="card prog" id="prog">
+    <div class="prog-bar">
+      ${seg('pg-kind', PG.kind, [['drv', 'Drivers'], ['team', 'Constructors']])}
+      ${seg('pg-mode', PG.mode, [['graph', 'Graph'], ['race', 'Bar race']])}
+      <div class="prog-play"><button class="btn sm primary" data-pg="play" id="pg-play">▶ Play</button><input type="range" id="pg-slider" min="0" max="${n}" step="0.01" value="${PG.t}" aria-label="Round"><span class="mono" id="pg-label"></span></div>
+    </div>
+    <div id="pg-stage" class="pg-stage"></div>
+    <div class="chips" id="pg-chips"></div>
+  </div>`;
 }
+const pgSeries = () => PG.kind === 'team' ? PG.data.team : PG.data.drv;
+const pgVal = (s, t) => { const j = Math.floor(t), f = t - j, a = s.pts[Math.min(j, s.pts.length - 1)], b = s.pts[Math.min(j + 1, s.pts.length - 1)]; return a + (b - a) * f; };
+function pgHidden() { const ser = pgSeries(); return PG.hidden[PG.kind] || (PG.hidden[PG.kind] = new Set(ser.map((x, i) => i).filter(i => i >= 10))); }
+function mountProgress() { pgBuild(); pgDraw(); pgButton(); }
+function pgBuild() {
+  const stage = document.getElementById('pg-stage'); if (!stage) return;
+  const ser = pgSeries(), hid = pgHidden();
+  document.querySelectorAll('[data-pg-kind]').forEach(b => b.classList.toggle('active', b.dataset.pgKind === PG.kind));
+  document.querySelectorAll('[data-pg-mode]').forEach(b => b.classList.toggle('active', b.dataset.pgMode === PG.mode));
+  document.getElementById('pg-chips').innerHTML = PG.mode === 'graph'
+    ? ser.map((x, i) => `<button data-pg-chip="${i}" class="${hid.has(i) ? 'off' : ''}" style="--c:${esc(x.color)}"><i></i>${esc(x.short)}</button>`).join('') + '<button data-pg="all" class="chip-act">Show all</button><button data-pg="none" class="chip-act">Hide all</button>'
+    : '';
+  stage.innerHTML = PG.mode === 'race'
+    ? `<div class="race-head"><div class="race-round" id="pg-round"></div><div class="muted" id="pg-lead"></div></div>
+       <div class="race" style="height:${ser.length * 44}px">${ser.map((x, i) => `<div class="race-row" data-i="${i}" style="--c:${esc(x.color)}"><span class="rr-pos"></span>${x.drv ? avatar(x.drv, x.team, 'sm') : `<span class="swatch" style="--tc:${esc(x.color)}"></span>`}<span class="rr-name">${esc(x.short)}</span><span class="rr-track"><i></i></span><span class="rr-val"></span></div>`).join('')}</div>`
+    : '';
+}
+function pgDraw() {
+  const stage = document.getElementById('pg-stage');
+  if (!stage || !PG.data) { PG.playing = false; cancelAnimationFrame(PG.raf); return; }
+  const ser = pgSeries(), rs = PG.data.rs, t = PG.t, ri = Math.round(t);
+  const fmtV = v => PG.playing ? String(Math.round(v)) : fmtPts(v);
+  const lbl = document.getElementById('pg-label'); if (lbl) lbl.textContent = ri ? `After R${rs[ri - 1].round}` : 'Season start';
+  const sl = document.getElementById('pg-slider'); if (sl && document.activeElement !== sl) sl.value = t;
+  if (PG.mode === 'race') {
+    const order = ser.map((x, i) => ({ i, v: pgVal(x, t) })).sort((a, b) => b.v - a.v || a.i - b.i);
+    const max = Math.max(1, order[0].v);
+    order.forEach((o, rank) => {
+      const row = stage.querySelector(`.race-row[data-i="${o.i}"]`); if (!row) return;
+      row.style.transform = `translateY(${rank * 44}px)`;
+      row.querySelector('.rr-pos').textContent = rank + 1;
+      row.querySelector('.rr-track i').style.width = (Math.max(0, o.v) / max * 100).toFixed(2) + '%';
+      row.querySelector('.rr-val').textContent = fmtV(o.v);
+    });
+    const r = ri ? rs[ri - 1] : null;
+    document.getElementById('pg-round').innerHTML = r ? `${flag(r.country)} R${esc(r.round)} · ${esc(r.name)}` : 'Season start';
+    document.getElementById('pg-lead').textContent = ri ? `Leader: ${ser[order[0].i].name} · ${fmtV(order[0].v)} pts` : '';
+  } else stage.innerHTML = graphSVG(ser, rs, t, pgHidden(), fmtV);
+}
+function graphSVG(ser, rs, t, hid, fmtV) {
+  const W = 960, H = 420, L = 46, R = 170, T = 18, B = 40, n = rs.length;
+  const vis = ser.map((x, i) => ({ x, i })).filter(o => !hid.has(o.i));
+  const all = (vis.length ? vis : ser.map((x, i) => ({ x, i }))).flatMap(o => o.x.pts);
+  const hi = Math.max(...all, 1), lo = Math.min(0, ...all);
+  const step = niceStep(Math.max(10, hi - lo) / 5);
+  const top = Math.ceil(hi / step) * step, bot = Math.floor(lo / step) * step;
+  const X = i => L + (W - L - R) * (n ? i / n : 0);
+  const Y = v => T + (H - T - B) * (1 - (v - bot) / ((top - bot) || 1));
+  let g = '';
+  for (let v = bot; v <= top + 1e-9; v += step) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/><text class="ax" x="${L - 8}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end">${fmtPts(v)}</text>`;
+  for (let i = 0; i <= n; i++) g += `<text class="ax" x="${X(i).toFixed(1)}" y="${H - B + 24}" text-anchor="middle">${i ? 'R' + esc(rs[i - 1].round) : 'Start'}</text>`;
+  if (t < n) g += `<line class="now" x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="${T}" y2="${H - B}"/>`;
+  const ends = vis.map(o => ({ i: o.i, y: Y(pgVal(o.x, t)) })).sort((a, b) => a.y - b.y);
+  for (let k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 14) ends[k].y = ends[k - 1].y + 14;
+  const ly = {}; ends.forEach(e => { ly[e.i] = e.y; });
+  const seen = {}, dash = {};
+  ser.forEach((x, i) => { dash[i] = !!seen[x.color]; seen[x.color] = 1; });
+  const fl = Math.floor(t);
+  const lines = vis.map(({ x, i }) => {
+    const pts = []; for (let j = 0; j <= fl && j <= n; j++) pts.push([X(j), Y(x.pts[j])]);
+    if (t > fl) pts.push([X(t), Y(pgVal(x, t))]);
+    const path = pts.map((p, j) => `${j ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+    const dots = x.pts.slice(1, fl + 1).map((v, j) => `<circle cx="${X(j + 1).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3.2" fill="${esc(x.color)}"><title>${esc(x.name)} · R${esc(rs[j].round)}: ${fmtPts(v)} pts</title></circle>`).join('');
+    const hx = X(t), hy = Y(pgVal(x, t));
+    return `<g><path class="ln" d="${path}" stroke="${esc(x.color)}"${dash[i] ? ' stroke-dasharray="7 5"' : ''}/>${dots}<circle class="head" cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="5" fill="${esc(x.color)}"/><text class="lbl" x="${W - R + 10}" y="${(ly[i] + 4).toFixed(1)}" fill="${esc(x.color)}">${esc(x.short)} · ${fmtV(pgVal(x, t))}</text></g>`;
+  }).join('');
+  return `<div style="overflow-x:auto"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Points progression" style="min-width:640px">${g}${lines}</svg></div>`;
+}
+function pgButton() { const b = document.getElementById('pg-play'); if (b) b.textContent = PG.playing ? '❚❚ Pause' : PG.t >= PG.n - 0.001 ? '↺ Replay' : '▶ Play'; }
+function pgStop() { PG.playing = false; cancelAnimationFrame(PG.raf); pgButton(); pgDraw(); }
+function pgPlay() {
+  if (PG.playing) return pgStop();
+  if (PG.t >= PG.n - 0.001) PG.t = 0;
+  PG.playing = true; pgButton();
+  let last = performance.now();
+  const step = now => {
+    if (!PG.playing) return;
+    PG.t = Math.min(PG.n, PG.t + (now - last) / 1100); last = now;
+    pgDraw();
+    if (!document.getElementById('pg-stage')) return;
+    if (PG.t >= PG.n) return pgStop();
+    PG.raf = requestAnimationFrame(step);
+  };
+  PG.raf = requestAnimationFrame(step);
+}
+document.addEventListener('click', e => {
+  const k = e.target.closest('[data-pg-kind]'), m = e.target.closest('[data-pg-mode]'), c = e.target.closest('[data-pg-chip]'), a = e.target.closest('[data-pg]');
+  if (k) { PG.kind = k.dataset.pgKind; pgBuild(); pgDraw(); }
+  else if (m) { PG.mode = m.dataset.pgMode; pgBuild(); pgDraw(); }
+  else if (c) { const h = pgHidden(), i = Number(c.dataset.pgChip); h.has(i) ? h.delete(i) : h.add(i); c.classList.toggle('off'); pgDraw(); }
+  else if (a) { const act = a.dataset.pg; if (act === 'play') pgPlay(); else { const h = pgHidden(); h.clear(); if (act === 'none') pgSeries().forEach((x, i) => h.add(i)); pgBuild(); pgDraw(); } }
+});
+document.addEventListener('input', e => { if (e.target.id === 'pg-slider') { PG.playing = false; cancelAnimationFrame(PG.raf); PG.t = Number(e.target.value); pgDraw(); pgButton(); } });
 
 /* ---------------- hall of fame ---------------- */
 function snapshotSeason(d) {
@@ -781,14 +875,28 @@ function snapshotSeason(d) {
     teamChampion: ct ? ct.name : '', teamColor: ct ? ct.color : '#39c5bb', teamPoints: ct ? ct.points : '', notes: '', standings: { drivers: dr, teams: tm }, winners };
 }
 const seasonSort = (a, b) => String(b.season).localeCompare(String(a.season), undefined, { numeric: true });
-function champCard(h, current) {
-  return `<div class="champ-card ${current ? 'current' : ''}" style="--tc:${esc(h.driverColor || '#39c5bb')}">
-    <div class="cc-season">${esc(h.season)}</div>
-    <div class="cc-block"><div class="cc-label">${current ? 'Championship leader' : "🏆 Drivers' champion"}</div><div class="cc-name">${h.driverChampion ? nameHTML(h.driverChampion) : '<span class="muted">—</span>'}</div><div class="cc-sub">${esc(h.driverTeam || '')}${h.driverPoints !== '' && h.driverPoints != null ? ` · ${fmtPts(h.driverPoints)} pts` : ''}</div></div>
-    <div class="cc-block"><div class="cc-label">${current ? 'Leading constructor' : "Constructors' champion"}</div><div class="cc-name" style="font-size:19px"><span class="swatch" style="--tc:${esc(h.teamColor || '#39c5bb')}"></span>${esc(h.teamChampion || '—')}</div><div class="cc-sub">${h.teamPoints !== '' && h.teamPoints != null ? `${fmtPts(h.teamPoints)} pts` : ''}</div></div>
-    ${h.notes ? `<div class="prose">${md(h.notes)}</div>` : ''}
-    ${current ? '<a class="btn sm" href="#/standings">Live standings →</a>' : h.standings ? `<a class="btn sm" href="#/history/${esc(h.id)}">Final standings →</a>` : ''}
-  </div>`;
+const TROPHY = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="hofg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".5" stop-color="#e6b84f"/><stop offset="1" stop-color="#9c6a14"/></linearGradient></defs><path fill="url(#hofg)" d="M18 6h28v14c0 9-6 16-14 16S18 29 18 20zM16 10H6c0 10 5 15 13 16l-1-5c-4-1-6-4-7-7h5zM48 10h10c0 10-5 15-13 16l1-5c4-1 6-4 7-7h-5zM28 35h8v9h-8zM19 44h26l3 12H16z"/></svg>`;
+function champPhoto(d, name) {
+  const p = d.drivers.find(x => x.name && name && x.name.trim().toLowerCase() === String(name).trim().toLowerCase());
+  return p && (p.headshot || p.photo) ? asset(p.headshot || p.photo) : '';
+}
+function champCard(d, h, current) {
+  const photo = champPhoto(d, h.driverChampion);
+  return `<article class="hof-card ${current ? 'current' : ''}">
+    <div class="hof-sheen"></div>
+    <div class="hof-top"><span class="hof-season">${esc(h.season)}</span><span class="hof-tag">${current ? 'In progress' : 'Champions'}</span></div>
+    <div class="hof-driver">
+      <div class="hof-medal"><span class="hof-trophy">${current ? '◆' : TROPHY}</span>${photo ? `<img src="${esc(photo)}" alt="" onerror="this.remove()">` : ''}</div>
+      <div style="min-width:0"><div class="hof-label">${current ? 'Championship leader' : "Drivers' Champion"}</div>
+        <div class="hof-name">${h.driverChampion ? nameHTML(h.driverChampion) : '—'}</div>
+        <div class="hof-sub"><span class="swatch" style="--tc:${esc(h.driverColor || '#e6b84f')}"></span>${esc(h.driverTeam || '')}${hasVal(h.driverPoints) ? ` · <b>${fmtPts(h.driverPoints)}</b> pts` : ''}</div></div>
+    </div>
+    <div class="hof-divider"><span>✦</span></div>
+    <div class="hof-label">${current ? 'Leading constructor' : "Constructors' Champion"}</div>
+    <div class="hof-tname"><span class="swatch" style="--tc:${esc(h.teamColor || '#e6b84f')}"></span>${esc(h.teamChampion || '—')}${hasVal(h.teamPoints) ? `<span class="hof-pts">${fmtPts(h.teamPoints)} pts</span>` : ''}</div>
+    ${h.notes ? `<div class="hof-notes prose">${md(h.notes)}</div>` : ''}
+    ${current ? '<a class="hof-link" href="#/standings">Live standings →</a>' : h.standings ? `<a class="hof-link" href="#/history/${esc(h.id)}">Final standings →</a>` : ''}
+  </article>`;
 }
 function pageHistory(d) {
   const list = [...d.history].sort(seasonSort);
@@ -796,24 +904,42 @@ function pageHistory(d) {
   const started = rounds(d).some(r => isDone(d, r));
   const cur = started && !d.history.some(h => String(h.season) === String(d.league.season)) && st.drivers[0] ? (() => {
     const p = driverLabel(d, st.drivers[0].id), t = driverTeam(d, p, st.drivers[0]), ct = st.teams[0] && teamLabel(d, st.teams[0].id);
-    return champCard({ season: d.league.season, driverChampion: p.name, driverTeam: t ? t.name : '', driverColor: teamColor(t), driverPoints: st.drivers[0].points, teamChampion: ct ? ct.name : '', teamColor: teamColor(ct), teamPoints: st.teams[0] ? st.teams[0].points : '' }, true);
+    return champCard(d, { season: d.league.season, driverChampion: p.name, driverTeam: t ? t.name : '', driverColor: teamColor(t), driverPoints: st.drivers[0].points, teamChampion: ct ? ct.name : '', teamColor: teamColor(ct), teamPoints: st.teams[0] ? st.teams[0].points : '' }, true);
   })() : '';
   const tally = {};
   list.forEach(h => { if (h.driverChampion) tally[h.driverChampion] = (tally[h.driverChampion] || 0) + 1; });
-  const multi = Object.entries(tally).filter(([, n]) => n > 1).sort((a, b) => b[1] - a[1]);
-  return `<div class="page">${head('Legacy', 'Hall of fame', 'Every champion in league history.')}
-    ${multi.length ? `<div class="card" style="margin-bottom:20px"><div class="card-title"><h3>Multiple champions</h3></div><div class="toolbar" style="display:flex;gap:10px;flex-wrap:wrap">${multi.map(([nm, n]) => `<span class="chip">${'🏆'.repeat(Math.min(n, 5))} ${esc(nm)} × ${n}</span>`).join('')}</div></div>` : ''}
-    ${cur || list.length ? `<div class="champ-grid">${cur}${list.map(h => champCard(h)).join('')}</div>` : empty('No champions crowned yet', '<p>When a season ends, the admin archives it here.</p>')}
+  const ranked = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+  const multi = ranked.filter(([, n]) => n > 1);
+  return `<div class="page hof">
+    <header class="hof-hero">
+      <div class="hof-crest">${TROPHY}</div>
+      <div class="hof-eyebrow">${esc(d.league.name)}</div>
+      <h1 class="hof-title">Hall of Fame</h1>
+      <p class="hof-subtitle">The drivers and teams who conquered the grid.</p>
+      <div class="hof-stats">
+        <div><b>${list.length}</b><span>Seasons</span></div>
+        <div><b>${ranked.length}</b><span>Champions</span></div>
+        <div><b>${ranked[0] ? esc(ranked[0][0].split(' ').pop()) : '—'}</b><span>Most titles${ranked[0] ? ' · ' + ranked[0][1] : ''}</span></div>
+      </div>
+    </header>
+    ${multi.length ? `<div class="hof-multi">${multi.map(([nm, n]) => `<span class="hof-chip">${'★'.repeat(Math.min(n, 7))} ${esc(nm)} <b>×${n}</b></span>`).join('')}</div>` : ''}
+    ${cur || list.length ? `<div class="hof-grid">${cur}${list.map(h => champCard(d, h)).join('')}</div>` : empty('No champions crowned yet', '<p>When a season ends, the admin archives it here.</p>')}
   </div>`;
 }
 function pageHistorySeason(d, id) {
   const h = byId(d.history, id);
   if (!h) return notFound();
   const sd = (h.standings && h.standings.drivers) || [], tm = (h.standings && h.standings.teams) || [], w = h.winners || [];
-  return `<div class="page"><a class="back" href="#/history">← Hall of fame</a>${head('Season ' + h.season, 'Final standings', '')}
+  return `<div class="page hof"><a class="back" href="#/history">← Hall of fame</a>
+    <header class="hof-hero sm">
+      <div class="hof-crest">${TROPHY}</div>
+      <div class="hof-eyebrow">Season ${esc(h.season)} · Final standings</div>
+      <h1 class="hof-title">${h.driverChampion ? esc(h.driverChampion) : 'Season ' + esc(h.season)}</h1>
+      <p class="hof-subtitle">${h.driverChampion ? "Drivers' Champion" : ''}${h.teamChampion ? ` · ${esc(h.teamChampion)}, Constructors' Champion` : ''}</p>
+    </header>
     <div class="grid grid-2">
-      <div><div class="section-title"><h2>Drivers</h2></div>${sd.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Driver</th><th class="hide-sm">Team</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>${sd.map((x, i) => `<tr class="${i < 3 ? 'top' + (i + 1) : ''}"><td class="pos">${i + 1}</td><td><span class="swatch" style="--tc:${esc(x.color)}"></span>${nameHTML(x.name)} ${flag(x.country)}</td><td class="hide-sm team-name">${esc(x.team)}</td><td class="r mono">${x.wins ?? ''}</td><td class="pts">${fmtPts(x.points)}</td></tr>`).join('')}</tbody></table></div>` : empty('No data')}</div>
-      <div><div class="section-title"><h2>Constructors</h2></div>${tm.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Team</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>${tm.map((x, i) => `<tr class="${i < 3 ? 'top' + (i + 1) : ''}"><td class="pos">${i + 1}</td><td><span class="swatch" style="--tc:${esc(x.color)}"></span>${esc(x.name)}</td><td class="r mono">${x.wins ?? ''}</td><td class="pts">${fmtPts(x.points)}</td></tr>`).join('')}</tbody></table></div>` : empty('No data')}</div>
+      <div><div class="section-title"><h2>Drivers</h2></div>${sd.length ? `<div class="table-wrap hof-table"><table class="tbl"><thead><tr><th>Pos</th><th>Driver</th><th class="hide-sm">Team</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>${sd.map((x, i) => `<tr class="${i < 3 ? 'top' + (i + 1) : ''}"><td class="pos">${i + 1}</td><td><span class="swatch" style="--tc:${esc(x.color)}"></span>${nameHTML(x.name)} ${flag(x.country)}</td><td class="hide-sm team-name">${esc(x.team)}</td><td class="r mono">${x.wins ?? ''}</td><td class="pts">${fmtPts(x.points)}</td></tr>`).join('')}</tbody></table></div>` : empty('No data')}</div>
+      <div><div class="section-title"><h2>Constructors</h2></div>${tm.length ? `<div class="table-wrap hof-table"><table class="tbl"><thead><tr><th>Pos</th><th>Team</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>${tm.map((x, i) => `<tr class="${i < 3 ? 'top' + (i + 1) : ''}"><td class="pos">${i + 1}</td><td><span class="swatch" style="--tc:${esc(x.color)}"></span>${esc(x.name)}</td><td class="r mono">${x.wins ?? ''}</td><td class="pts">${fmtPts(x.points)}</td></tr>`).join('')}</tbody></table></div>` : empty('No data')}</div>
     </div>
     ${w.length ? `<section><div class="section-title"><h2>Race winners</h2></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Rd</th><th>Grand Prix</th><th>Winner</th><th class="hide-sm">Team</th></tr></thead><tbody>${w.map(x => `<tr><td class="pos">${esc(x.round)}</td><td>${flag(x.country)}&nbsp; ${esc(x.name)}</td><td>${x.winner ? nameHTML(x.winner) : '—'}</td><td class="hide-sm"><span class="swatch" style="--tc:${esc(x.color)}"></span><span class="team-name">${esc(x.team)}</span></td></tr>`).join('')}</tbody></table></div></section>` : ''}
   </div>`;
@@ -828,7 +954,7 @@ function stewardCard(d, s, hideRound) {
   const t = byId(d.teams, (ent && ent.teamId) || (drv && drv.teamId));
   const pts = Number(s.points) || 0;
   return `<div class="sd-card" style="--tc:${esc(teamColor(t))}">
-    <div class="sd-top">${r && !hideRound ? `<a class="chip" href="#/results/${esc(r.id)}">R${esc(r.round)} · ${esc(r.name)}</a>` : ''}<span class="muted">${esc(sessionName(s.session || 'race'))}${s.lap ? ` · ${esc(s.lap)}` : ''}</span><span class="badge ${STATUS_CLS[s.status] || 'st-inv'}">${esc(s.status || 'Under investigation')}</span></div>
+    <div class="sd-top"><span class="sd-org">${esc(rcName(d))}</span>${r && !hideRound ? `<a class="chip" href="#/results/${esc(r.id)}">R${esc(r.round)} · ${esc(r.name)}</a>` : ''}<span class="muted">${esc(sessionName(s.session || 'race'))}${s.lap ? ` · ${esc(s.lap)}` : ''}</span><span class="badge ${STATUS_CLS[s.status] || 'st-inv'}">${esc(s.status || 'Under investigation')}</span></div>
     <h3>${esc(s.title || 'Incident')}</h3>
     ${drv ? `<div class="sd-who"><span class="swatch" style="--tc:${esc(teamColor(t))}"></span><a href="#/driver/${esc(drv.id)}">${nameHTML(drv.name)}</a>${s.involved ? `<span class="muted"> · involving ${esc(s.involved)}</span>` : ''}</div>` : (s.involved ? `<div class="sd-who muted">Involving ${esc(s.involved)}</div>` : '')}
     ${s.decision ? `<div class="prose sd-body">${md(s.decision)}</div>` : ''}
@@ -840,7 +966,7 @@ function docsHTML(docs) {
   const list = (docs || []).filter(Boolean);
   if (!list.length) return '';
   return `<div class="sd-docs">${list.map(u => isImg(u)
-    ? `<img class="sd-doc zoomable" src="${esc(asset(u))}" alt="Stewards report" loading="lazy">`
+    ? `<img class="sd-doc zoomable" src="${esc(asset(u))}" alt="Official document" loading="lazy">`
     : `<a class="btn sm" href="${esc(asset(u))}" target="_blank" rel="noopener">📄 ${/\.pdf$/i.test(u) ? 'Open full report (PDF)' : 'Open document'}</a>`).join('')}</div>`;
 }
 function pageStewards(d, rid) {
@@ -852,7 +978,7 @@ function pageStewards(d, rid) {
   const groups = [];
   list.forEach(x => { const g = groups.find(y => y.id === (x.roundId || '')); if (g) g.items.push(x); else groups.push({ id: x.roundId || '', items: [x] }); });
   const body = groups.map(g => { const r = byId(d.calendar, g.id); return `<section><div class="section-title"><h2>${r ? `${flag(r.country)} R${esc(r.round)} · ${esc(r.name)}` : 'General'}</h2><span class="muted">${g.items.length} decision${g.items.length > 1 ? 's' : ''}</span></div><div class="sd-list">${g.items.map(x => stewardCard(d, x, true)).join('')}</div></section>`; }).join('');
-  return `<div class="page">${head('Race control', "Stewards' decisions", 'Incident reviews, penalties and outcomes from every round.')}
+  return `<div class="page">${head('Race control', esc(rcName(d)) + ' decisions', 'Official documents, incident reviews and penalties from every round.')}
     ${picker}${list.length ? body : empty('No decisions published', '<p>Clean racing so far. 🩵</p>')}</div>`;
 }
 
@@ -918,12 +1044,28 @@ const ROUTES = [
   [/^news$/, d => pageNews(d)],
   [/^news\/([^/]+)$/, (d, m) => pageArticle(d, m[1])],
   [/^rules$/, d => pageRules(d)],
-  [/^stewards(?:\/([^/]+))?$/, (d, m) => pageStewards(d, m[1])],
+  [/^(?:stewards|fia)(?:\/([^/]+))?$/, (d, m) => pageStewards(d, m[1])],
   [/^history$/, d => pageHistory(d)],
   [/^history\/([^/]+)$/, (d, m) => pageHistorySeason(d, m[1])],
   [/^join$/, d => pageJoin(d)],
   [/^admin(?:\/(\w+))?$/, (d, m) => window.Admin ? window.Admin.render(m[1]) : notFound()]
 ];
+
+function barRound(d) { const now = Date.now(); return rounds(d).find(r => !r.cancelled && r.start && new Date(r.start).getTime() + 3 * 36e5 > now); }
+function raceBar() {
+  const el = document.getElementById('race-bar'); if (!el || !S.data) return;
+  const d = S.data, r = d.theme.topBanner === false ? null : barRound(d);
+  if (!r) { el.hidden = true; el.innerHTML = ''; return; }
+  const live = new Date(r.start) <= Date.now(), tz = trackTz(r);
+  const o = { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' };
+  const mine = fmtIn(r.start, null, o), track = tz ? fmtIn(r.start, tz, o) : '';
+  el.hidden = false;
+  el.innerHTML = `<div class="rb-inner">
+    <a class="rb-round" href="#/results/${esc(r.id)}"><span class="rb-pill ${live ? 'live' : ''}">${live ? '● Live' : 'Next'}</span><span class="mono rb-meta">R${esc(r.round)}<span class="rb-sep">|</span>${esc(fmtDate(r.start, { day: '2-digit', month: 'short' }).toUpperCase())}</span><b>${flag(r.country)} ${esc(r.name)}</b><span class="rb-chev">›</span></a>
+    <div class="rb-times">${live ? '' : `<span class="rb-cd" data-cd-short="${esc(r.start)}"></span>`}<div class="rb-t"><span>Your time</span><b class="mono">${esc(mine)}</b></div>${track ? `<div class="rb-t"><span>Track time</span><b class="mono">${esc(track)}</b></div>` : ''}</div>
+  </div>`;
+}
+setInterval(() => { if (S.data) raceBar(); }, 60000);
 
 function chrome() {
   const d = S.data, L = d.league;
@@ -934,15 +1076,16 @@ function chrome() {
   const mark = document.getElementById('brand-mark');
   mark.innerHTML = L.logo ? `<img src="${esc(asset(L.logo))}" alt="" onerror="this.remove()">` : esc((L.name || 'F1').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase());
   const top = location.hash.replace(/^#\/?/, '').split('/')[0];
-  const cur = ({ driver: 'drivers', team: 'teams' })[top] || top;
+  const cur = ({ driver: 'drivers', team: 'teams', fia: 'stewards' })[top] || top;
+  raceBar();
   const link = ([k, l]) => `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${l}${k === 'join' && d.signups.open ? '<span class="dot" title="Sign-ups open"></span>' : ''}</a>`;
   const moreOn = MORE.some(([k]) => k === cur);
   document.getElementById('nav').innerHTML = NAV.map(link).join('') +
-    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More ▾${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.map(link).join('')}</div></div>`;
+    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More ▾${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · Season ${esc(L.season)}<br><span style="font-size:12px">Fan-run sim racing league. Not affiliated with Formula 1.</span></div>
-    <div class="links">${ext}<a href="#/stewards">Stewards</a><a href="#/history">Hall of fame</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/admin">Admin</a></div></div>`;
+    <div class="links">${ext}<a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/admin">Admin</a></div></div>`;
 }
 
 function render(resetScroll) {
@@ -955,6 +1098,7 @@ function render(resetScroll) {
   document.getElementById('nav').classList.remove('open');
   updateDraftBanner();
   tick();
+  if (document.getElementById('prog')) mountProgress();
   if (resetScroll) window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
