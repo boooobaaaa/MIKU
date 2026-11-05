@@ -1143,7 +1143,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-05T16:26:26.314Z"
+    "updated": "2026-11-05T16:33:02.277Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1193,6 +1193,21 @@
   "about": {
     "teamTitle": "League Management",
     "founded": "2026",
-    "platform": "Roblox F1 26"
+    "platform": "Roblox F1 26",
+    "title": "About MMA",
+    "tagline": "",
+    "body": "MIKU Motorsports Association is a ",
+    "team": [
+      {
+        "name": "seo",
+        "role": "League Coordinator",
+        "country": "US"
+      },
+      {
+        "role": "President of the FIA",
+        "name": "rox",
+        "country": "GB"
+      }
+    ]
   }
 }
