@@ -1143,7 +1143,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-05T16:08:11.053Z"
+    "updated": "2026-11-05T16:26:09.667Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1165,7 +1165,16 @@
       2,
       1
     ],
-    "sprint": [],
+    "sprint": [
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1
+    ],
     "dnf": 0,
     "principalPct": 100,
     "engineerPct": 50,
@@ -1181,5 +1190,7 @@
     "channel": "1564149996230549524",
     "server": "1564136151777026099"
   },
-  "about": {}
+  "about": {
+    "teamTitle": "League Management"
+  }
 }
