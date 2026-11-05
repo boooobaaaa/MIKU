@@ -1134,7 +1134,42 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-05T07:20:34.773Z"
+    "updated": "2026-11-05T15:46:05.188Z"
   },
-  "rulebook": {}
+  "rulebook": {},
+  "fantasy": {
+    "enabled": false,
+    "budget": 100,
+    "captainMult": 2,
+    "pole": 1,
+    "fastestLap": 1,
+    "fastestLapTopN": 10,
+    "positions": [
+      25,
+      18,
+      15,
+      12,
+      10,
+      8,
+      6,
+      4,
+      2,
+      1
+    ],
+    "sprint": [],
+    "dnf": 0,
+    "principalPct": 100,
+    "engineerPct": 50,
+    "reservePct": 100,
+    "maxEngineers": 2,
+    "submitUrl": "",
+    "intro": "",
+    "prices": {},
+    "entries": []
+  },
+  "fiaNews": [],
+  "fiaFeed": {
+    "channel": "1564149996230549524",
+    "server": "1564136151777026099"
+  }
 }
