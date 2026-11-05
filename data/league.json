@@ -50,7 +50,8 @@
       "base": "Enstone, United Kingdom",
       "principal": "Steve Nielsen",
       "car": "A526",
-      "engine": "Mercedes"
+      "engine": "Mercedes",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752836933095434/alpine.png?ex=6aed531b&is=6aec019b&hm=352e415c1f0a5074b566845d716cb25136bb94278830d154df7cabced90c26cf&"
     },
     {
       "id": "crimson",
@@ -59,7 +60,8 @@
       "base": "Silverstone, United Kingdom",
       "principal": "Adrian Newey",
       "car": "AMR26",
-      "engine": "Honda"
+      "engine": "Honda",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752837306515486/am.png?ex=6aed531b&is=6aec019b&hm=b13a552e7c69b46dd083f7c1d8e2297138f73d45f5d2d3b6e4b60129d64ea244&"
     },
     {
       "id": "nightjar",
@@ -68,7 +70,8 @@
       "base": "Hinwil, Switzerland",
       "principal": "Mattia Binotto",
       "car": "R26",
-      "engine": "Audi"
+      "engine": "Audi",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752837700526080/audi.png?ex=6aed531b&is=6aec019b&hm=0e6d50c68bbcd306f795d2cd60b6804fec266902318903c47b171499e2a73168&"
     },
     {
       "id": "solstice",
@@ -77,7 +80,8 @@
       "base": "Silverstone, United Kingdom",
       "principal": "Marcin Budkowski",
       "car": "MAC-26",
-      "engine": "Ferrari"
+      "engine": "Ferrari",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752838187196527/cadillac.png?ex=6aed531c&is=6aec019c&hm=bfc91f4429579fed424b981aabb27c4ab51706cadbf32762685b63cd463c4a44&"
     },
     {
       "id": "polar",
@@ -86,7 +90,8 @@
       "base": "Kannapolis, United States",
       "principal": "Ayao Komatsu",
       "car": "VF-26",
-      "engine": "Ferrari"
+      "engine": "Ferrari",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752839097225336/haas.png?ex=6aed531c&is=6aec019c&hm=721a608c9c559e83807e814afd318d0cf55018c2363bc909aa3dd8392a20b1ce&"
     },
     {
       "id": "team-raoctb",
@@ -95,7 +100,8 @@
       "base": "Woking, United Kingdom",
       "principal": "Andrea Stella",
       "engine": "Mercedes",
-      "car": "MCL40"
+      "car": "MCL40",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752849444704326/mclaren.png?ex=6aed531e&is=6aec019e&hm=b26ecb63cf8fabf9ecb71b9b9bc3277b65d5ba35bcb044985df498e7fd2b9c8f&"
     },
     {
       "id": "team-ji57ia",
@@ -104,7 +110,9 @@
       "base": "Brackley, United Kingdom",
       "principal": "Toto Wolff",
       "car": "W17",
-      "engine": "Mercedes"
+      "engine": "Mercedes",
+      "bio": "",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752849914597416/merc.png?ex=6aed531e&is=6aec019e&hm=ecf29fd80aa328c44acd6ae1edfc658d0b638659f8a0035593805f6ea1080085&"
     },
     {
       "id": "team-tmnl09",
@@ -113,7 +121,8 @@
       "base": "Maranello, Italy",
       "principal": "Frédéric Vasseur",
       "engine": "Ferrari",
-      "car": "SF-26"
+      "car": "SF-26",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752838728257606/ferrari.png?ex=6aed531c&is=6aec019c&hm=b0583cf750c6743040bf1555910a209d3770ef24bc3c19ed181992b4a946d5d1&"
     },
     {
       "id": "team-3ws3tm",
@@ -122,7 +131,8 @@
       "base": "Milton Keynes, United Kingdom",
       "principal": "Laurent Mekies",
       "engine": "Red Bull Ford",
-      "car": "RB22"
+      "car": "RB22",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752850497347675/rbr.png?ex=6aed531e&is=6aec019e&hm=12231a577145bd2f09b509ac76674dcf37dd208120419adca3b4aa0238b1b45f&"
     },
     {
       "id": "team-0tr4e5",
@@ -131,7 +141,8 @@
       "base": "Faenza, Italy",
       "principal": "Alan Permane",
       "engine": "Red Bull Ford",
-      "car": "VCARB 03"
+      "car": "VCARB 03",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752850983878656/vcarb.png?ex=6aed531f&is=6aec019f&hm=0b8a3d2adc85d18b59c1e1cbe2fabd65a85cccddba40452be4a360ac0b365223&"
     },
     {
       "id": "team-rzql3o",
@@ -140,7 +151,8 @@
       "car": "FW48",
       "engine": "Mercedes",
       "base": "Grove, United Kingdom",
-      "principal": "James Vowles"
+      "principal": "James Vowles",
+      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752851533471854/williams.png?ex=6aed531f&is=6aec019f&hm=e39be770539f68c9a22f3adb43ea5d55671df76b5e12f59c5e370a310e8139f2&"
     }
   ],
   "drivers": [
@@ -1013,6 +1025,6 @@
     }
   ],
   "meta": {
-    "updated": "2026-11-05T03:59:48.387Z"
+    "updated": "2026-11-05T04:11:53.544Z"
   }
 }
