@@ -1010,70 +1010,80 @@
           "status": "FIN",
           "laps": 53,
           "time": "1:33:23.553",
-          "fastestLap": true
+          "fastestLap": true,
+          "tyres": "S M S"
         },
         {
           "driverId": "d3",
           "teamId": "nightjar",
           "status": "FIN",
           "laps": 53,
-          "time": "+3.688"
+          "time": "+3.688",
+          "tyres": "M S S"
         },
         {
           "driverId": "d5",
           "teamId": "polar",
           "status": "FIN",
           "laps": 53,
-          "time": "+9.217"
+          "time": "+9.217",
+          "tyres": "H S"
         },
         {
           "driverId": "d8",
           "teamId": "nightjar",
           "status": "FIN",
           "laps": 53,
-          "time": "+13.658"
+          "time": "+13.658",
+          "tyres": "S H"
         },
         {
           "driverId": "d2",
           "teamId": "crimson",
           "status": "FIN",
           "laps": 53,
-          "time": "+16.934"
+          "time": "+16.934",
+          "tyres": "H S"
         },
         {
           "driverId": "d7",
           "teamId": "aqua",
           "status": "FIN",
           "laps": 53,
-          "time": "+22.327"
+          "time": "+22.327",
+          "tyres": "M S M"
         },
         {
           "driverId": "d4",
           "teamId": "solstice",
           "status": "FIN",
           "laps": 53,
-          "time": "+25.820"
+          "time": "+25.820",
+          "tyres": "H M"
         },
         {
           "driverId": "d9",
           "teamId": "polar",
           "status": "FIN",
           "laps": 53,
-          "time": "+32.129"
+          "time": "+32.129",
+          "tyres": "M H"
         },
         {
           "driverId": "d6",
           "teamId": "crimson",
           "status": "FIN",
           "laps": 53,
-          "time": "+35.996"
+          "time": "+35.996",
+          "tyres": "S M S"
         },
         {
           "driverId": "d10",
           "teamId": "solstice",
           "status": "DNF",
           "laps": 26,
-          "time": "Gearbox"
+          "time": "Gearbox",
+          "tyres": "S"
         }
       ]
     }
@@ -1143,7 +1153,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-05T16:33:44.215Z"
+    "updated": "2026-11-05T16:40:47.257Z"
   },
   "rulebook": {},
   "fantasy": {
