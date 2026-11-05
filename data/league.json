@@ -320,7 +320,8 @@
       "teamId": "team-3ws3tm",
       "active": true,
       "gamertag": "hyosoi",
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "uploads/drivers/2026-11-05-seorender-dkz1.png",
+      "headshot": "uploads/drivers/2026-11-05-seorender-s6kr.png"
     },
     {
       "id": "drv-ncu50w",
@@ -330,7 +331,30 @@
       "teamId": "team-3ws3tm",
       "active": true,
       "gamertag": "Fabelynx",
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567754678509375551/roxrender.png?ex=6aed54d2&is=6aec0352&hm=864dc108b085e7a663afb8fb37924c06607a03df9a039ade35fe8b9518f7a2db&=&format=webp&quality=lossless&width=990&height=556"
+      "photo": "uploads/drivers/2026-11-05-roxrender-pe4n.png",
+      "headshot": "uploads/drivers/2026-11-05-roxrender-vc5k.png"
+    },
+    {
+      "id": "drv-48oaev",
+      "name": "Illia Speedy",
+      "number": 6,
+      "country": "UA",
+      "teamId": "team-0tr4e5",
+      "active": true,
+      "gamertag": "illia_95849",
+      "photo": "uploads/drivers/2026-11-05-dizzy-ynj2.png",
+      "headshot": "uploads/drivers/2026-11-05-dizzy-4x31.png"
+    },
+    {
+      "id": "drv-z9dwau",
+      "name": "Joshua Tsing",
+      "number": 8,
+      "country": "SG",
+      "teamId": "team-0tr4e5",
+      "active": true,
+      "gamertag": "1.800.foreign",
+      "photo": "uploads/drivers/2026-11-05-mavodriver-hsgz.png",
+      "headshot": "uploads/drivers/2026-11-05-mavodriver-j22g.png"
     }
   ],
   "calendar": [
@@ -1153,7 +1177,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-05T17:01:50.850Z"
+    "updated": "2026-11-05T17:17:10.478Z"
   },
   "rulebook": {},
   "fantasy": {
