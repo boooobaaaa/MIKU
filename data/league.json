@@ -1054,7 +1054,29 @@
       "body": "Standings, results, the calendar and driver profiles now all live here, updated after every round. Grab a drink, get comfy and enjoy the season. 🩵"
     }
   ],
+  "stewards": [],
+  "history": [],
+  "theme": {
+    "accent": "#39c5bb",
+    "accentSoft": "#86cecb",
+    "accentDeep": "#137a7f",
+    "highlight": "#e12885",
+    "bgDark": "#07090c",
+    "bgLight": "#f2f8f7",
+    "defaultMode": "dark",
+    "allowToggle": true,
+    "effects": true
+  },
+  "signups": {
+    "open": true,
+    "title": "Join the Grid",
+    "intro": "Are you ready to put your hat in the ring in the chase for the Drivers' Championship Title?",
+    "requirements": "",
+    "formUrl": "",
+    "seatsPerTeam": 2,
+    "showBuilder": true
+  },
   "meta": {
-    "updated": "2026-11-05T04:17:29.802Z"
+    "updated": "2026-11-05T06:20:49.575Z"
   }
 }
