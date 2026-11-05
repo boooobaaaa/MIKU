@@ -1,0 +1,964 @@
+{
+  "league": {
+    "name": "Aurora Racing League",
+    "season": "2026",
+    "tagline": "Wednesday night wheel-to-wheel. Clean racing, cosy vibes, one championship.",
+    "logo": "",
+    "links": {
+      "discord": "https://discord.gg/your-invite",
+      "youtube": "",
+      "twitch": ""
+    },
+    "rules": "# Sporting regulations\n\n## Race format\n- Races are **50% distance**, dynamic weather, parc fermé on.\n- One-shot qualifying, 18 minutes.\n- Assists: ABS and traction control allowed; no racing line.\n\n## Conduct\n- Racing incidents are reviewed by the stewards after each round. Submit tickets in Discord within **24 hours**.\n- Penalties: warnings → time penalties → championship points deductions.\n- Three no-shows without notice and your seat goes to a reserve driver.\n\n## Reserves\nReserve drivers score points for the **team**, and keep their own points in the drivers' table."
+  },
+  "settings": {
+    "adminHash": ""
+  },
+  "scoring": {
+    "race": [
+      25,
+      18,
+      15,
+      12,
+      10,
+      8,
+      6,
+      4,
+      2,
+      1
+    ],
+    "sprint": [
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1
+    ],
+    "fastestLap": 1,
+    "fastestLapTopN": 10,
+    "sprintFastestLap": 0,
+    "pole": 0
+  },
+  "teams": [
+    {
+      "id": "aqua",
+      "name": "Aqua Vertex Racing",
+      "color": "#39c5bb",
+      "base": "Sapporo, Japan",
+      "principal": "Mei Hoshino",
+      "car": "AVR-26",
+      "engine": "Mercedes"
+    },
+    {
+      "id": "crimson",
+      "name": "Crimson Lantern GP",
+      "color": "#e2445c",
+      "base": "Maranello, Italy",
+      "principal": "Luca Bassi",
+      "car": "CL-07",
+      "engine": "Ferrari"
+    },
+    {
+      "id": "nightjar",
+      "name": "Nightjar Motorsport",
+      "color": "#8a7cf8",
+      "base": "Milton Keynes, UK",
+      "principal": "Ada Whitlock",
+      "car": "NJ-3",
+      "engine": "Honda RBPT"
+    },
+    {
+      "id": "solstice",
+      "name": "Solstice Racing",
+      "color": "#f2a541",
+      "base": "Woking, UK",
+      "principal": "Tom Ashby",
+      "car": "SR26",
+      "engine": "Mercedes"
+    },
+    {
+      "id": "polar",
+      "name": "Polar Static",
+      "color": "#6ec1ff",
+      "base": "Enstone, France",
+      "principal": "Claire Dubois",
+      "car": "PS-01",
+      "engine": "Renault"
+    }
+  ],
+  "drivers": [
+    {
+      "id": "d1",
+      "name": "Aiko Tanaka",
+      "number": 39,
+      "country": "JP",
+      "teamId": "aqua",
+      "active": true
+    },
+    {
+      "id": "d2",
+      "name": "Leo Marchetti",
+      "number": 16,
+      "country": "IT",
+      "teamId": "crimson",
+      "active": true
+    },
+    {
+      "id": "d3",
+      "name": "Sam Okafor",
+      "number": 44,
+      "country": "GB",
+      "teamId": "nightjar",
+      "active": true
+    },
+    {
+      "id": "d4",
+      "name": "Nina Lindqvist",
+      "number": 7,
+      "country": "SE",
+      "teamId": "solstice",
+      "active": true
+    },
+    {
+      "id": "d5",
+      "name": "Theo Laurent",
+      "number": 10,
+      "country": "FR",
+      "teamId": "polar",
+      "active": true
+    },
+    {
+      "id": "d6",
+      "name": "Mateo Ruiz",
+      "number": 55,
+      "country": "ES",
+      "teamId": "crimson",
+      "active": true
+    },
+    {
+      "id": "d7",
+      "name": "Hana Seo",
+      "number": 1,
+      "country": "KR",
+      "teamId": "aqua",
+      "active": true
+    },
+    {
+      "id": "d8",
+      "name": "Oscar Virtanen",
+      "number": 77,
+      "country": "FI",
+      "teamId": "nightjar",
+      "active": true
+    },
+    {
+      "id": "d9",
+      "name": "Jules Moreau",
+      "number": 31,
+      "country": "BE",
+      "teamId": "polar",
+      "active": true
+    },
+    {
+      "id": "d10",
+      "name": "Kai Brooks",
+      "number": 23,
+      "country": "US",
+      "teamId": "solstice",
+      "active": true
+    }
+  ],
+  "calendar": [
+    {
+      "id": "r1",
+      "round": 1,
+      "name": "Bahrain Grand Prix",
+      "track": "Bahrain International Circuit",
+      "country": "BH",
+      "laps": 57,
+      "start": "2026-10-15T01:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r2",
+      "round": 2,
+      "name": "Saudi Arabian Grand Prix",
+      "track": "Jeddah Corniche Circuit",
+      "country": "SA",
+      "laps": 50,
+      "start": "2026-10-22T01:00:00.000Z",
+      "sprint": true
+    },
+    {
+      "id": "r3",
+      "round": 3,
+      "name": "Australian Grand Prix",
+      "track": "Albert Park",
+      "country": "AU",
+      "laps": 58,
+      "start": "2026-10-29T01:00:00.000Z",
+      "sprint": false,
+      "notes": "**Stewards:** Car #31 received a 5-second time penalty for leaving the track and gaining an advantage at Turn 3."
+    },
+    {
+      "id": "r4",
+      "round": 4,
+      "name": "Japanese Grand Prix",
+      "track": "Suzuka International Racing Course",
+      "country": "JP",
+      "laps": 53,
+      "start": "2026-11-05T02:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r5",
+      "round": 5,
+      "name": "Miami Grand Prix",
+      "track": "Miami International Autodrome",
+      "country": "US",
+      "laps": 57,
+      "start": "2026-11-12T02:00:00.000Z",
+      "sprint": true
+    },
+    {
+      "id": "r6",
+      "round": 6,
+      "name": "Emilia Romagna Grand Prix",
+      "track": "Imola",
+      "country": "IT",
+      "laps": 63,
+      "start": "2026-11-19T02:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r7",
+      "round": 7,
+      "name": "Monaco Grand Prix",
+      "track": "Circuit de Monaco",
+      "country": "MC",
+      "laps": 78,
+      "start": "2026-12-03T02:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r8",
+      "round": 8,
+      "name": "Spanish Grand Prix",
+      "track": "Circuit de Barcelona-Catalunya",
+      "country": "ES",
+      "laps": 66,
+      "start": "2026-12-10T02:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r9",
+      "round": 9,
+      "name": "British Grand Prix",
+      "track": "Silverstone Circuit",
+      "country": "GB",
+      "laps": 52,
+      "start": "2026-12-17T02:00:00.000Z",
+      "sprint": true
+    },
+    {
+      "id": "r10",
+      "round": 10,
+      "name": "Belgian Grand Prix",
+      "track": "Spa-Francorchamps",
+      "country": "BE",
+      "laps": 44,
+      "start": "2027-01-07T02:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r11",
+      "round": 11,
+      "name": "Italian Grand Prix",
+      "track": "Monza",
+      "country": "IT",
+      "laps": 53,
+      "start": "2027-01-14T02:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r12",
+      "round": 12,
+      "name": "Abu Dhabi Grand Prix",
+      "track": "Yas Marina Circuit",
+      "country": "AE",
+      "laps": 58,
+      "start": "2027-01-21T02:00:00.000Z",
+      "sprint": false
+    }
+  ],
+  "results": {
+    "r1": {
+      "quali": [
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:29.148"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:28.429"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:28.729"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:28.778"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:28.582"
+        },
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:29.390"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:28.930"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:29.200"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:30.104"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:29.808"
+        }
+      ],
+      "race": [
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 57,
+          "time": "1:32:50.735"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+5.807"
+        },
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+10.844",
+          "fastestLap": true
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+14.844"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+19.747"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+22.236"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+27.043"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+29.960"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+32.063"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "DNF",
+          "laps": 28,
+          "time": "Gearbox"
+        }
+      ]
+    },
+    "r2": {
+      "quali": [
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:28.014"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:28.713"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:29.409"
+        },
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:28.370"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:29.031"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:29.034"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:29.058"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:29.652"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:29.122"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:29.611"
+        }
+      ],
+      "race": [
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 50,
+          "time": "1:36:56.728"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+1.228",
+          "fastestLap": true
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+3.937"
+        },
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+10.273"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+14.986"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+21.084"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+27.254"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+31.567"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+36.844"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "DNF",
+          "laps": 25,
+          "time": "Gearbox"
+        }
+      ],
+      "sprint": [
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 17,
+          "time": "28:41.552"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+1.401"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+5.066"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+6.612"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+8.016"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+11.680"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+15.465"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+17.149"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+18.831"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+20.498"
+        }
+      ]
+    },
+    "r3": {
+      "quali": [
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:29.048"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:28.224"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:28.898"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:29.211"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:28.620"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:28.789"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:28.778"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:29.660"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:29.654"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:29.508"
+        }
+      ],
+      "race": [
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 58,
+          "time": "1:38:00.334"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+5.138"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+10.806",
+          "fastestLap": true
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+13.899"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+20.550"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+24.736"
+        },
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+25.923"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+31.920"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+33.233"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+34.816"
+        }
+      ]
+    },
+    "r4": {
+      "quali": [
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:28.220"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:29.232"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:28.368"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:28.558"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:29.240"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:29.247"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:29.862"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:28.843"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:29.100"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:29.728"
+        }
+      ],
+      "race": [
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 53,
+          "time": "1:33:23.553",
+          "fastestLap": true
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+3.688"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+9.217"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+13.658"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+16.934"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+22.327"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+25.820"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+32.129"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+35.996"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "DNF",
+          "laps": 26,
+          "time": "Gearbox"
+        }
+      ]
+    }
+  },
+  "adjustments": [
+    {
+      "id": "adj1",
+      "type": "driver",
+      "targetId": "d9",
+      "points": -3,
+      "roundId": "r3",
+      "reason": "Causing a collision, Lap 1 Turn 3"
+    }
+  ],
+  "news": [
+    {
+      "id": "n1",
+      "title": "Suzuka delivers a classic as the title fight tightens",
+      "date": "2026-11-04",
+      "author": "Race Control",
+      "tag": "Race report",
+      "pinned": false,
+      "image": "",
+      "body": "Round 4 at Suzuka had everything — a wet start, a strategy gamble on lap 18 and a final-sector battle through the Esses.\n\n## Key moments\n- A brilliant opening lap from the front row set the tone\n- Two cars tangled at the hairpin, bringing out the VSC\n- The fastest lap went down to the final ten laps\n\nNext up: **Miami**, our second sprint weekend of the season."
+    },
+    {
+      "id": "n2",
+      "title": "Season 2026 calendar confirmed: 12 rounds, 3 sprints",
+      "date": "2026-10-01",
+      "author": "League Admin",
+      "tag": "Announcement",
+      "pinned": false,
+      "image": "",
+      "body": "We are racing every **Wednesday at 8pm Central**, starting in Bahrain on October 14th and finishing under the lights in Abu Dhabi.\n\nSprint weekends: Jeddah, Miami and Silverstone. Check the [Discord](https://discord.gg/your-invite) for sign-ups."
+    },
+    {
+      "id": "n3",
+      "title": "Welcome to the new league home",
+      "date": "2026-09-25",
+      "author": "League Admin",
+      "tag": "Paddock",
+      "pinned": false,
+      "image": "",
+      "body": "Standings, results, the calendar and driver profiles now all live here, updated after every round. Grab a drink, get comfy and enjoy the season. 🩵"
+    }
+  ],
+  "meta": {
+    "updated": "2026-11-05T03:30:00.000Z"
+  }
+}
