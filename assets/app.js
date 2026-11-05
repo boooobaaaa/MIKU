@@ -113,24 +113,200 @@ function avatar(drv, t, size = '') {
 /* tiny markdown: # headings, **bold**, *italic*, [links](https://…), - lists, paragraphs */
 function md(src) {
   const inline = s => s
+    .replace(/\\([\\`*_{}\[\]()#+\-.!|>~])/g, (m, c) => `&#${c.charCodeAt(0)};`)
     .replace(/!\[([^\]]*)\]\(((?:https?:\/\/|uploads\/|images\/)[^\s)]+)\)/g, (m, alt, u) => `<img class="md-img zoomable" src="${asset(u)}" alt="${alt}" loading="lazy">`)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-  let html = '', para = [], list = null;
-  const flushP = () => { if (para.length) { html += `<p>${inline(para.join(' '))}</p>`; para = []; } };
-  const flushL = () => { if (list) { html += `<ul>${list.map(i => `<li>${inline(i)}</li>`).join('')}</ul>`; list = null; } };
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/(^|[^*\w])\*(?!\s)([^*]+?)\*(?!\w)/g, '$1<em>$2</em>')
+    .replace(/(^|[^\w])_(?!\s)([^_]+?)_(?!\w)/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\(((?:https?:\/\/|mailto:)[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\[([^\]]+)\]\((#\/[^\s)]*)\)/g, '<a href="$2">$1</a>');
+  let html = '', para = [], list = null, table = null, quote = null;
+  const flushP = () => { if (para.length) { html += `<p>${para.map(inline).join('<br>')}</p>`; para = []; } };
+  const flushL = () => {
+    if (!list) return;
+    let i = 0;
+    const out = lvl => {
+      const ord = list[i].ord, tag = ord ? 'ol' : 'ul';
+      let h = `<${tag}${ord && list[i].n > 1 ? ` start="${list[i].n}"` : ''}>`;
+      while (i < list.length && list[i].lvl >= lvl) {
+        if (list[i].lvl > lvl) { h = h.replace(/<\/li>$/, '') + out(list[i].lvl) + '</li>'; continue; }
+        h += `<li>${inline(list[i].text)}</li>`; i++;
+      }
+      return h + `</${tag}>`;
+    };
+    while (i < list.length) html += out(list[i].lvl);
+    list = null;
+  };
+  const flushT = () => {
+    if (!table) return;
+    const rows = table.filter(r => !/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(r));
+    const hasHead = table.length > 1 && /^\|?\s*:?-{2,}/.test(table[1]);
+    const cells = r => r.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => inline(c.trim()));
+    html += `<div class="md-table"><table>${rows.map((r, k) => `<tr>${cells(r).map(c => k === 0 && hasHead ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table></div>`;
+    table = null;
+  };
+  const flushQ = () => { if (quote) { html += `<blockquote>${quote.map(inline).join('<br>')}</blockquote>`; quote = null; } };
+  const flush = () => { flushP(); flushL(); flushT(); flushQ(); };
   for (const raw of esc(src || '').split(/\r?\n/)) {
     const t = raw.trim(); let m;
-    if (!t) { flushP(); flushL(); continue; }
-    if ((m = t.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/))) { flushP(); flushL(); html += `<figure>${inline(t)}${m[1] ? `<figcaption>${m[1]}</figcaption>` : ''}</figure>`; continue; }
-    if ((m = t.match(/^(#{1,3})\s+(.*)/))) { flushP(); flushL(); const lv = m[1].length + 1; html += `<h${lv}>${inline(m[2])}</h${lv}>`; continue; }
-    if ((m = t.match(/^[-*]\s+(.*)/))) { flushP(); (list = list || []).push(m[1]); continue; }
-    flushL(); para.push(t);
+    if (!t) { flush(); continue; }
+    if (t.startsWith('|')) { flushP(); flushL(); flushQ(); (table = table || []).push(t); continue; }
+    if ((m = t.match(/^&gt;\s?(.*)/))) { flushP(); flushL(); flushT(); (quote = quote || []).push(m[1]); continue; }
+    if ((m = t.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/))) { flush(); html += `<figure>${inline(t)}${m[1] ? `<figcaption>${m[1]}</figcaption>` : ''}</figure>`; continue; }
+    if ((m = t.match(/^(#{1,6})\s+(.*)/))) { flush(); const lv = Math.min(6, m[1].length + 1); html += `<h${lv}>${inline(m[2])}</h${lv}>`; continue; }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flush(); html += '<hr>'; continue; }
+    if ((m = raw.match(/^(\s*)([-*+]|(\d+)[.)])\s+(.*)/))) {
+      flushP(); flushT(); flushQ();
+      (list = list || []).push({ lvl: Math.min(4, Math.floor(m[1].replace(/\t/g, '    ').length / 2)), ord: !!m[3], n: Number(m[3]) || 1, text: m[4] });
+      continue;
+    }
+    if (list && /^\s{2,}/.test(raw)) { list[list.length - 1].text += ' ' + t; continue; }
+    flushL(); flushT(); flushQ(); para.push(t);
   }
-  flushP(); flushL();
+  flush();
   return html;
 }
+
+/* ---------------- rulebook: parse markdown into chapters & points ---------------- */
+const NUM_RE = /^(?:(chapter|part|section|article|art\.?|rule)\s+)?((?:\d+|[IVXLC]+)(?:\.\d+)*)[.)]?(?:\s*[-–—:.]\s*|\s+|$)(.*)$/i;
+function splitNum(title) {
+  const m = String(title || '').match(NUM_RE);
+  return m && (m[3] || m[1]) ? { num: m[2], title: m[3].trim() } : { num: '', title: String(title || '').trim() };
+}
+function parseRulebook(src, opts = {}) {
+  let lines = String(src || '').replace(/ /g, ' ').split(/\r?\n/);
+  let heads = lines.map((l, i) => { const m = l.match(/^(#{1,6})\s+(.*)/); return m ? { i, lv: m[1].length, text: m[2].replace(/\*\*|__/g, '').trim() } : null; }).filter(Boolean);
+  if (!heads.length) {
+    // no heading styles — fall back to "Chapter 1 …" lines and "1.1 …" points
+    lines = lines.map(l => {
+      const t = l.trim();
+      if (/^(chapter|part)\s+(\d+|[ivxlc]+)\b/i.test(t) && t.length < 120) return '# ' + t;
+      if (/^\d+\.\d+(\.\d+)*\.?\s+\S/.test(t)) return '## ' + t;
+      return l;
+    });
+    heads = lines.map((l, i) => { const m = l.match(/^(#{1,6})\s+(.*)/); return m ? { i, lv: m[1].length, text: m[2].trim() } : null; }).filter(Boolean);
+  }
+  const res = { title: '', intro: '', chapters: [] };
+  if (!heads.length) { res.intro = lines.join('\n'); return res; }
+  const minLv = Math.min(...heads.map(h => h.lv));
+  let chLv = minLv, titleLine = -1;
+  const top = heads.filter(h => h.lv === minLv);
+  if (top.length === 1 && heads[0].lv === minLv && heads.some(h => h.lv > minLv)) {
+    titleLine = heads[0].i; res.title = heads[0].text;
+    chLv = Math.min(...heads.filter(h => h.lv > minLv).map(h => h.lv));
+  }
+  const deeper = heads.filter(h => h.lv > chLv).map(h => h.lv);
+  const secLv = deeper.length ? Math.min(...deeper) : 0;
+  let ch = null, sec = null;
+  const intro = [];
+  lines.forEach((l, i) => {
+    if (i === titleLine) return;
+    const m = l.match(/^(#{1,6})\s+(.*)/);
+    const lv = m ? m[1].length : 0, text = m ? m[2].replace(/\*\*|__/g, '').trim() : '';
+    if (m && lv === chLv) { ch = { ...splitNum(text), raw: text, intro: [], sections: [] }; sec = null; res.chapters.push(ch); return; }
+    if (m && secLv && lv === secLv && ch) { sec = { ...splitNum(text), raw: text, body: [] }; ch.sections.push(sec); return; }
+    if (m && lv < chLv) return;
+    const line = m && lv > secLv ? '#'.repeat(Math.min(6, lv - secLv + 2)) + ' ' + text : l;
+    if (sec) sec.body.push(line); else if (ch) ch.intro.push(line); else intro.push(line);
+  });
+  while (intro.length && !intro[0].trim()) intro.shift();
+  if (!res.title && intro.length) { const f = intro[0].trim().replace(/^\*\*(.*)\*\*$/, '$1'); if (f.length < 90 && !/[.:]$/.test(f) && !/^[-*|>!]/.test(f)) { res.title = f; intro.shift(); } }
+  res.intro = intro.join('\n').trim();
+  const auto = opts.autoNumber !== false;
+  res.chapters.forEach((c, ci) => {
+    c.id = 'c' + (ci + 1);
+    if (!c.num && auto) c.num = String(ci + 1);
+    c.intro = c.intro.join('\n').trim();
+    c.sections.forEach((x, si) => {
+      x.id = 's' + (si + 1);
+      if (!x.num && auto) x.num = (c.num && /^\d+$/.test(c.num) ? c.num : ci + 1) + '.' + (si + 1);
+      x.body = x.body.join('\n').trim();
+      if (!x.title) { const w = plain(x.body).split(' '); x.label = w.slice(0, 7).join(' ') + (w.length > 7 ? '…' : ''); }
+    });
+  });
+  return res;
+}
+
+/* ---------------- Google Docs (clipboard or exported .html) → markdown ---------------- */
+function htmlToMd(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const boldC = new Set(), italC = new Set();
+  doc.querySelectorAll('style').forEach(st => {
+    for (const m of st.textContent.matchAll(/\.([\w-]+)\s*\{([^}]*)\}/g)) {
+      if (/font-weight:\s*(700|bold)/.test(m[2])) boldC.add(m[1]);
+      if (/font-style:\s*italic/.test(m[2])) italC.add(m[1]);
+    }
+  });
+  doc.querySelectorAll('style,script,meta,title,head').forEach(e => e.remove());
+  const isBold = el => /^(B|STRONG)$/.test(el.tagName) && !/font-weight:\s*(normal|[1-5]00)/.test(el.getAttribute('style') || '') || /font-weight:\s*(bold|[6-9]00)/.test(el.getAttribute('style') || '') || [...el.classList].some(c => boldC.has(c));
+  const isItal = el => /^(I|EM)$/.test(el.tagName) || /font-style:\s*italic/.test(el.getAttribute('style') || '') || [...el.classList].some(c => italC.has(c));
+  const href = a => { let h = a.getAttribute('href') || ''; try { const u = new URL(h); if (/google\.com$/.test(u.hostname) && u.pathname === '/url') h = u.searchParams.get('q') || h; } catch (e) { } return h; };
+  const escMd = t => t.replace(/([\\*_`\[\]|])/g, '\\$1');
+  const runs = (node, fmt = {}, out = []) => {
+    node.childNodes.forEach(n => {
+      if (n.nodeType === 3) { out.push({ t: n.textContent.replace(/[\s ]+/g, ' '), ...fmt }); return; }
+      if (n.nodeType !== 1) return;
+      if (n.tagName === 'BR') { out.push({ t: '\n', br: 1 }); return; }
+      if (n.tagName === 'IMG') return;
+      const f = { ...fmt };
+      if (isBold(n)) f.b = 1;
+      if (isItal(n)) f.i = 1;
+      if (n.tagName === 'A' && n.getAttribute('href')) f.a = href(n);
+      runs(n, f, out);
+    });
+    return out;
+  };
+  const inl = node => {
+    const rs = runs(node);
+    const merged = [];
+    rs.forEach(r => { const l = merged[merged.length - 1]; if (l && !r.br && !l.br && l.b === r.b && l.i === r.i && l.a === r.a) l.t += r.t; else merged.push({ ...r }); });
+    return merged.map(r => {
+      if (r.br) return '\n';
+      const m = r.t.match(/^(\s*)([\s\S]*?)(\s*)$/);
+      if (!m[2]) return r.t;
+      let x = escMd(m[2]);
+      if (r.i) x = `*${x}*`;
+      if (r.b) x = `**${x}**`;
+      if (r.a && /^(https?:|mailto:)/.test(r.a)) x = `[${x}](${r.a})`;
+      return m[1] + x + m[3];
+    }).join('').replace(/[ \t]+\n/g, '\n').trim();
+  };
+  const lines = [];
+  const para = t => { if (t) lines.push(t.replace(/^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>)/, m => '\\' + m), ''); };
+  const walk = (node, depth = 0) => {
+    node.childNodes.forEach(n => {
+      if (n.nodeType === 3) { para(n.textContent.trim()); return; }
+      if (n.nodeType !== 1) return;
+      const tag = n.tagName;
+      if (/^H[1-6]$/.test(tag)) { const t = inl(n).replace(/\n/g, ' '); if (t) lines.push('#'.repeat(+tag[1]) + ' ' + t.replace(/^\*\*(.*)\*\*$/, '$1'), ''); return; }
+      if (tag === 'P') { para(inl(n)); return; }
+      if (tag === 'UL' || tag === 'OL') {
+        n.querySelectorAll(':scope > li').forEach(li => {
+          const lvl = Math.max(0, (Number(li.getAttribute('aria-level')) || 1) - 1) + depth;
+          const clone = li.cloneNode(true); clone.querySelectorAll('ul,ol').forEach(x => x.remove());
+          lines.push('  '.repeat(lvl) + (tag === 'OL' ? '1. ' : '- ') + inl(clone).replace(/\n/g, ' '));
+          li.querySelectorAll(':scope > ul, :scope > ol').forEach(sub => walk({ childNodes: [sub] }, lvl + 1));
+        });
+        lines.push(''); return;
+      }
+      if (tag === 'TABLE') {
+        const rows = [...n.querySelectorAll('tr')].map(tr => [...tr.children].map(td => inl(td).replace(/\n/g, ' ').replace(/\|/g, '\\|')));
+        if (rows.length) {
+          const w = Math.max(...rows.map(r => r.length));
+          rows.forEach((r, k) => { while (r.length < w) r.push(''); lines.push('| ' + r.join(' | ') + ' |'); if (k === 0) lines.push('|' + ' --- |'.repeat(w)); });
+          lines.push('');
+        }
+        return;
+      }
+      if (tag === 'HR') { lines.push('---', ''); return; }
+      walk(n, depth);
+    });
+  };
+  walk(doc.body);
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+}
+
 const plain = src => String(src || '').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/[#*_\[\]()>-]/g, '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim();
 
 function toast(msg, kind = 'ok') {
@@ -661,7 +837,7 @@ function pageTeam(d, id) {
       <div class="eyebrow">${x.position ? `P${x.position} in constructors'` : 'Constructor'}</div>
       <h1>${esc(T.name)}</h1>
       <dl class="kv" style="position:relative;margin-top:14px">
-        ${T.base ? `<dt>Base</dt><dd>${esc(T.base)}</dd>` : ''}${T.principal ? `<dt>Team principal</dt><dd>${esc(T.principal)}</dd>` : ''}${T.car ? `<dt>Chassis</dt><dd>${esc(T.car)}</dd>` : ''}${T.engine ? `<dt>Power unit</dt><dd>${esc(T.engine)}</dd>` : ''}
+        ${T.base ? `<dt>Base</dt><dd>${esc(T.base)}</dd>` : ''}${(((T.staff || {}).principal || {}).name || T.principal) ? `<dt>Team principal</dt><dd>${esc(((T.staff || {}).principal || {}).name || T.principal)}</dd>` : ''}${T.car ? `<dt>Chassis</dt><dd>${esc(T.car)}</dd>` : ''}${T.engine ? `<dt>Power unit</dt><dd>${esc(T.engine)}</dd>` : ''}
       </dl>
       ${T.bio ? `<div class="bio prose">${md(T.bio)}</div>` : ''}
       ${T.carImage ? `<img class="ph-car zoomable" src="${esc(asset(T.carImage))}" alt="" onerror="this.remove()">` : ''}
@@ -674,7 +850,7 @@ function pageTeam(d, id) {
       <div class="stat"><b>${x.poles}</b><span>Poles</span></div>
     </div>
     <div class="section-title"><h2>Drivers</h2></div>
-    <div class="driver-grid" style="margin-bottom:32px">${drs.length ? drs.map(p => { const ps = st.D[p.id] || { points: 0 }; return `<a class="driver-card" href="#/driver/${esc(p.id)}" style="--tc:${esc(teamColor(T))};min-height:160px"><div class="dc-pos">${ps.position ? 'P' + ps.position : 'Driver'}${p.active === false ? ' · inactive' : ''}</div><div class="dc-pts"><b>${fmtPts(ps.points)}</b><span>PTS</span></div><div class="dc-num">${esc(p.number ?? '')}</div><div class="dc-name">${nameHTML(p.name)}</div><div class="dc-team">${flag(p.country)}</div></a>`; }).join('') : empty('No drivers signed')}</div>
+    ${teamLineup(d, T, st)}
     <div class="section-title"><h2>Race by race</h2></div>
     ${rows ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Rd</th><th>Grand Prix</th>${drIds.map(did => `<th>${esc(driverLabel(d, did).name.split(' ').pop())}</th>`).join('')}<th class="r">Pts</th></tr></thead><tbody>${rows}</tbody></table></div>` : empty('No results yet')}
     ${relatedArticles(d, 'teams', id)}
@@ -714,7 +890,7 @@ function pageArticle(d, id) {
   </div>`;
 }
 
-function pageRules(d) {
+function scoringHTML(d) {
   const sc = d.scoring;
   const ptsTable = (label, arr) => arr && arr.length ? `<div class="card"><h3>${label}</h3><div class="table-wrap" style="box-shadow:none"><table class="tbl"><thead><tr><th>Position</th><th class="r">Points</th></tr></thead><tbody>${arr.map((p, i) => `<tr class="${i < 3 ? 'top' + (i + 1) : ''}"><td class="pos">P${i + 1}</td><td class="pts">${fmtPts(p)}</td></tr>`).join('')}</tbody></table></div></div>` : '';
   const bonuses = [];
@@ -722,10 +898,118 @@ function pageRules(d) {
   if (Number(sc.sprintFastestLap)) bonuses.push(`<li><b>+${fmtPts(sc.sprintFastestLap)}</b> for the fastest lap in the sprint</li>`);
   if (Number(sc.pole)) bonuses.push(`<li><b>+${fmtPts(sc.pole)}</b> for pole position</li>`);
   bonuses.push('<li>DNF, DSQ and DNS score no points.</li><li>Ties are broken by most wins, then most 2nd places, and so on.</li>');
-  return `<div class="page">${head('Season ' + d.league.season, 'Rules & scoring', '')}
-    <div class="grid grid-3">${ptsTable('Race points', sc.race)}${ptsTable('Sprint points', sc.sprint)}<div class="card"><h3>Bonuses & tie-breaks</h3><ul class="prose" style="font-size:15px;padding-left:1.1em">${bonuses.join('')}</ul></div></div>
-    ${d.league.rules ? `<section class="card" style="margin-top:24px"><div class="prose">${md(d.league.rules)}</div></section>` : ''}
+  return `<div class="grid grid-3">${ptsTable('Race points', sc.race)}${ptsTable('Sprint points', sc.sprint)}<div class="card"><h3>Bonuses & tie-breaks</h3><ul class="prose" style="font-size:15px;padding-left:1.1em">${bonuses.join('')}</ul></div></div>`;
+}
+let RULE_TARGET = null;
+function rulebookData(d) {
+  const rb = d.rulebook || {};
+  if (!rb.md || !String(rb.md).trim()) return null;
+  const parsed = parseRulebook(rb.md, rb);
+  if (!parsed.chapters.length) return null;
+  if (rb.showScoring !== false) parsed.chapters.unshift({ id: 'points', num: '★', title: 'Points & scoring', intro: '', sections: [], scoring: true });
+  return { rb, ...parsed };
+}
+function pageRules(d, chId, secId) {
+  const R = rulebookData(d);
+  if (!R) return `<div class="page">${head('Season ' + d.league.season, 'Rules & scoring', '')}${scoringHTML(d)}
+    ${d.league.rules ? `<section class="card" style="margin-top:24px"><div class="prose">${md(d.league.rules)}</div></section>` : ''}</div>`;
+  const chs = R.chapters;
+  const ci = Math.max(0, chs.findIndex(c => c.id === chId));
+  const c = chs[ci];
+  RULE_TARGET = secId || null;
+  const lbl = c2 => `${c2.num ? `<span class="rb-n">${esc(c2.num)}</span>` : ''}<span class="rb-t">${esc(c2.title || c2.raw || 'Chapter')}</span>`;
+  const side = `<aside class="rb-side">
+    <div class="rb-search"><input type="search" id="rb-q" placeholder="Search the rules…" autocomplete="off"></div>
+    <nav class="rb-chapters">${chs.map(x => `<a href="#/rules/${x.id}" class="rb-ch ${x.id === c.id ? 'active' : ''}">${lbl(x)}</a>
+      ${x.id === c.id && x.sections.length ? `<div class="rb-points">${x.sections.map(sx => `<button data-rule-jump="${sx.id}"><b>${esc(sx.num)}</b> ${esc(sx.title || sx.label || '')}</button>`).join('')}</div>` : ''}`).join('')}</nav>
+  </aside>`;
+  const mobileNav = `<div class="rb-mnav"><select id="rb-msel">${chs.map(x => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${esc((x.num ? x.num + ' · ' : '') + (x.title || ''))}</option>`).join('')}</select>
+    ${c.sections.length ? `<div class="rb-mpoints">${c.sections.map(sx => `<button data-rule-jump="${sx.id}">${esc(sx.num || sx.title)}</button>`).join('')}</div>` : ''}</div>`;
+  const body = c.scoring ? `<div class="rb-intro prose"><p>How championship points are awarded this season.</p></div>${scoringHTML(d)}` : `
+    ${c.intro ? `<div class="rb-intro prose">${md(c.intro)}</div>` : ''}
+    ${c.sections.map(sx => `<article class="rb-sec" id="rule-${sx.id}">
+      <header>${sx.num ? `<span class="rb-badge mono">${esc(sx.num)}</span>` : ''}<h3>${esc(sx.title || '')}</h3><button class="rb-link" data-rule-copy="${c.id}/${sx.id}" title="Copy link to this rule">🔗</button></header>
+      ${sx.body ? `<div class="prose">${md(sx.body)}</div>` : ''}
+    </article>`).join('')}`;
+  const prev = chs[ci - 1], next = chs[ci + 1];
+  return `<div class="page rb">
+    <div class="page-head"><div class="eyebrow">${esc(R.rb.version ? 'Version ' + R.rb.version : 'Season ' + d.league.season)}${R.rb.updated ? ' · Updated ' + esc(fmtDate(R.rb.updated + 'T12:00:00')) : ''}</div>
+      <h1>${esc(R.rb.title || R.title || 'Rulebook')}</h1></div>
+    ${ci === 0 && R.intro ? `<div class="prose rb-docintro">${md(R.intro)}</div>` : ''}
+    ${mobileNav}
+    <div class="rb-layout">${side}
+      <section class="rb-main" id="rb-main">
+        <div class="rb-chead"><span class="rb-chnum">${c.scoring ? 'Points' : 'Chapter ' + esc(c.num || ci + 1)}</span><h2>${esc(c.title || '')}</h2>${c.sections.length ? `<span class="muted">${c.sections.length} point${c.sections.length === 1 ? '' : 's'}</span>` : ''}</div>
+        ${body}
+        <div class="rb-pager">${prev ? `<a class="rb-pg" href="#/rules/${prev.id}"><small>← Previous</small>${esc((prev.num ? prev.num + ' · ' : '') + prev.title)}</a>` : '<span></span>'}${next ? `<a class="rb-pg next" href="#/rules/${next.id}"><small>Next →</small>${esc((next.num ? next.num + ' · ' : '') + next.title)}</a>` : ''}</div>
+      </section>
+    </div>
   </div>`;
+}
+function ruleSearch(q) {
+  const main = document.getElementById('rb-main'); if (!main) return;
+  if (!main.dataset.orig) main.dataset.orig = '1', main._orig = main.innerHTML;
+  q = q.trim().toLowerCase();
+  if (q.length < 2) { main.innerHTML = main._orig; return; }
+  const R = rulebookData(S.data), hits = [];
+  R.chapters.forEach(c => c.sections.forEach(sx => {
+    const hay = `${sx.num} ${sx.title} ${plain(sx.body)}`.toLowerCase();
+    const k = hay.indexOf(q);
+    if (k >= 0) { const txt = plain(sx.body); const j = Math.max(0, txt.toLowerCase().indexOf(q) - 60); hits.push({ c, sx, snip: (j ? '…' : '') + txt.slice(j, j + 180) + (txt.length > j + 180 ? '…' : '') }); }
+  }));
+  const hl = t => esc(t).replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), m => `<mark>${m}</mark>`);
+  main.innerHTML = `<div class="rb-chead"><span class="rb-chnum">Search</span><h2>${hits.length} result${hits.length === 1 ? '' : 's'} for “${esc(q)}”</h2></div>
+    ${hits.map(h => `<a class="rb-hit" href="#/rules/${h.c.id}/${h.sx.id}"><span class="rb-badge mono">${esc(h.sx.num)}</span><div><b>${hl(h.sx.title || h.sx.label || '')}</b><small class="muted">${esc(h.c.title)}</small><p>${hl(h.snip)}</p></div></a>`).join('') || '<p class="muted">Nothing matches — try another word.</p>'}`;
+}
+function ruleJump(id, flash = true) {
+  const el = document.getElementById('rule-' + id); if (!el) return;
+  const y = el.getBoundingClientRect().top + window.scrollY - 140;
+  window.scrollTo({ top: y, behavior: 'smooth' });
+  if (flash) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+}
+
+/* ---------------- team lineup ---------------- */
+function wideDriverCard(d, p, T, st, role) {
+  const ps = st.D[p.id] || { points: 0 };
+  const tag = p.id && byId(d.drivers, p.id) ? 'a' : 'div';
+  const num = hasVal(p.number) ? p.number : '';
+  return `<${tag} class="dw-card ${role ? 'compact' : ''}" ${tag === 'a' ? `href="#/driver/${esc(p.id)}"` : ''} style="--tc:${esc(teamColor(T))}">
+    <div class="dw-bg"></div>
+    ${p.photo ? `<img class="dw-photo" src="${esc(asset(p.photo))}" alt="" loading="lazy" onerror="this.remove()">` : `<span class="dw-ghost">${esc(num)}</span>`}
+    <div class="dw-text">
+      <div class="dc-pos">${role ? `<span class="dw-role">${esc(role)}</span>` : (ps.position ? 'P' + ps.position + ' in championship' : 'Driver')}${p.active === false && !role ? ' · inactive' : ''}</div>
+      <div class="dw-name">${nameHTML(p.name || 'TBA')}</div>
+      ${num !== '' ? `<div class="dw-num">${esc(num)}</div>` : ''}
+      <div class="dw-flag">${flag(p.country, 'lg')}</div>
+    </div>
+    ${!role ? `<div class="dc-pts"><b>${fmtPts(ps.points)}</b><span>PTS</span></div>` : ''}
+  </${tag}>`;
+}
+function staffCard(d, x, role, T) {
+  const w = x.driverId ? byId(d.drivers, x.driverId) : null;
+  const ini = String(x.name || '').split(/\s+/).map(z => z[0] || '').join('').slice(0, 2).toUpperCase();
+  return `<div class="st-card" style="--tc:${esc(teamColor(T))}">
+    <span class="avatar st-av">${x.photo ? `<img src="${esc(asset(x.photo))}" alt="" loading="lazy" onerror="this.remove()">` : esc(ini)}</span>
+    <div class="st-txt"><div class="st-role">${esc(role)}</div><div class="st-name">${nameHTML(x.name)}</div>
+      ${w || x.country ? `<div class="st-sub">${flag(x.country)}${w ? `<span>with <a href="#/driver/${esc(w.id)}">#${esc(w.number ?? '')} ${esc(w.name.split(' ').pop())}</a></span>` : ''}</div>` : ''}</div>
+  </div>`;
+}
+function teamLineup(d, T, st) {
+  const S2 = T.staff || {};
+  const drs = d.drivers.filter(p => p.teamId === T.id && p.active !== false);
+  const named = x => x && (x.name || x.driverId);
+  const people = [];
+  if (named(S2.exec)) people.push([S2.exec, (S2.exec.title || 'Executive officer')]);
+  const tp = S2.principal && S2.principal.name ? S2.principal : (T.principal ? { name: T.principal } : null);
+  if (tp) people.push([tp, 'Team principal']);
+  (S2.race || []).filter(named).forEach(x => people.push([x, 'Race engineer']));
+  (S2.perf || []).filter(named).forEach(x => people.push([x, 'Performance engineer']));
+  const resolve = x => { const r = x.driverId ? byId(d.drivers, x.driverId) : null; return r ? { ...r } : { id: '', name: x.name, number: x.number, country: x.country, photo: x.photo }; };
+  const bench = [...(S2.reserves || []).filter(named).map(x => [resolve(x), 'Reserve driver']), ...(S2.academy || []).filter(named).slice(0, 1).map(x => [resolve(x), 'Academy driver'])];
+  return `<div class="dw-grid">${drs.length ? drs.map(p => wideDriverCard(d, p, T, st)).join('') : empty('No drivers signed')}</div>
+    ${people.length ? `<div class="section-title" style="margin-top:34px"><h2>Team personnel</h2></div><div class="st-grid">${people.map(([x, r]) => staffCard(d, x, r, T)).join('')}</div>` : ''}
+    ${bench.length ? `<div class="section-title" style="margin-top:34px"><h2>Reserve & academy</h2></div><div class="dw-grid three">${bench.map(([p, r]) => wideDriverCard(d, p, T, st, r)).join('')}</div>` : ''}
+    <div style="height:34px"></div>`;
 }
 
 /* ---------------- driver of the day ---------------- */
@@ -1194,7 +1478,7 @@ const ROUTES = [
   [/^team\/([^/]+)$/, (d, m) => pageTeam(d, m[1])],
   [/^news$/, d => pageNews(d)],
   [/^news\/([^/]+)$/, (d, m) => pageArticle(d, m[1])],
-  [/^rules$/, d => pageRules(d)],
+  [/^rules(?:\/([^/]+))?(?:\/([^/]+))?$/, (d, m) => pageRules(d, m[1], m[2])],
   [/^(?:stewards|fia)(?:\/([^/]+))?$/, (d, m) => pageStewards(d, m[1])],
   [/^history$/, d => pageHistory(d)],
   [/^history\/([^/]+)$/, (d, m) => pageHistorySeason(d, m[1])],
@@ -1261,6 +1545,7 @@ function render(resetScroll) {
   updateDraftBanner();
   tick();
   if (document.getElementById('prog')) mountProgress();
+  if (RULE_TARGET && document.getElementById('rule-' + RULE_TARGET)) { const id = RULE_TARGET; RULE_TARGET = null; setTimeout(() => ruleJump(id), 60); }
   tickClocks();
   if (resetScroll) window.scrollTo({ top: 0, behavior: 'instant' });
 }
@@ -1277,12 +1562,18 @@ document.addEventListener('click', e => {
   if (ser) { const off = ser.classList.toggle('off'); const g = document.querySelector(`[data-line="${ser.dataset.series}"]`); if (g) g.style.display = off ? 'none' : ''; return; }
   const z = e.target.closest('img.zoomable');
   if (z && !z.closest('.admin')) { const o = document.createElement('div'); o.className = 'lightbox'; o.innerHTML = `<img src="${esc(z.currentSrc || z.src)}" alt="">`; o.addEventListener('click', () => o.remove()); document.body.appendChild(o); return; }
+  const rj = e.target.closest('[data-rule-jump]');
+  if (rj) { ruleJump(rj.dataset.ruleJump); return; }
+  const rc = e.target.closest('[data-rule-copy]');
+  if (rc) { const url = location.href.split('#')[0] + '#/rules/' + rc.dataset.ruleCopy; (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast('Link to this rule copied')).catch(() => prompt('Copy this link:', url)); return; }
   const tp = e.target.closest('[data-tp]');
   if (tp && !tp.closest('.admin')) { setTimePref(tp.dataset.tp); const rb = document.getElementById('race-bar'); if (rb) rb.dataset.key = ''; raceBar(); return; }
   const ic = e.target.closest('[data-act="ics"]');
   if (ic) { const r = byId(S.data.calendar, ic.dataset.round); if (r) downloadICS(S.data, r); return; }
   if (e.target.closest('[data-act="copy-app"]')) copyApplication();
 });
+document.addEventListener('input', e => { if (e.target.id === 'rb-q') ruleSearch(e.target.value); });
+document.addEventListener('change', e => { if (e.target.id === 'rb-msel') location.hash = '#/rules/' + e.target.value; });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.lightbox').forEach(o => o.remove()); });
 document.getElementById('mode-toggle').addEventListener('click', () => {
   lsSet(MODE_KEY, themeMode(S.data) === 'light' ? 'dark' : 'light');
@@ -1295,7 +1586,7 @@ window.addEventListener('hashchange', () => render(true));
 /* expose helpers for the admin console */
 window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
   rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
-  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, SESSION_PRESETS, ytVideoId };
+  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd };
 
 load().then(() => render(false));
 })();

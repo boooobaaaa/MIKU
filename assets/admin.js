@@ -13,9 +13,19 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'FIA reports', '⚑'], ['news', 'News posts', '✎'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'FIA reports', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
+/* recommended image sizes — shown under each upload field and checked on upload */
+const IMG_SPECS = {
+  logo: { w: 512, h: 512, fmt: 'square PNG, transparent background', note: 'shown whole inside a rounded square, so leave a little empty space around the artwork' },
+  teamLogo: { w: 512, h: 512, fmt: 'square PNG, transparent background', note: 'shown whole (never cropped) on team cards and the team page' },
+  car: { w: 1600, h: 500, fmt: 'wide PNG, transparent background', note: 'side view, car facing right and filling the width' },
+  driverPhoto: { w: 1000, h: 1200, fmt: 'portrait PNG cut-out, transparent background', note: 'waist-up, top of the head near the top edge — sits bottom-aligned, never cropped' },
+  headshot: { w: 400, h: 400, fmt: 'square JPG or PNG', note: 'face centred and filling most of the frame — shown in circles, so the corners get trimmed', round: true, fit: 'cover' },
+  cover: { w: 1600, h: 900, fmt: '16:9 JPG or PNG', note: 'cards crop the edges a little, so keep the subject near the middle', fit: 'cover' },
+  clockLogo: { w: 256, h: 256, fmt: 'square PNG, transparent background', note: 'shown small next to the clocks' }
+};
 const TZ_OPTS = [['', 'Auto (from country code)'], ['Asia/Bahrain', 'Bahrain'], ['Asia/Riyadh', 'Saudi Arabia'], ['Australia/Melbourne', 'Melbourne'], ['Asia/Tokyo', 'Japan'], ['Asia/Shanghai', 'China'],
   ['America/New_York', 'Miami / US East'], ['America/Chicago', 'Austin / US Central'], ['America/Los_Angeles', 'Las Vegas / US West'], ['America/Toronto', 'Montréal / Canada'], ['America/Mexico_City', 'Mexico City'],
   ['America/Sao_Paulo', 'São Paulo'], ['Europe/London', 'Silverstone / UK'], ['Europe/Monaco', 'Monaco'], ['Europe/Rome', 'Imola / Monza'], ['Europe/Madrid', 'Barcelona / Madrid'], ['Europe/Paris', 'France'],
@@ -43,7 +53,15 @@ const F = {
   check: (label, path, val) => `<label class="chk"><input type="checkbox" data-path="${path}" data-reload ${val ? 'checked' : ''}><span>${label}</span></label>`,
   select: (label, path, val, opts, extra = 'data-reload') => `<label class="fld"><span>${label}</span><select data-path="${path}" ${extra}>${opts.map(([v, l]) => opt(v, l, val)).join('')}</select></label>`,
   dt: (label, path, val) => `<label class="fld"><span>${label}</span><input type="datetime-local" data-dt data-path="${path}" value="${toLocalInput(val)}"></label>`,
-  image: (label, path, val, folder, maxDim = 1600) => `<div class="fld wide"><span>${label}</span><div class="img-field">${val ? `<img class="thumb" src="${esc(LG.asset(val))}" alt="" onerror="this.style.visibility='hidden'">` : ''}<input type="text" data-path="${path}" data-reload value="${esc(val || '')}" placeholder="Upload, or paste an image link"><button class="btn sm" data-act="upload" data-mode="set" data-target="${path}" data-folder="${folder}" data-max="${maxDim}">⬆ Upload</button>${val ? `<button class="iconbtn del" data-act="clear-field" data-target="${path}" title="Remove">✕</button>` : ''}</div></div>`,
+  image: (label, path, val, folder, maxDim = 1600, spec = '') => {
+    const sp = IMG_SPECS[spec] || null;
+    const ar = sp ? sp.w / sp.h : 1;
+    return `<div class="fld wide"><span>${label}</span><div class="img-field">
+      <span class="thumb-frame ${sp && sp.round ? 'round' : ''}" style="aspect-ratio:${ar};${ar >= 1 ? 'width:' + Math.min(96, Math.round(44 * ar)) + 'px' : 'height:56px'}">${val ? `<img src="${esc(LG.asset(val))}" alt="" style="object-fit:${sp && sp.fit === 'cover' ? 'cover' : 'contain'}" onerror="this.style.visibility='hidden'">` : ''}</span>
+      <input type="text" data-path="${path}" data-reload value="${esc(val || '')}" placeholder="Upload, or paste an image link">
+      <button class="btn sm" data-act="upload" data-mode="set" data-target="${path}" data-folder="${folder}" data-max="${maxDim}" ${sp ? `data-spec="${spec}"` : ''}>⬆ Upload</button>${val ? `<button class="iconbtn del" data-act="clear-field" data-target="${path}" title="Remove">✕</button>` : ''}</div>
+      ${sp ? `<div class="img-spec"><b>Best: ${sp.w} × ${sp.h} px</b> · ${esc(sp.fmt)}<span> — ${esc(sp.note)}</span></div>` : ''}</div>`;
+  },
   tags: (label, path, vals, opts) => `<div class="fld wide"><span>${label}</span><div class="tagpick">${opts.length ? opts.map(o => `<label class="tp ${(vals || []).includes(o.id) ? 'on' : ''}" ${o.color ? `style="--tc:${esc(o.color)}"` : ''}><input type="checkbox" data-tagpath="${path}" value="${esc(o.id)}" ${(vals || []).includes(o.id) ? 'checked' : ''}>${o.color ? '<span class="swatch"></span>' : ''}${esc(o.label)}</label>`).join('') : '<span class="muted">None yet</span>'}</div></div>`,
   date: (label, path, val) => `<label class="fld"><span>${label}</span><input type="date" data-path="${path}" value="${esc(val || '')}"></label>`
 };
@@ -88,9 +106,9 @@ function secLeague(d) {
     <div class="a-card"><h3>Identity</h3><div class="fgrid">
       ${F.text('League name', 'league.name', L.name, 'data-reload')}
       ${F.text('Season label', 'league.season', L.season, 'data-reload')}
-      ${F.text('Race control name (shown on decisions)', 'league.raceControl', L.raceControl || 'FIA', 'data-reload')}
+      ${F.text('Race control name', 'league.raceControl', L.raceControl || 'FIA', 'data-reload')}
       ${F.text('Tagline (home page)', 'league.tagline', L.tagline, 'wide')}
-      ${F.image('League logo (square works best)', 'league.logo', L.logo, 'branding', 600)}
+      ${F.image('League logo', 'league.logo', L.logo, 'branding', 600, 'logo')}
     </div></div>
     <div class="a-card"><h3>YouTube on the home page</h3><div class="fgrid">
       ${F.check('Show the video player', 'youtube.show', (d.youtube || {}).show !== false)}
@@ -130,8 +148,8 @@ function secDrivers(d) {
         ${F.select('Team', p + '.teamId', x.teamId, teamOpts(d))}
         ${F.text('Gamertag / PSN / Steam', p + '.gamertag', x.gamertag)}
         ${F.check('Active on the grid', p + '.active', x.active !== false)}
-        ${F.image('Driver photo (big image on driver cards & profile)', p + '.photo', x.photo, 'drivers', 1200)}
-        ${F.image('Headshot for the small circles (optional — the photo is used if empty)', p + '.headshot', x.headshot, 'drivers', 400)}
+        ${F.image('Driver photo (driver cards, team page & profile)', p + '.photo', x.photo, 'drivers', 1400, 'driverPhoto')}
+        ${F.image('Headshot for the small circles (optional — the photo is used if empty)', p + '.headshot', x.headshot, 'drivers', 500, 'headshot')}
         ${F.area('Bio (optional)', p + '.bio', x.bio)}
       </div>
       <div class="item-actions"><a class="btn sm ghost" href="#/driver/${esc(x.id)}">View page</a><button class="btn sm danger" data-act="del-driver" data-i="${i}">Delete driver</button></div></div>
@@ -151,18 +169,54 @@ function secTeams(d) {
         ${F.text('Team name', p + '.name', t.name, 'data-reload')}
         ${F.color('Team colour', p + '.color', t.color)}
         ${F.text('Base', p + '.base', t.base)}
-        ${F.text('Team principal', p + '.principal', t.principal)}
         ${F.text('Chassis / car', p + '.car', t.car)}
         ${F.text('Power unit', p + '.engine', t.engine)}
-        ${F.image('Team logo', p + '.logo', t.logo, 'teams', 600)}
-        ${F.image('Car image (side view — transparent PNG looks best)', p + '.carImage', t.carImage, 'teams', 1800)}
+        ${F.image('Team logo', p + '.logo', t.logo, 'teams', 600, 'teamLogo')}
+        ${F.image('Car image', p + '.carImage', t.carImage, 'teams', 1800, 'car')}
         ${F.area('About (optional)', p + '.bio', t.bio)}
       </div>
+      ${staffEditor(d, t, p)}
       <div class="item-actions"><a class="btn sm ghost" href="#/team/${esc(t.id)}">View page</a><button class="btn sm danger" data-act="del-team" data-i="${i}">Delete team</button></div></div>
     </details>`;
   }).join('');
   return head('Constructors', 'Team colours flow through every table, card and chart on the site.', `<button class="btn primary" data-act="add-team">+ Add team</button>`) +
     `<div class="a-card">${items || '<p class="muted">No teams yet.</p>'}</div>`;
+}
+
+function personRow(d, path, x, kind, del) {
+  x = x || {};
+  const linked = (kind === 'reserve' || kind === 'academy') && x.driverId;
+  const pic = linked ? (byId(d.drivers, x.driverId) || {}).photo : x.photo;
+  const drvOpts = [['', kind === 'eng' ? '— nobody —' : '— not on the roster (type below) —'], ...driverOpts(d)];
+  return `<div class="prow">
+    <div class="prow-pic"><span class="thumb-frame round">${pic ? `<img src="${esc(LG.asset(pic))}" alt="" style="object-fit:cover" onerror="this.remove()">` : ''}</span>
+      ${linked ? '' : `<button class="btn xs" data-act="upload" data-mode="set" data-target="${path}.photo" data-folder="staff" data-max="${kind === 'reserve' || kind === 'academy' ? 1400 : 600}" data-spec="${kind === 'reserve' || kind === 'academy' ? 'driverPhoto' : 'headshot'}">⬆ Photo</button>`}</div>
+    <div class="prow-fields">
+      ${kind === 'exec' ? F.text('Title', path + '.title', x.title || '', 'placeholder="Chief Executive Officer"') : ''}
+      ${kind === 'reserve' || kind === 'academy' ? F.select('Driver from your roster', path + '.driverId', x.driverId, drvOpts) : ''}
+      ${linked ? `<div class="hint" style="align-self:end;padding-bottom:10px">Uses ${esc((byId(d.drivers, x.driverId) || {}).name || 'that driver')}'s profile & photo.</div>` : `
+        ${F.text('Name', path + '.name', x.name || '', 'data-reload')}
+        ${F.text('Country code', path + '.country', x.country || '', 'maxlength="2" data-reload')}
+        ${kind === 'reserve' || kind === 'academy' ? F.num('Car number', path + '.number', x.number) : ''}
+        ${kind === 'eng' ? F.select('Works with', path + '.driverId', x.driverId, drvOpts) : ''}
+        ${F.text('Photo link (or use ⬆ Photo)', path + '.photo', x.photo || '', 'data-reload')}`}
+    </div>
+    ${del ? `<button class="iconbtn del" data-act="del-person" data-list="${del.list}" data-k="${del.k}" title="Remove">✕</button>` : ''}
+  </div>`;
+}
+const STAFF_LISTS = { race: ['Race engineers', 4, 'eng'], perf: ['Performance engineers', 4, 'eng'], reserves: ['Reserve drivers', 2, 'reserve'], academy: ['Academy driver', 1, 'academy'] };
+function staffEditor(d, t, p) {
+  const st = t.staff || {};
+  const list = key => {
+    const [label, max, kind] = STAFF_LISTS[key], arr = st[key] || [], lp = `${p}.staff.${key}`;
+    return `<div class="staff-block"><div class="staff-h"><b>${label}</b><span class="muted">${arr.length}/${max}</span>${arr.length < max ? `<button class="btn xs" data-act="add-person" data-list="${lp}">+ Add</button>` : ''}</div>
+      ${arr.map((x, k) => personRow(d, `${lp}.${k}`, x, kind, { list: lp, k })).join('') || '<p class="hint" style="margin:0 0 6px">None yet.</p>'}</div>`;
+  };
+  return `<div class="staff-ed"><h4>Team personnel</h4><p class="hint" style="margin:-4px 0 12px">Shown as a "full team" section on the team page. Leave anything empty to hide it.</p>
+    <div class="staff-block"><div class="staff-h"><b>Executive / team manager</b><span class="muted">title is up to you</span></div>${personRow(d, `${p}.staff.exec`, st.exec, 'exec')}</div>
+    <div class="staff-block"><div class="staff-h"><b>Team principal</b></div>${personRow(d, `${p}.staff.principal`, st.principal || (t.principal ? { name: t.principal } : {}), 'principal')}</div>
+    ${list('race')}${list('perf')}${list('reserves')}${list('academy')}
+  </div>`;
 }
 
 function secCalendar(d) {
@@ -326,7 +380,7 @@ function secNews(d) {
       ${F.text('Tag (e.g. Race report, Announcement)', `news.${i}.tag`, n.tag)}
       ${F.check('Pin to top', `news.${i}.pinned`, n.pinned)}
       ${F.check('Hidden (draft post)', `news.${i}.hidden`, n.hidden)}
-      ${F.image('Cover photo', `news.${i}.image`, n.image, 'news', 1920)}
+      ${F.image('Cover photo', `news.${i}.image`, n.image, 'news', 1920, 'cover')}
       ${F.tags('Related teams — the post appears under "Related articles" on these team pages', `news.${i}.teams`, n.teams, d.teams.map(t => ({ id: t.id, label: t.name, color: t.color })))}
       ${F.tags('Related drivers', `news.${i}.drivers`, n.drivers, d.drivers.filter(x => x.active !== false || (n.drivers || []).includes(x.id)).map(x => ({ id: x.id, label: x.name })))}
       ${F.tags('Related rounds', `news.${i}.rounds`, n.rounds, LG.rounds(d).map(r => ({ id: r.id, label: 'R' + r.round + ' ' + r.name })))}
@@ -410,7 +464,7 @@ function secTheme(d) {
       ${F.check('Show the ☀ / ☾ toggle in the top bar', 'theme.allowToggle', t.allowToggle !== false)}
       ${F.check('Background glow & dot pattern', 'theme.effects', t.effects !== false)}
       ${F.check('Next-race strip at the very top (your time + track time)', 'theme.topBanner', t.topBanner !== false)}
-      ${F.image('Logo on the clock widget (your league logo is used if empty — or use a real sponsor of yours)', 'theme.timingLogo', t.timingLogo === 'none' ? '' : t.timingLogo, 'branding', 400)}
+      ${F.image('Logo on the clock widget (your league logo is used if empty — or use a real sponsor of yours)', 'theme.timingLogo', t.timingLogo === 'none' ? '' : t.timingLogo, 'branding', 400, 'clockLogo')}
     </div><p class="hint">A visitor's own toggle choice is remembered in their browser and wins over the default. <button class="btn xs" data-act="clear-mode">Forget my choice</button></p></div>
     <div class="a-card"><h3>Preview</h3><div class="toolbar"><span class="btn primary">Primary</span><span class="btn">Button</span><span class="badge next">Next race</span><span class="badge sprint">Sprint</span><span class="tag-fl">FL</span><span class="tag-pole">POLE</span><span class="cell p1">1</span><span class="cell pts">6</span><span class="cell nopts">14</span><span class="cell dnf">DNF</span></div>
       <p class="hint">Tip: use the ☀ / ☾ button in the top bar to check both modes.</p></div>`;
@@ -500,7 +554,7 @@ function render(sec) {
   if (!sec) A.section = 'dashboard';
   const d = D();
   if (!unlocked()) return lockHTML();
-  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups }[A.section];
+  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${SECTIONS.map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${l}</a>`).join('')}
@@ -539,6 +593,7 @@ document.addEventListener('change', e => {
   if (!inAdmin(el)) return;
   if (el.dataset.ctl === 'round') { A.roundId = el.value; return rerender(); }
   if (el.dataset.ctl === 'import') return importFile(el.files[0]);
+  if (el.dataset.ctl === 'rb-file') { const f = el.files[0]; if (!f) return; const fr = new FileReader(); fr.onload = () => importRulebook(/\.html?$/i.test(f.name) ? LG.htmlToMd(String(fr.result)) : String(fr.result)); fr.readAsText(f); return; }
   if (el.dataset.tagpath) { const cur = getPath(D(), el.dataset.tagpath) || []; const v = el.value; setPath(D(), el.dataset.tagpath, el.checked ? [...new Set([...cur, v])] : cur.filter(x => x !== v)); LG.saveDraft(); return rerender(); }
   if (el.dataset.adddoc !== undefined) { const v = el.value.trim(); if (v) { const x = D().stewards[Number(el.dataset.adddoc)]; (x.docs = x.docs || []).push(v); commit(); } return; }
   if (!el.dataset.path) return;
@@ -636,7 +691,7 @@ document.addEventListener('click', async e => {
     case 'add-hist': { const h = { id: uid('season'), season: '', driverChampion: '', driverTeam: '', driverColor: '#39c5bb', driverPoints: '', teamChampion: '', teamColor: '#39c5bb', teamPoints: '', notes: '' }; d.history.push(h); A.open['hist-' + h.id] = true; return commit(); }
     case 'del-hist': if (confirm('Remove this season from the Hall of fame?')) { d.history.splice(i, 1); commit(); } return;
     case 'drop-snapshot': delete d.history[i].standings; delete d.history[i].winners; return commit();
-    case 'upload': if (!ghReady()) return; return pickFiles({ mode: b.dataset.mode, target: b.dataset.target, folder: b.dataset.folder || 'misc', maxDim: Number(b.dataset.max) || 1920, multiple: !!b.dataset.multiple, accept: b.dataset.accept || 'image/*' });
+    case 'upload': if (!ghReady()) return; return pickFiles({ spec: b.dataset.spec, mode: b.dataset.mode, target: b.dataset.target, folder: b.dataset.folder || 'misc', maxDim: Number(b.dataset.max) || 1920, multiple: !!b.dataset.multiple, accept: b.dataset.accept || 'image/*' });
     case 'clear-field': setPath(d, b.dataset.target, ''); return commit();
     case 'del-doc': d.stewards[i].docs.splice(Number(b.dataset.k), 1); return commit();
     case 'clear-dotd': delete d.results[A.roundId].dotd; return commit();
@@ -655,6 +710,9 @@ document.addEventListener('click', async e => {
       };
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
+    case 'add-person': { const arr = getPath(d, b.dataset.list) || []; arr.push({}); setPath(d, b.dataset.list, arr); return commit(); }
+    case 'del-person': { const arr = getPath(d, b.dataset.list) || []; arr.splice(Number(b.dataset.k), 1); return commit(); }
+    case 'rb-clear': if (confirm('Remove the imported rulebook? (The Rules page goes back to your simple rules text.)')) { d.rulebook.md = ''; commit(); } return;
     case 'publish': return publish(b);
     case 'discard-draft': if (confirm('Throw away all unpublished changes?')) LG.discardDraft(); return;
     case 'reload-live': return reloadLive();
@@ -669,6 +727,59 @@ document.addEventListener('click', async e => {
     }
   }
 });
+
+/* ---------------- rulebook ---------------- */
+function secRulebook(d) {
+  const rb = d.rulebook = d.rulebook || {};
+  const parsed = LG.parseRulebook(rb.md || '', rb);
+  const pts = parsed.chapters.reduce((a, c) => a + c.sections.length, 0);
+  return head('Rulebook', 'Import your Google Doc rulebook — the Rules page turns it into chapters and points visitors can click through and search.', '<a class="btn" href="#/rules">View Rules page</a>') + `
+    <div class="a-card"><h3>1 · Import from Google Docs</h3>
+      <ol class="steps">
+        <li>In your doc, give each <b>chapter</b> the style <b>Heading 1</b> and each <b>rule / point</b> the style <b>Heading 2</b> (Format → Paragraph styles). Normal text under a heading becomes its content. Numbers like "3.2" in a heading are kept.</li>
+        <li>Click in the doc, press <b>Ctrl/⌘ + A</b> then <b>Ctrl/⌘ + C</b>.</li>
+        <li>Click the box below and press <b>Ctrl/⌘ + V</b>.</li>
+      </ol>
+      <div class="paste-zone" contenteditable="true" data-paste="rulebook" spellcheck="false">📋 Click here, then paste your whole Google Doc</div>
+      <div class="toolbar" style="margin-top:10px"><label class="btn sm">⬆ Or import a file (.md / .html / .txt)<input type="file" accept=".md,.markdown,.txt,.html,.htm" data-ctl="rb-file" hidden></label><span class="hint" style="margin:0">Google Docs → File → Download → <b>Markdown (.md)</b> works too.</span></div>
+      <p class="hint">Importing replaces the current rulebook in your draft — nothing goes live until you publish. Re-import any time you update the doc.</p>
+    </div>
+    <div class="a-card"><h3>2 · Details</h3><div class="fgrid">
+      ${F.text('Rulebook title', 'rulebook.title', rb.title || '', 'placeholder="Sporting Regulations"')}
+      ${F.text('Version', 'rulebook.version', rb.version || '', 'placeholder="v1.2"')}
+      ${F.date('Last updated', 'rulebook.updated', rb.updated)}
+      ${F.check('Number chapters & points automatically if the doc has no numbers', 'rulebook.autoNumber', rb.autoNumber !== false)}
+      ${F.check('Add a "Points & scoring" chapter from your scoring system', 'rulebook.showScoring', rb.showScoring !== false)}
+    </div></div>
+    <div class="a-card"><h3>3 · Check the result</h3>
+      ${parsed.chapters.length ? `<p class="ok-note" style="margin:0 0 14px">Found <b>${parsed.chapters.length} chapters</b> and <b>${pts} points</b>${parsed.title ? ` · title "${esc(parsed.title)}"` : ''}.</p>
+        <div class="rb-outline">${parsed.chapters.map(c => `<details><summary><b>${esc(c.num)}</b> ${esc(c.title)} <span class="muted">· ${c.sections.length} point${c.sections.length === 1 ? '' : 's'}</span></summary><ul>${c.sections.map(x => `<li><b class="mono">${esc(x.num)}</b> ${esc(x.title || x.label)}</li>`).join('')}</ul></details>`).join('')}</div>`
+        : `<p class="muted" style="margin:0">${rb.md ? 'No headings found yet — make sure chapters use Heading 1 (or lines like "Chapter 1 …") and points use Heading 2 (or lines starting "1.1").' : 'Nothing imported yet.'}</p>`}
+      <details style="margin-top:14px"><summary class="muted" style="cursor:pointer">Edit the imported text directly</summary>
+        <p class="hint"># = chapter, ## = point, ### = sub-heading inside a point. Also **bold**, *italic*, - lists, 1. lists, | tables |.</p>
+        <div class="fgrid">${F.area('Rulebook source', 'rulebook.md', rb.md || '', 'tall')}</div></details>
+      ${rb.md ? '<div class="item-actions"><button class="btn sm danger" data-act="rb-clear">Remove rulebook</button></div>' : ''}
+    </div>`;
+}
+function importRulebook(mdText) {
+  const d = D(); d.rulebook = d.rulebook || {};
+  const parsed = LG.parseRulebook(mdText, d.rulebook);
+  if (!parsed.chapters.length && !confirm('No chapters were detected (use Heading 1 for chapters, Heading 2 for points). Import anyway?')) return;
+  if (d.rulebook.md && !confirm('Replace the current rulebook with this one?')) return;
+  d.rulebook.md = mdText;
+  if (parsed.title && !d.rulebook.title) d.rulebook.title = parsed.title;
+  d.rulebook.updated = new Date().toISOString().slice(0, 10);
+  toast(`Imported ${parsed.chapters.length} chapters · ${parsed.chapters.reduce((a, c) => a + c.sections.length, 0)} points`);
+  commit();
+}
+document.addEventListener('paste', e => {
+  const z = e.target.closest && e.target.closest('[data-paste="rulebook"]');
+  if (!z) return;
+  e.preventDefault();
+  const html = e.clipboardData.getData('text/html'), txt = e.clipboardData.getData('text/plain');
+  importRulebook(html ? LG.htmlToMd(html) : txt);
+});
+document.addEventListener('focusin', e => { const z = e.target.closest && e.target.closest('[data-paste="rulebook"]'); if (z && /^📋/.test(z.textContent)) z.textContent = ''; });
 
 /* ---------------- uploads (straight into the repo) ---------------- */
 const fileInput = Object.assign(document.createElement('input'), { type: 'file', hidden: true });
@@ -703,11 +814,21 @@ async function uploadToGitHub(g, blob, name, folder) {
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || r.status);
   return path;
 }
+async function checkSpec(f, sp) {
+  let bmp; try { bmp = await createImageBitmap(f); } catch (e) { return; }
+  const want = sp.w / sp.h, got = bmp.width / bmp.height, tips = [];
+  if (Math.abs(Math.log(got / want)) > 0.22) tips.push(`it's ${bmp.width} × ${bmp.height}, but this spot looks best at about ${sp.w} × ${sp.h}${sp.fit === 'cover' ? ' — the edges will be cropped' : ' — it will have empty space around it'}`);
+  else if (bmp.width < sp.w * 0.5) tips.push(`it's only ${bmp.width} px wide, so it may look blurry (aim for ${sp.w} px)`);
+  if (/transparent/.test(sp.fmt) && f.type === 'image/jpeg') tips.push('JPGs can\'t be transparent — a PNG cut-out will blend in better');
+  if (tips.length) toast(`Heads up for ${f.name}: ${tips.join('; ')}.`, 'err');
+}
 async function handleUpload(files, o) {
   const g = ghReady(); if (!g) return;
   const d = D(), done = [];
+  const sp = IMG_SPECS[o.spec];
   for (const f of files) {
     try {
+      if (sp) await checkSpec(f, sp);
       toast(`Uploading ${f.name}…`);
       const blob = await shrinkImage(f, o.maxDim);
       const path = await uploadToGitHub(g, blob, f.name, o.folder);
