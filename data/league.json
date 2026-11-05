@@ -245,6 +245,16 @@
       "teamId": "solstice",
       "active": true,
       "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+    },
+    {
+      "id": "drv-8vg761",
+      "name": "Seojun Park",
+      "number": 21,
+      "country": "VN",
+      "teamId": "team-3ws3tm",
+      "active": true,
+      "gamertag": "hyosoi",
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
     }
   ],
   "calendar": [
@@ -1035,6 +1045,6 @@
     }
   ],
   "meta": {
-    "updated": "2026-11-05T04:14:30.507Z"
+    "updated": "2026-11-05T04:15:16.360Z"
   }
 }
