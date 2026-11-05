@@ -648,6 +648,57 @@ function roundPicker(d, activeId) {
   return `<div class="round-picker"><a href="#/results" class="${!activeId ? 'active' : ''}">All rounds</a>${rs.map(r => `<a href="#/results/${esc(r.id)}" class="${r.id === activeId ? 'active' : ''} ${isDone(d, r) ? '' : 'pending'}">${flag(r.country)} R${esc(r.round)}</a>`).join('')}</div>`;
 }
 
+/* ---------------- tyres ---------------- */
+const TYRES = { S: ['Soft', '#e8002d'], M: ['Medium', '#ffd12e'], H: ['Hard', '#f2f2f2'], I: ['Intermediate', '#43b02a'], W: ['Wet', '#0d74d4'] };
+function parseTyres(v) {
+  if (Array.isArray(v)) return v.filter(x => x && TYRES[x.c]);
+  return String(v || '').toUpperCase().split(/[\s,>\-–/]+/).map(t => t.match(/^([SMHIW])(?:\D*)(\d+)?$/)).filter(Boolean).map(m => ({ c: m[1], laps: m[2] ? Number(m[2]) : null }));
+}
+const tyreChip = (c, sm) => `<span class="tyre ${sm ? 'sm' : ''}" style="--ty:${TYRES[c][1]}" title="${TYRES[c][0]}">${c}</span>`;
+function stintBar(st, total) {
+  if (!st.length) return '<span class="muted">—</span>';
+  const known = st.reduce((a, x) => a + (x.laps || 0), 0), unknown = st.filter(x => !x.laps).length;
+  const fill = unknown ? Math.max(1, ((total || known || st.length * 10) - known) / unknown) : 0;
+  const lens = st.map(x => x.laps || fill), sum = lens.reduce((a, b) => a + b, 0) || 1;
+  return `<div class="stints">${st.map((x, k) => `<span class="stint" style="flex:${lens[k] / sum};--ty:${TYRES[x.c][1]}" title="${TYRES[x.c][0]}${x.laps ? ' · ' + x.laps + ' laps' : ''}">${tyreChip(x.c, 1)}${x.laps ? `<em>${x.laps}</em>` : ''}</span>`).join('')}</div>`;
+}
+const RV_KEY = 'league.resultsView';
+function detailedTable(d, r, sess, cl, isQ) {
+  const quali = classify(session(d, r.id, sess === 'sprint' ? 'sprintQuali' : 'quali'), 'quali', d.scoring);
+  const gridOf = id => { const i = quali.findIndex(q => q.driverId === id); return i >= 0 ? i + 1 : null; };
+  const total = Number(r.laps) || Math.max(0, ...cl.map(e => Number(e.laps) || 0));
+  const usage = {}; let anyTyre = false;
+  const rows = cl.map(e => {
+    const drv = driverLabel(d, e.driverId), t = teamLabel(d, e.teamId), st = parseTyres(e.tyres);
+    if (st.length) anyTyre = true;
+    st.forEach(x => { usage[x.c] = (usage[x.c] || 0) + 1; });
+    const g = gridOf(e.driverId), gained = g && e.pos ? g - e.pos : null;
+    const oneCompound = e.pos && st.length && new Set(st.map(x => x.c)).size < 2 && !st.some(x => x.c === 'I' || x.c === 'W');
+    return `<tr class="${e.pos && e.pos <= 3 ? 'top' + e.pos : ''}">
+      <td class="pos">${e.pos ? e.pos : `<span class="status">${esc(e.label)}</span>`}</td>
+      <td>${avatar(drv, t, 'sm')}<a href="#/driver/${esc(drv.id)}">${nameHTML(drv.name)}</a>${e.fastestLap ? '<span class="tag-fl">FL</span>' : ''}</td>
+      <td class="hide-sm">${teamCell(t)}</td>
+      <td class="mono c">${g || '—'}</td>
+      <td class="mono c">${gained === null ? '' : gained > 0 ? `<span class="gain up">▲${gained}</span>` : gained < 0 ? `<span class="gain dn">▼${-gained}</span>` : '<span class="gain">–</span>'}</td>
+      <td class="mono c">${st.length ? st.length - 1 : '—'}</td>
+      <td class="strat">${stintBar(st, Number(e.laps) || total)}${oneCompound ? '<span class="one-c" title="Only one dry compound used">!</span>' : ''}</td>
+      <td class="mono hide-sm">${esc(e.time || (e.pos ? '' : e.status))}</td>
+      <td class="pts">${fmtPts(e.pts)}</td>
+    </tr>`;
+  }).join('');
+  const usedTotal = Object.values(usage).reduce((a, b) => a + b, 0);
+  const strategies = {};
+  cl.forEach(e => { const k = parseTyres(e.tyres).map(x => x.c).join('-'); if (k) strategies[k] = (strategies[k] || 0) + 1; });
+  const topStrat = Object.entries(strategies).sort((a, b) => b[1] - a[1])[0];
+  const summary = anyTyre ? `<div class="ty-summary">
+      <div class="ty-usage"><span class="ty-lbl">Compound usage</span><div class="ty-bar">${Object.keys(TYRES).filter(c => usage[c]).map(c => `<span style="flex:${usage[c]};--ty:${TYRES[c][1]}" title="${TYRES[c][0]}: ${usage[c]} stints"></span>`).join('')}</div>
+        <div class="ty-legend">${Object.keys(TYRES).filter(c => usage[c]).map(c => `<span>${tyreChip(c, 1)} ${TYRES[c][0]} <b>${Math.round(usage[c] / usedTotal * 100)}%</b></span>`).join('')}</div></div>
+      ${topStrat ? `<div class="ty-stat"><span class="ty-lbl">Most common strategy</span><b>${topStrat[0].split('-').map(c => tyreChip(c)).join('<i>›</i>')}</b><small class="muted">${topStrat[1]} driver${topStrat[1] > 1 ? 's' : ''}</small></div>` : ''}
+    </div>` : `<p class="muted ty-none">Tyre data hasn't been added for this ${sessionName(sess).toLowerCase()} yet.</p>`;
+  return `${summary}<div class="table-wrap"><table class="tbl detail"><thead><tr><th>Pos</th><th>Driver</th><th class="hide-sm">Team</th><th class="c">Grid</th><th class="c">+/-</th><th class="c">Stops</th><th>Tyre strategy</th><th class="hide-sm">Time</th><th class="r">Pts</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="legend">${Object.keys(TYRES).map(c => `<span>${tyreChip(c, 1)} ${TYRES[c][0]}</span>`).join('')}<span><span class="one-c">!</span> only one dry compound</span></div>`;
+}
+
 function pageRound(d, rid, sess) {
   const r = byId(d.calendar, rid);
   if (!r) return notFound();
@@ -673,10 +724,12 @@ function pageRound(d, rid, sess) {
     </tr>`;
   }).join('');
 
-  const tabs = avail.length > 1 ? `<div class="tabs">${avail.map(s => `<a href="#/results/${esc(rid)}/${s}" class="${s === sess ? 'active' : ''}">${sessionName(s)}</a>`).join('')}</div>` : '';
+  const view = !isQ && cl.length && lsGet(RV_KEY) === 'detail' ? 'detail' : 'classic';
+  const tabs = `<div class="res-bar">${avail.length > 1 ? `<div class="tabs" style="margin:0">${avail.map(s => `<a href="#/results/${esc(rid)}/${s}" class="${s === sess ? 'active' : ''}">${sessionName(s)}</a>`).join('')}</div>` : '<span></span>'}
+    ${!isQ && cl.length ? `<div class="tabs seg" style="margin:0"><button data-rv="classic" class="${view === 'classic' ? 'active' : ''}">Classic</button><button data-rv="detail" class="${view === 'detail' ? 'active' : ''}">Detailed · tyres</button></div>` : ''}</div>`;
   const dotdHTML = dotdOf(d, rid) ? `<section>${dotdCard(d, rid)}</section>` : '';
   const sds = d.stewards.filter(x => x.roundId === rid);
-  const sdHTML = sds.length ? `<section><div class="section-title"><h2>${esc(rcName(d))} decisions</h2><a href="#/stewards/${esc(rid)}">All for this round →</a></div><div class="sd-list">${sds.map(x => stewardCard(d, x, true)).join('')}</div></section>` : '';
+  const sdHTML = sds.length ? `<section><div class="section-title"><h2>${esc(rcName(d))}</h2><a href="#/stewards/${esc(rid)}">All for this round →</a></div><div class="sd-list">${sds.map(x => stewardCard(d, x, true)).join('')}</div></section>` : '';
   const notes = r.notes ? `<div class="card" style="margin-top:20px"><div class="prose">${md(r.notes)}</div></div>` : '';
 
   return `<div class="page">
@@ -689,7 +742,7 @@ function pageRound(d, rid, sess) {
     </div>
     ${!isDone(d, r) && !r.cancelled ? weekendSchedule(d, r) : ''}
     ${tabs}
-    ${cl.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th class="hide-sm">No</th><th>Driver</th><th>Team</th>${isQ ? '' : '<th class="hide-sm">Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / Retired'}</th>${isQ ? '' : '<th class="r">Pts</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`
+    ${cl.length && view === 'detail' ? detailedTable(d, r, sess, cl, isQ) : cl.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th class="hide-sm">No</th><th>Driver</th><th>Team</th>${isQ ? '' : '<th class="hide-sm">Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / Retired'}</th>${isQ ? '' : '<th class="r">Pts</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`
       : empty(r.cancelled ? 'This round was cancelled' : 'No results yet', r.start ? `<p>${esc(sessionName(sess))} scheduled for ${fmtDate(r.start)} · ${fmtTime(r.start)}</p>` : '')}
     ${dotdHTML}
     ${notes}
@@ -771,7 +824,7 @@ function pageDriver(d, id) {
   const adjs = d.adjustments.filter(a => a.type !== 'team' && a.targetId === id)
     .concat(d.stewards.filter(x => x.driverId === id && Number(x.points)).map(x => ({ points: Number(x.points), reason: (x.title || rcName(d) + ' decision') + (x.penalty ? ' — ' + x.penalty : ''), roundId: x.roundId })));
   return `<div class="page">
-    <a class="back" href="#/drivers">← All drivers</a>
+    <div class="back-row"><a class="back" href="#/drivers">← All drivers</a><a class="btn sm" href="#/h2h/drivers/${esc(id)}">⚔ Head to head</a></div>
     <div class="profile-hero" style="--tc:${esc(teamColor(t))}">
       ${D.photo ? `<img class="ph-photo" src="${esc(asset(D.photo))}" alt="" onerror="this.remove()">` : `<div class="ph-num">${esc(D.number ?? '')}</div>`}
       <div class="eyebrow">${x.position ? `P${x.position} · ` : ''}${esc(t ? t.name : 'Free agent')}</div>
@@ -831,7 +884,7 @@ function pageTeam(d, id) {
     return `<tr><td class="pos">${esc(r.round)}</td><td><a href="#/results/${esc(r.id)}">${flag(r.country)}&nbsp; ${esc(r.name)}</a></td>${cells}<td class="pts">${fmtPts(rr ? rr.pts : 0)}</td></tr>`;
   }).join('');
   return `<div class="page">
-    <a class="back" href="#/teams">← All teams</a>
+    <div class="back-row"><a class="back" href="#/teams">← All teams</a><a class="btn sm" href="#/h2h/teams/${esc(id)}">⚔ Head to head</a></div>
     <div class="profile-hero" style="--tc:${esc(teamColor(T))}">
       ${T.logo ? `<img class="ph-photo" src="${esc(asset(T.logo))}" alt="" style="height:70%;bottom:15%" onerror="this.remove()">` : ''}
       <div class="eyebrow">${x.position ? `P${x.position} in constructors'` : 'Constructor'}</div>
@@ -1011,6 +1064,182 @@ function teamLineup(d, T, st) {
     ${bench.length ? `<div class="section-title" style="margin-top:34px"><h2>Reserve & academy</h2></div><div class="dw-grid three">${bench.map(([p, r]) => wideDriverCard(d, p, T, st, r)).join('')}</div>` : ''}
     <div style="height:34px"></div>`;
 }
+
+/* ---------------- head to head ---------------- */
+function h2hDriverStats(d, id, st) {
+  const x = st.D[id] || { points: 0, wins: 0, podiums: 0, poles: 0, fls: 0, dnfs: 0, starts: 0, rounds: {} };
+  const fins = rounds(d).map(r => x.rounds[r.id] && x.rounds[r.id].race).filter(rr => rr && rr.pos).map(rr => rr.pos);
+  const qs = rounds(d).map(r => { const q = classify(session(d, r.id, 'quali'), 'quali', d.scoring); const i = q.findIndex(e => e.driverId === id); return i >= 0 ? i + 1 : null; }).filter(Boolean);
+  const dotd = rounds(d).filter(r => ((d.results[r.id] || {}).dotd || {}).driverId === id).length;
+  return { pos: x.position || null, points: x.points, wins: x.wins, podiums: x.podiums, poles: x.poles, fls: x.fls, dnfs: x.dnfs, starts: x.starts, dotd,
+    best: fins.length ? Math.min(...fins) : null, avg: fins.length ? fins.reduce((a, b) => a + b, 0) / fins.length : null,
+    avgQ: qs.length ? qs.reduce((a, b) => a + b, 0) / qs.length : null, ppr: x.starts ? x.points / x.starts : 0, rounds: x.rounds };
+}
+function h2hTeamStats(d, id, st) {
+  const x = st.T[id] || { points: 0, wins: 0, podiums: 0, poles: 0, rounds: {} };
+  let best = null, dnfs = 0, onetwo = 0, finSum = 0, finN = 0, races = 0;
+  rounds(d).filter(r => isDone(d, r)).forEach(r => {
+    const cl = classify(session(d, r.id, 'race'), 'race', d.scoring).filter(e => e.teamId === id);
+    if (cl.length) races++;
+    cl.forEach(e => { if (e.pos) { best = best ? Math.min(best, e.pos) : e.pos; finSum += e.pos; finN++; } if (e.status === 'DNF') dnfs++; });
+    const ps = cl.map(e => e.pos).filter(Boolean).sort((a, b) => a - b);
+    if (ps[0] === 1 && ps[1] === 2) onetwo++;
+  });
+  return { pos: x.position || null, points: x.points, wins: x.wins, podiums: x.podiums, poles: x.poles, best, dnfs, onetwo, races, avg: finN ? finSum / finN : null, ppr: races ? x.points / races : 0, rounds: x.rounds };
+}
+function pageH2H(d, kind, a, b) {
+  kind = kind === 'teams' ? 'teams' : 'drivers';
+  const isD = kind === 'drivers';
+  const st = computeStandings(d);
+  const pool = isD ? st.drivers.map(x => driverLabel(d, x.id)).filter(x => x && x.name) : st.teams.map(x => teamLabel(d, x.id)).filter(x => byId(d.teams, x.id));
+  if (pool.length < 2) return `<div class="page">${head('Compare', 'Head to head', '')}${empty('Not enough ' + kind + ' to compare yet')}</div>`;
+  const A = pool.find(x => x.id === a) || pool[0];
+  const B = pool.find(x => x.id === b && x.id !== A.id) || pool.find(x => x.id !== A.id);
+  const tA = isD ? driverTeam(d, A, st.D[A.id]) : A, tB = isD ? driverTeam(d, B, st.D[B.id]) : B;
+  let cA = teamColor(tA), cB = teamColor(tB);
+  if (cA.toLowerCase() === cB.toLowerCase()) cB = 'var(--pink)';
+  const sA = isD ? h2hDriverStats(d, A.id, st) : h2hTeamStats(d, A.id, st), sB = isD ? h2hDriverStats(d, B.id, st) : h2hTeamStats(d, B.id, st);
+  // race-by-race head to head
+  let aheadA = 0, aheadB = 0, qA = 0, qB = 0;
+  const rr = rounds(d).filter(r => isDone(d, r)).map(r => {
+    const cl = classify(session(d, r.id, 'race'), 'race', d.scoring, poleDriver(d, r.id));
+    const bestOf = id => { const es = cl.filter(e => isD ? e.driverId === id : e.teamId === id); const f = es.filter(e => e.pos).sort((x, y) => x.pos - y.pos)[0]; return f || es[0] || null; };
+    const ea = bestOf(A.id), eb = bestOf(B.id);
+    if (ea && eb) { const pa = ea.pos || 99, pb = eb.pos || 99; if (pa < pb) aheadA++; else if (pb < pa) aheadB++; }
+    if (isD) { const q = classify(session(d, r.id, 'quali'), 'quali', d.scoring); const ia = q.findIndex(e => e.driverId === A.id), ib = q.findIndex(e => e.driverId === B.id); if (ia >= 0 && ib >= 0) { if (ia < ib) qA++; else qB++; } }
+    const pA = (sA.rounds[r.id] || {}).pts || 0, pB = (sB.rounds[r.id] || {}).pts || 0;
+    const cell = e => e ? (e.pos ? `P${e.pos}` : `<span class="status">${esc(e.label)}</span>`) : '<span class="muted">—</span>';
+    const win = ea && eb ? ((ea.pos || 99) < (eb.pos || 99) ? 'a' : (eb.pos || 99) < (ea.pos || 99) ? 'b' : '') : '';
+    return `<tr><td class="pos">${esc(r.round)}</td><td><a href="#/results/${esc(r.id)}">${flag(r.country)}&nbsp; ${esc(r.name)}</a></td>
+      <td class="mono c ${win === 'a' ? 'h2h-win' : ''}" style="--hc:${cA}">${cell(ea)}</td><td class="mono c">${fmtPts(pA)}</td>
+      <td class="mono c ${win === 'b' ? 'h2h-win' : ''}" style="--hc:${cB}">${cell(eb)}</td><td class="mono c">${fmtPts(pB)}</td></tr>`;
+  }).join('');
+  const f1 = v => v === null || v === undefined ? '—' : (Math.round(v * 10) / 10).toString();
+  const rows = (isD ? [
+    ['Championship position', sA.pos, sB.pos, 'low', v => v ? 'P' + v : '—'], ['Points', sA.points, sB.points, 'high', fmtPts], ['Race head to head', aheadA, aheadB, 'high'],
+    ['Qualifying head to head', qA, qB, 'high'], ['Wins', sA.wins, sB.wins, 'high'], ['Podiums', sA.podiums, sB.podiums, 'high'], ['Poles', sA.poles, sB.poles, 'high'],
+    ['Fastest laps', sA.fls, sB.fls, 'high'], ['Best finish', sA.best, sB.best, 'low', v => v ? 'P' + v : '—'], ['Average finish', sA.avg, sB.avg, 'low', f1],
+    ['Average qualifying', sA.avgQ, sB.avgQ, 'low', f1], ['Points per race', sA.ppr, sB.ppr, 'high', f1], ['Driver of the Day', sA.dotd, sB.dotd, 'high'], ['DNFs', sA.dnfs, sB.dnfs, 'low'], ['Races', sA.starts, sB.starts, 'none']
+  ] : [
+    ['Championship position', sA.pos, sB.pos, 'low', v => v ? 'P' + v : '—'], ['Points', sA.points, sB.points, 'high', fmtPts], ['Race head to head (best car)', aheadA, aheadB, 'high'],
+    ['Wins', sA.wins, sB.wins, 'high'], ['Podiums', sA.podiums, sB.podiums, 'high'], ['Poles', sA.poles, sB.poles, 'high'], ['1-2 finishes', sA.onetwo, sB.onetwo, 'high'],
+    ['Best finish', sA.best, sB.best, 'low', v => v ? 'P' + v : '—'], ['Average finish', sA.avg, sB.avg, 'low', f1], ['Points per race', sA.ppr, sB.ppr, 'high', f1], ['DNFs', sA.dnfs, sB.dnfs, 'low']
+  ]).map(([label, va, vb, better, fmt]) => {
+    fmt = fmt || (v => v === null || v === undefined ? '—' : String(v));
+    const na = Number(va), nb = Number(vb), has = va !== null && vb !== null && va !== undefined && vb !== undefined;
+    let wa = 50, win = '';
+    if (has && better !== 'none') {
+      if (better === 'high') { wa = na + nb > 0 ? na / (na + nb) * 100 : 50; win = na > nb ? 'a' : nb > na ? 'b' : ''; }
+      else { const ia = 1 / Math.max(na, .5), ib = 1 / Math.max(nb, .5); wa = ia / (ia + ib) * 100; win = na < nb ? 'a' : nb < na ? 'b' : ''; }
+    }
+    return `<div class="h2h-row"><b class="${win === 'a' ? 'win' : ''}">${fmt(va)}</b><div class="h2h-mid"><span>${esc(label)}</span><div class="h2h-bar"><i style="width:${wa}%;background:${cA}"></i><i style="width:${100 - wa}%;background:${cB}"></i></div></div><b class="${win === 'b' ? 'win' : ''}">${fmt(vb)}</b></div>`;
+  }).join('');
+  const sel = (side, cur, other) => `<select class="h2h-sel" data-h2h="${side}">${pool.map(x => `<option value="${esc(x.id)}" ${x.id === cur ? 'selected' : ''} ${x.id === other ? 'disabled' : ''}>${esc(isD ? (hasVal(x.number) ? '#' + x.number + ' ' : '') + x.name : x.name)}</option>`).join('')}</select>`;
+  const side = (X, t, c, s2, cls) => `<div class="h2h-side ${cls}" style="--tc:${c}">
+      ${isD ? (X.photo ? `<img class="h2h-photo" src="${esc(asset(X.photo))}" alt="" onerror="this.remove()">` : `<span class="h2h-ghost">${esc(X.number ?? '')}</span>`) : (X.logo ? `<img class="h2h-logo" src="${esc(asset(X.logo))}" alt="" onerror="this.remove()">` : '')}
+      <div class="h2h-id"><a href="#/${isD ? 'driver' : 'team'}/${esc(X.id)}" class="h2h-name">${isD ? nameHTML(X.name) : esc(X.name)}</a>
+        <div class="muted">${isD ? `${flag(X.country)} ${esc(t ? t.name : '')}` : esc(X.car || X.base || '')}</div>
+        <div class="h2h-big"><b>${fmtPts(s2.points)}</b><span>PTS</span></div></div>
+    </div>`;
+  return `<div class="page h2h">
+    <div class="page-head"><div class="eyebrow">Compare</div><h1>Head to head</h1>
+      <div class="tabs" style="margin-top:14px"><a href="#/h2h/drivers" class="${isD ? 'active' : ''}">Drivers</a><a href="#/h2h/teams" class="${!isD ? 'active' : ''}">Constructors</a></div></div>
+    <div class="h2h-pick">${sel('a', A.id, B.id)}<button class="btn sm" data-h2h-swap>⇄ Swap</button>${sel('b', B.id, A.id)}</div>
+    <div class="h2h-hero">${side(A, tA, cA, sA, 'left')}<div class="h2h-vs">VS</div>${side(B, tB, cB, sB, 'right')}</div>
+    <div class="card h2h-stats">${rows}</div>
+    ${rr ? `<section><div class="section-title"><h2>Race by race</h2></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Rd</th><th>Grand Prix</th><th class="c">${esc(isD ? A.name.split(' ').pop() : A.name)}</th><th class="c">Pts</th><th class="c">${esc(isD ? B.name.split(' ').pop() : B.name)}</th><th class="c">Pts</th></tr></thead><tbody>${rr}</tbody></table></div></section>` : ''}
+  </div>`;
+}
+
+/* ---------------- about ---------------- */
+function pageAbout(d) {
+  const a = d.about || {};
+  const people = (a.team || []).filter(x => x && x.name);
+  return `<div class="page about">
+    ${a.image ? `<div class="about-cover"><img src="${esc(asset(a.image))}" alt="" onerror="this.parentNode.remove()"></div>` : ''}
+    ${head('About', esc(a.title || 'About ' + (d.league.name || 'the league')), a.tagline ? esc(a.tagline) : '')}
+    <div class="about-grid">
+      <div class="card prose about-body">${a.body ? md(a.body) : `<p class="muted">The league hasn't written its story yet.</p>`}</div>
+      <aside class="about-side">
+        <div class="card"><h3>At a glance</h3><dl class="kv">
+          <dt>Season</dt><dd>${esc(d.league.season)}</dd><dt>Drivers</dt><dd>${d.drivers.filter(x => x.active !== false).length}</dd><dt>Teams</dt><dd>${d.teams.length}</dd>
+          <dt>Rounds</dt><dd>${d.calendar.filter(r => !r.cancelled).length}</dd>${d.history.length ? `<dt>Seasons</dt><dd>${d.history.length + 1}</dd>` : ''}${a.founded ? `<dt>Founded</dt><dd>${esc(a.founded)}</dd>` : ''}${a.platform ? `<dt>Platform</dt><dd>${esc(a.platform)}</dd>` : ''}</dl></div>
+        ${d.league.links && Object.values(d.league.links).some(Boolean) ? `<div class="card"><h3>Find us</h3><div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap">${[['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => d.league.links[k]).map(([k, l]) => `<a class="btn sm" href="${esc(d.league.links[k])}" target="_blank" rel="noopener">${l}</a>`).join('')}</div></div>` : ''}
+      </aside>
+    </div>
+    ${people.length ? `<section><div class="section-title"><h2>${esc(a.teamTitle || 'League staff')}</h2></div><div class="st-grid">${people.map(x => staffCard(d, x, x.role || 'Staff', { color: x.color || 'var(--miku)' })).join('')}</div></section>` : ''}
+  </div>`;
+}
+
+/* ---------------- search ---------------- */
+function searchIndex(d) {
+  const items = [];
+  const add = (type, title, sub, href, hay, img) => items.push({ type, title, sub, href, hay: (title + ' ' + (hay || '') + ' ' + (sub || '')).toLowerCase(), img });
+  [['Home', '#/'], ['Calendar', '#/schedule'], ['Results', '#/results'], ['Standings', '#/standings'], ['Constructors standings', '#/standings/teams'], ['Points progression', '#/standings/progress'], ['Drivers', '#/drivers'], ['Teams', '#/teams'], ['News', '#/news'], ['Rules', '#/rules'], [rcName(d), '#/stewards'], ['Hall of fame', '#/history'], ['Head to head', '#/h2h'], ['About', '#/about'], ['Join the league', '#/join']]
+    .forEach(([t, h]) => add('Pages', t, '', h, ''));
+  d.drivers.forEach(x => { const t = byId(d.teams, x.teamId); add('Drivers', x.name, `${hasVal(x.number) ? '#' + x.number + ' · ' : ''}${t ? t.name : 'Free agent'}`, '#/driver/' + x.id, `${x.number} ${x.gamertag || ''} ${x.country || ''}`, { drv: x, t }); });
+  d.teams.forEach(t => {
+    add('Teams', t.name, [t.base, t.car].filter(Boolean).join(' · '), '#/team/' + t.id, `${t.engine || ''} ${t.principal || ''}`, { team: t });
+    const S2 = t.staff || {};
+    [[S2.exec, (S2.exec || {}).title || 'Executive'], [S2.principal, 'Team principal'], ...(S2.race || []).map(x => [x, 'Race engineer']), ...(S2.perf || []).map(x => [x, 'Performance engineer']), ...(S2.reserves || []).map(x => [x, 'Reserve driver']), ...(S2.academy || []).map(x => [x, 'Academy driver'])]
+      .filter(([x]) => x && x.name).forEach(([x, role]) => add('People', x.name, `${role} · ${t.name}`, '#/team/' + t.id, ''));
+  });
+  rounds(d).forEach(r => add('Races', r.name, `Round ${r.round}${r.track ? ' · ' + r.track : ''}${r.start ? ' · ' + fmtDate(r.start) : ''}`, '#/results/' + r.id, `${r.track || ''} ${r.country || ''} r${r.round} round ${r.round}`, { flag: r.country }));
+  sortedNews(d).forEach(n => add('News', n.title, n.date ? fmtDate(n.date + 'T12:00:00') : '', '#/news/' + n.id, `${n.tag || ''} ${plain(n.body).slice(0, 600)}`));
+  const R = rulebookData(d);
+  if (R) R.chapters.forEach(c => c.sections.forEach(x => add('Rules', `${x.num} ${x.title || x.label || ''}`.trim(), c.title, `#/rules/${c.id}/${x.id}`, plain(x.body).slice(0, 400))));
+  d.stewards.forEach(x => { const r = byId(d.calendar, x.roundId); add(rcName(d), x.title || 'Decision', `${r ? 'R' + r.round + ' · ' : ''}${x.status || ''}`, '#/stewards' + (r ? '/' + r.id : ''), `${x.penalty || ''} ${plain(x.decision)} ${(byId(d.drivers, x.driverId) || {}).name || ''}`); });
+  d.history.forEach(h => add('Hall of fame', `Season ${h.season}`, `${h.driverChampion || ''}${h.teamChampion ? ' · ' + h.teamChampion : ''}`, h.standings ? '#/history/' + h.id : '#/history', ''));
+  return items;
+}
+function runSearch(d, q) {
+  const words = q.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  return searchIndex(d).map(it => {
+    if (!words.every(w => it.hay.includes(w))) return null;
+    const tl = it.title.toLowerCase(); let sc = 0;
+    words.forEach(w => { if (tl.startsWith(w)) sc += 6; else if (tl.split(/\s+/).some(x => x.startsWith(w))) sc += 4; else if (tl.includes(w)) sc += 2; else sc += 1; });
+    sc += { Drivers: 2, Teams: 2, Races: 1.5, Pages: 1 }[it.type] || 0;
+    return { ...it, sc };
+  }).filter(Boolean).sort((a, b) => b.sc - a.sc);
+}
+const SEARCH_ORDER = ['Drivers', 'Teams', 'Races', 'People', 'News', 'Rules', 'FIA', 'Hall of fame', 'Pages'];
+function searchResultHTML(it, q) {
+  const hl = t => { let h = esc(t); q.toLowerCase().split(/\s+/).filter(w => w.length > 1).forEach(w => { h = h.replace(new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>'); }); return h; };
+  const ic = it.img && it.img.drv ? avatar(it.img.drv, it.img.t, 'sm') : it.img && it.img.team ? `<span class="swatch" style="--tc:${esc(teamColor(it.img.team))};height:26px;margin:0 8px 0 4px"></span>` : it.img && it.img.flag ? `<span class="sr-flag">${flag(it.img.flag)}</span>` : `<span class="sr-ic">${{ News: '✎', Rules: '§', Pages: '↗', People: '◉', 'Hall of fame': '♛' }[it.type] || '⚑'}</span>`;
+  return `<a class="sr-item" href="${esc(it.href)}">${ic}<span class="sr-txt"><b>${hl(it.title)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}</span><span class="sr-type">${esc(it.type)}</span></a>`;
+}
+function groupedResults(res, q, limit) {
+  const groups = {};
+  res.forEach(r => { (groups[r.type] = groups[r.type] || []).push(r); });
+  const keys = Object.keys(groups).sort((a, b) => (SEARCH_ORDER.indexOf(a) + 99) % 99 - (SEARCH_ORDER.indexOf(b) + 99) % 99 || 0);
+  return keys.map(k => `<div class="sr-group"><div class="sr-gh">${esc(k)} <span>${groups[k].length}</span></div>${groups[k].slice(0, limit || 99).map(it => searchResultHTML(it, q)).join('')}</div>`).join('');
+}
+function pageSearch(d, q) {
+  q = q || '';
+  const res = runSearch(d, q);
+  return `<div class="page search-page">
+    <div class="page-head"><div class="eyebrow">Search</div><h1>${q ? `Results for “${esc(q)}”` : 'Search the league'}</h1></div>
+    <form class="sp-form" data-form="search"><input type="search" name="q" value="${esc(q)}" placeholder="Drivers, teams, races, rules, news…" autocomplete="off"><button class="btn primary">Search</button></form>
+    ${q ? (res.length ? `<p class="muted">${res.length} result${res.length === 1 ? '' : 's'}</p><div class="sr-page">${groupedResults(res, q)}</div>` : empty('Nothing found', '<p>Try a driver surname, a team, a track or a rule number.</p>')) : ''}
+  </div>`;
+}
+function openSearch() {
+  let o = document.getElementById('search-ov');
+  if (!o) {
+    o = document.createElement('div'); o.id = 'search-ov'; o.className = 'search-ov';
+    o.innerHTML = `<div class="so-box" role="dialog" aria-label="Search"><form class="so-form" data-form="search"><span class="so-ic">⌕</span><input name="q" type="search" placeholder="Search drivers, teams, races, rules…" autocomplete="off"><kbd>Esc</kbd></form><div class="so-res"></div><div class="so-foot muted">Enter to see all results</div></div>`;
+    document.body.appendChild(o);
+    o.addEventListener('click', e => { if (e.target === o) closeSearch(); });
+    o.querySelector('input').addEventListener('input', e => {
+      const q = e.target.value, res = runSearch(S.data, q);
+      o.querySelector('.so-res').innerHTML = q.trim() ? (res.length ? groupedResults(res, q, 4) : '<p class="muted" style="padding:14px">No matches.</p>') : '<p class="muted" style="padding:14px">Start typing — try a driver, team, track or rule number.</p>';
+    });
+  }
+  o.classList.add('open'); document.body.classList.add('so-lock');
+  const i = o.querySelector('input'); i.value = ''; i.dispatchEvent(new Event('input')); setTimeout(() => i.focus(), 30);
+}
+function closeSearch() { const o = document.getElementById('search-ov'); if (o) { if (o.contains(document.activeElement)) document.activeElement.blur(); o.classList.remove('open'); } document.body.classList.remove('so-lock'); }
 
 /* ---------------- driver of the day ---------------- */
 const dotdOf = (d, rid) => { const v = d.results[rid] && d.results[rid].dotd; return v && v.driverId ? v : null; };
@@ -1274,7 +1503,7 @@ function pageStewards(d, rid) {
   const groups = [];
   list.forEach(x => { const g = groups.find(y => y.id === (x.roundId || '')); if (g) g.items.push(x); else groups.push({ id: x.roundId || '', items: [x] }); });
   const body = groups.map(g => { const r = byId(d.calendar, g.id); return `<section><div class="section-title"><h2>${r ? `${flag(r.country)} R${esc(r.round)} · ${esc(r.name)}` : 'General'}</h2><span class="muted">${g.items.length} decision${g.items.length > 1 ? 's' : ''}</span></div><div class="sd-list">${g.items.map(x => stewardCard(d, x, true)).join('')}</div></section>`; }).join('');
-  return `<div class="page">${head('Race control', esc(rcName(d)) + ' decisions', 'Official documents, incident reviews and penalties from every round.')}
+  return `<div class="page">${head('Race control', esc(rcName(d)), 'Official documents, incident reviews and penalties from every round.')}
     ${picker}${list.length ? body : empty('No decisions published', '<p>Clean racing so far. 🩵</p>')}</div>`;
 }
 
@@ -1465,7 +1694,7 @@ const notFound = () => `<div class="page">${empty('Page not found', '<p><a href=
 
 /* ---------------- router & chrome ---------------- */
 const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News']];
-const MORE = [['stewards', 'Stewards'], ['history', 'Hall of fame'], ['join', 'Join the league'], ['rules', 'Rules']];
+const MORE = [['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['rules', 'Rules'], ['about', 'About'], ['join', 'Join the league']];
 const ROUTES = [
   [/^$/, d => pageHome(d)],
   [/^schedule$/, d => pageSchedule(d)],
@@ -1483,6 +1712,9 @@ const ROUTES = [
   [/^history$/, d => pageHistory(d)],
   [/^history\/([^/]+)$/, (d, m) => pageHistorySeason(d, m[1])],
   [/^join$/, d => pageJoin(d)],
+  [/^h2h(?:\/(drivers|teams))?(?:\/([^/]+))?(?:\/([^/]+))?$/, (d, m) => pageH2H(d, m[1], m[2], m[3])],
+  [/^about$/, d => pageAbout(d)],
+  [/^search(?:\/(.*))?$/, (d, m) => pageSearch(d, m[1] || '')],
   [/^admin(?:\/(\w+))?$/, (d, m) => window.Admin ? window.Admin.render(m[1]) : notFound()]
 ];
 
@@ -1531,7 +1763,7 @@ function chrome() {
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · Season ${esc(L.season)}<br><span style="font-size:12px">Fan-run sim racing league. Not affiliated with Formula 1.</span></div>
-    <div class="links">${ext}<a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/admin">Admin</a></div></div>`;
+    <div class="links">${ext}<a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/admin">Admin</a></div></div>`;
 }
 
 function render(resetScroll) {
@@ -1566,6 +1798,12 @@ document.addEventListener('click', e => {
   if (rj) { ruleJump(rj.dataset.ruleJump); return; }
   const rc = e.target.closest('[data-rule-copy]');
   if (rc) { const url = location.href.split('#')[0] + '#/rules/' + rc.dataset.ruleCopy; (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast('Link to this rule copied')).catch(() => prompt('Copy this link:', url)); return; }
+  const rv = e.target.closest('[data-rv]');
+  if (rv) { lsSet(RV_KEY, rv.dataset.rv); render(false); return; }
+  const sw = e.target.closest('[data-h2h-swap]');
+  if (sw) { const m = location.hash.match(/^#\/h2h\/(drivers|teams)/); const a = document.querySelector('[data-h2h="a"]').value, b = document.querySelector('[data-h2h="b"]').value; location.hash = `#/h2h/${m ? m[1] : 'drivers'}/${b}/${a}`; return; }
+  if (e.target.closest('#search-fab')) { openSearch(); return; }
+  if (e.target.closest('.search-ov .sr-item')) { closeSearch(); return; }
   const tp = e.target.closest('[data-tp]');
   if (tp && !tp.closest('.admin')) { setTimePref(tp.dataset.tp); const rb = document.getElementById('race-bar'); if (rb) rb.dataset.key = ''; raceBar(); return; }
   const ic = e.target.closest('[data-act="ics"]');
@@ -1573,8 +1811,14 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-act="copy-app"]')) copyApplication();
 });
 document.addEventListener('input', e => { if (e.target.id === 'rb-q') ruleSearch(e.target.value); });
-document.addEventListener('change', e => { if (e.target.id === 'rb-msel') location.hash = '#/rules/' + e.target.value; });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.lightbox').forEach(o => o.remove()); });
+document.addEventListener('change', e => {
+  if (e.target.id === 'rb-msel') location.hash = '#/rules/' + e.target.value;
+  if (e.target.dataset && e.target.dataset.h2h) { const m = location.hash.match(/^#\/h2h\/(drivers|teams)/); const a = document.querySelector('[data-h2h="a"]').value, b = document.querySelector('[data-h2h="b"]').value; location.hash = `#/h2h/${m ? m[1] : 'drivers'}/${a}/${b}`; }
+});
+document.addEventListener('submit', e => { if (e.target.dataset.form !== 'search') return; e.preventDefault(); const q = e.target.q.value.trim(); closeSearch(); if (q) location.hash = '#/search/' + encodeURIComponent(q); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSearch();
+  if ((e.key === '/' || (e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey))) && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable) { e.preventDefault(); openSearch(); } if (e.key === 'Escape') document.querySelectorAll('.lightbox').forEach(o => o.remove()); });
 document.getElementById('mode-toggle').addEventListener('click', () => {
   lsSet(MODE_KEY, themeMode(S.data) === 'light' ? 'dark' : 'light');
   applyTheme(S.data);
@@ -1586,7 +1830,7 @@ window.addEventListener('hashchange', () => render(true));
 /* expose helpers for the admin console */
 window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
   rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
-  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd };
+  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 
 load().then(() => render(false));
 })();

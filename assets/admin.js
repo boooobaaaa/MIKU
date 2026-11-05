@@ -13,7 +13,7 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'FIA reports', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'FIA reports', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -59,7 +59,7 @@ const F = {
     return `<div class="fld wide"><span>${label}</span><div class="img-field">
       <span class="thumb-frame ${sp && sp.round ? 'round' : ''}" style="aspect-ratio:${ar};${ar >= 1 ? 'width:' + Math.min(96, Math.round(44 * ar)) + 'px' : 'height:56px'}">${val ? `<img src="${esc(LG.asset(val))}" alt="" style="object-fit:${sp && sp.fit === 'cover' ? 'cover' : 'contain'}" onerror="this.style.visibility='hidden'">` : ''}</span>
       <input type="text" data-path="${path}" data-reload value="${esc(val || '')}" placeholder="Upload, or paste an image link">
-      <button class="btn sm" data-act="upload" data-mode="set" data-target="${path}" data-folder="${folder}" data-max="${maxDim}" ${sp ? `data-spec="${spec}"` : ''}>⬆ Upload</button>${val ? `<button class="iconbtn del" data-act="clear-field" data-target="${path}" title="Remove">✕</button>` : ''}</div>
+      <button class="btn sm" data-act="upload" data-mode="set" data-target="${path}" data-folder="${folder}" data-max="${maxDim}" ${sp ? `data-spec="${spec}"` : ''}>⬆ Upload</button>${val && sp ? `<button class="btn sm" data-act="adjust" data-target="${path}" data-folder="${folder}" data-spec="${spec}" title="Crop / zoom / reposition">✂ Adjust</button>` : ''}${val ? `<button class="iconbtn del" data-act="clear-field" data-target="${path}" title="Remove">✕</button>` : ''}</div>
       ${sp ? `<div class="img-spec"><b>Best: ${sp.w} × ${sp.h} px</b> · ${esc(sp.fmt)}<span> — ${esc(sp.note)}</span></div>` : ''}</div>`;
   },
   tags: (label, path, vals, opts) => `<div class="fld wide"><span>${label}</span><div class="tagpick">${opts.length ? opts.map(o => `<label class="tp ${(vals || []).includes(o.id) ? 'on' : ''}" ${o.color ? `style="--tc:${esc(o.color)}"` : ''}><input type="checkbox" data-tagpath="${path}" value="${esc(o.id)}" ${(vals || []).includes(o.id) ? 'checked' : ''}>${o.color ? '<span class="swatch"></span>' : ''}${esc(o.label)}</label>`).join('') : '<span class="muted">None yet</span>'}</div></div>`,
@@ -190,7 +190,7 @@ function personRow(d, path, x, kind, del) {
   const drvOpts = [['', kind === 'eng' ? '— nobody —' : '— not on the roster (type below) —'], ...driverOpts(d)];
   return `<div class="prow">
     <div class="prow-pic"><span class="thumb-frame round">${pic ? `<img src="${esc(LG.asset(pic))}" alt="" style="object-fit:cover" onerror="this.remove()">` : ''}</span>
-      ${linked ? '' : `<button class="btn xs" data-act="upload" data-mode="set" data-target="${path}.photo" data-folder="staff" data-max="${kind === 'reserve' || kind === 'academy' ? 1400 : 600}" data-spec="${kind === 'reserve' || kind === 'academy' ? 'driverPhoto' : 'headshot'}">⬆ Photo</button>`}</div>
+      ${linked ? '' : `<button class="btn xs" data-act="upload" data-mode="set" data-target="${path}.photo" data-folder="staff" data-max="${kind === 'reserve' || kind === 'academy' ? 1400 : 600}" data-spec="${kind === 'reserve' || kind === 'academy' ? 'driverPhoto' : 'headshot'}">⬆ Photo</button>${x.photo ? `<button class="btn xs" data-act="adjust" data-target="${path}.photo" data-folder="staff" data-spec="${kind === 'reserve' || kind === 'academy' ? 'driverPhoto' : 'headshot'}">✂ Adjust</button>` : ''}`}</div>
     <div class="prow-fields">
       ${kind === 'exec' ? F.text('Title', path + '.title', x.title || '', 'placeholder="Chief Executive Officer"') : ''}
       ${kind === 'reserve' || kind === 'academy' ? F.select('Driver from your roster', path + '.driverId', x.driverId, drvOpts) : ''}
@@ -281,6 +281,7 @@ function secResults(d) {
       <td class="c-sm"><select data-path="${p}.status" data-reload>${STATUSES.map(s => opt(s, s, e.status || 'FIN')).join('')}</select></td>
       ${isQ ? '' : `<td class="c-sm"><input type="number" data-num data-path="${p}.laps" value="${esc(e.laps ?? '')}"></td>`}
       <td class="c-md"><input type="text" data-path="${p}.time" value="${esc(e.time || '')}" placeholder="${isQ ? '1:29.708' : i === 0 ? '1:32:44.123' : '+3.211'}"></td>
+      ${isQ ? '' : `<td class="c-ty"><input type="text" data-path="${p}.tyres" data-reload value="${esc(Array.isArray(e.tyres) ? e.tyres.map(t => t.c + (t.laps || '')).join(' ') : e.tyres || '')}" placeholder="S12 M45"><span class="ty-prev">${LG.parseTyres(e.tyres).map(t => LG.tyreChip(t.c, 1)).join('')}</span></td>`}
       ${isQ ? '' : `<td class="c-chk"><input type="checkbox" data-act="flag" data-flag="fastestLap" data-i="${i}" ${e.fastestLap ? 'checked' : ''} title="Fastest lap"></td>`}
       ${sess === 'race' ? `<td class="c-chk"><input type="checkbox" data-act="flag" data-flag="pole" data-i="${i}" ${e.pole ? 'checked' : ''} title="Pole position"></td>` : ''}
       ${isQ ? '' : `<td class="c-sm"><input type="number" step="any" data-num data-path="${p}.pointsOverride" data-reload value="${esc(e.pointsOverride ?? '')}" placeholder="auto"></td><td class="c-pts">${fmtPts(c.pts || 0)}</td>`}
@@ -296,10 +297,11 @@ function secResults(d) {
         <div class="tabs" style="margin:0">${sessions.map(([k, l]) => `<button data-act="session" data-s="${k}" class="${k === sess ? 'active' : ''}">${l}${((d.results[r.id] || {})[k] || []).length ? ' ✓' : ''}</button>`).join('')}</div>
       </div>
       ${sess === 'sprint' && !r.sprint ? '<p class="hint">This round isn\'t marked as a sprint weekend — results entered here still count. Tick "Sprint weekend" in the calendar to show the badge.</p>' : ''}
+      ${!isQ ? '<p class="hint"><b>Tyres:</b> type the compounds in order with optional stint laps — <code>S12 M45</code>, <code>M H</code>, <code>S M S</code>. S soft · M medium · H hard · I inter · W wet. Shown in the "Detailed · tyres" view on the results page.</p>' : ''}
       ${isQ ? '<p class="hint">Qualifying order sets the pole sitter (P1) unless you tick a pole box in the race session. Qualifying itself scores no points.</p>' : ''}
     </div>
     <div class="a-card" style="overflow-x:auto">
-      ${list.length ? `<table class="rtable"><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th>${isQ ? '' : '<th>Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / gap'}</th>${isQ ? '' : '<th>FL</th>'}${sess === 'race' ? '<th>Pole</th>' : ''}${isQ ? '' : '<th>Override</th><th>Pts</th>'}<th></th></tr></thead><tbody>${rows}</tbody></table>`
+      ${list.length ? `<table class="rtable"><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th>${isQ ? '' : '<th>Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / gap'}</th>${isQ ? '' : '<th title="Compounds in order, laps optional: S12 M45 · S M H · I W">Tyres</th>'}${isQ ? '' : '<th>FL</th>'}${sess === 'race' ? '<th>Pole</th>' : ''}${isQ ? '' : '<th>Override</th><th>Pts</th>'}<th></th></tr></thead><tbody>${rows}</tbody></table>`
         : `<p class="muted">No ${sess === 'quali' ? 'qualifying' : sess} results for this round yet.</p>`}
       <div class="toolbar" style="margin-top:16px">
         ${avail.length ? `<select id="add-entry-sel" style="max-width:260px">${avail.map(x => opt(x.id, `${x.name}${x.active === false ? ' (inactive)' : ''}`, '')).join('')}</select><button class="btn sm" data-act="add-entry">+ Add driver</button>` : ''}
@@ -554,7 +556,7 @@ function render(sec) {
   if (!sec) A.section = 'dashboard';
   const d = D();
   if (!unlocked()) return lockHTML();
-  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook }[A.section];
+  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${SECTIONS.map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${l}</a>`).join('')}
@@ -710,6 +712,7 @@ document.addEventListener('click', async e => {
       };
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
+    case 'adjust': return adjustExisting(b);
     case 'add-person': { const arr = getPath(d, b.dataset.list) || []; arr.push({}); setPath(d, b.dataset.list, arr); return commit(); }
     case 'del-person': { const arr = getPath(d, b.dataset.list) || []; arr.splice(Number(b.dataset.k), 1); return commit(); }
     case 'rb-clear': if (confirm('Remove the imported rulebook? (The Rules page goes back to your simple rules text.)')) { d.rulebook.md = ''; commit(); } return;
@@ -727,6 +730,28 @@ document.addEventListener('click', async e => {
     }
   }
 });
+
+/* ---------------- about page ---------------- */
+function secAbout(d) {
+  const a = d.about = d.about || {};
+  const team = a.team || [];
+  return head('About page', 'Tell visitors what the league is about. Shown at <b>More → About</b> and in the footer.', '<a class="btn" href="#/about">View page</a>') + `
+    <div class="a-card"><div class="fgrid">
+      ${F.text('Page title', 'about.title', a.title || '', 'placeholder="About ' + esc(d.league.name) + '"')}
+      ${F.text('Subtitle', 'about.tagline', a.tagline || '')}
+      ${F.text('Founded', 'about.founded', a.founded || '', 'placeholder="2024"')}
+      ${F.text('Platform', 'about.platform', a.platform || '', 'placeholder="PC · F1 25"')}
+      ${F.image('Banner photo', 'about.image', a.image, 'about', 1920, 'cover')}
+      ${F.area('Our story — # headings, **bold**, - lists, [links](https://…), photos', 'about.body', a.body || '', 'tall')}
+      <div class="wide toolbar"><button class="btn sm" data-act="upload" data-mode="insert" data-target="about.body" data-folder="about" data-max="1920" data-multiple="1">🖼 Insert photo(s) at cursor</button></div>
+    </div></div>
+    <div class="a-card"><h3>League staff</h3><div class="fgrid">${F.text('Section title', 'about.teamTitle', a.teamTitle || '', 'placeholder="League staff"')}</div>
+      <div style="margin-top:12px">${team.map((x, k) => `<div class="prow">
+        <div class="prow-pic"><span class="thumb-frame round">${x.photo ? `<img src="${esc(LG.asset(x.photo))}" alt="" style="object-fit:cover" onerror="this.remove()">` : ''}</span><button class="btn xs" data-act="upload" data-mode="set" data-target="about.team.${k}.photo" data-folder="about" data-max="600" data-spec="headshot">⬆ Photo</button></div>
+        <div class="prow-fields">${F.text('Name', `about.team.${k}.name`, x.name || '', 'data-reload')}${F.text('Role', `about.team.${k}.role`, x.role || '', 'placeholder="League director"')}${F.text('Country code', `about.team.${k}.country`, x.country || '', 'maxlength="2"')}${F.text('Photo link', `about.team.${k}.photo`, x.photo || '', 'data-reload')}</div>
+        <button class="iconbtn del" data-act="del-person" data-list="about.team" data-k="${k}" title="Remove">✕</button></div>`).join('')}
+      <button class="btn sm" data-act="add-person" data-list="about.team">+ Add staff member</button></div></div>`;
+}
 
 /* ---------------- rulebook ---------------- */
 function secRulebook(d) {
@@ -814,6 +839,79 @@ async function uploadToGitHub(g, blob, name, folder) {
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || r.status);
   return path;
 }
+/* ---------------- photo cropper ---------------- */
+function loadImg(url) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; }); }
+async function cropImage(blob, sp, name) {
+  const url = URL.createObjectURL(blob);
+  let img; try { img = await loadImg(url); } catch (e) { URL.revokeObjectURL(url); return 'original'; }
+  const iw = img.naturalWidth, ih = img.naturalHeight, ar = sp.w / sp.h;
+  let vw = Math.min(560, window.innerWidth - 64), vh = vw / ar;
+  if (vh > 400) { vh = 400; vw = vh * ar; }
+  const fitS = Math.min(vw / iw, vh / ih), fillS = Math.max(vw / iw, vh / ih);
+  const startFit = /logo|car|clockLogo/i.test(sp.key || '') || sp.fit !== 'cover' && /transparent/.test(sp.fmt) && sp.w === sp.h;
+  let s = startFit ? fitS : fillS, x = (vw - iw * s) / 2, y = (vh - ih * s) / 2;
+  const ov = document.createElement('div');
+  ov.className = 'crop-ov';
+  ov.innerHTML = `<div class="crop-box" role="dialog" aria-label="Adjust photo">
+    <div class="crop-head"><h3>Adjust photo</h3><span class="muted">Saves at ${sp.w} × ${sp.h} px</span></div>
+    <p class="hint" style="margin:0 0 12px">Drag to move · scroll or use the slider to zoom · zoom out past "Fit" to add empty space around it.</p>
+    <div class="crop-view ${sp.round ? 'round' : ''}" style="width:${vw}px;height:${vh}px"><img class="crop-img" src="${url}" alt="" draggable="false"><div class="crop-guide"></div></div>
+    <div class="crop-ctl"><span>−</span><input type="range" class="crop-zoom" min="${fitS * 0.4}" max="${fillS * 4}" step="any" value="${s}"><span>+</span>
+      <button class="btn xs" data-c="fit">Fit</button><button class="btn xs" data-c="fill">Fill</button><button class="btn xs" data-c="center">Centre</button></div>
+    <div class="crop-actions"><button class="btn sm ghost" data-c="cancel">Cancel</button><button class="btn sm" data-c="original">Use original</button><button class="btn sm primary" data-c="apply">Save crop</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const im = ov.querySelector('.crop-img'), view = ov.querySelector('.crop-view'), zoom = ov.querySelector('.crop-zoom');
+  const draw = () => { im.style.width = iw * s + 'px'; im.style.height = ih * s + 'px'; im.style.transform = `translate(${x}px, ${y}px)`; zoom.value = s; };
+  const zoomTo = (ns, cx = vw / 2, cy = vh / 2) => { ns = Math.max(+zoom.min, Math.min(+zoom.max, ns)); x = cx - (cx - x) * (ns / s); y = cy - (cy - y) * (ns / s); s = ns; draw(); };
+  draw();
+  let drag = null;
+  view.addEventListener('pointerdown', e => { drag = { px: e.clientX, py: e.clientY, x, y }; view.setPointerCapture(e.pointerId); view.classList.add('dragging'); });
+  view.addEventListener('pointermove', e => { if (!drag) return; x = drag.x + e.clientX - drag.px; y = drag.y + e.clientY - drag.py; draw(); });
+  const end = () => { drag = null; view.classList.remove('dragging'); };
+  view.addEventListener('pointerup', end); view.addEventListener('pointercancel', end);
+  view.addEventListener('wheel', e => { e.preventDefault(); const r = view.getBoundingClientRect(); zoomTo(s * (e.deltaY < 0 ? 1.08 : 1 / 1.08), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  zoom.addEventListener('input', () => zoomTo(+zoom.value));
+  return new Promise(resolve => {
+    const done = v => { ov.remove(); URL.revokeObjectURL(url); resolve(v); };
+    ov.addEventListener('click', async e => {
+      const c = e.target.closest('[data-c]'); if (!c) { if (e.target === ov) done(null); return; }
+      const k = c.dataset.c;
+      if (k === 'fit') { s = fitS; x = (vw - iw * s) / 2; y = (vh - ih * s) / 2; draw(); }
+      else if (k === 'fill') { s = fillS; x = (vw - iw * s) / 2; y = (vh - ih * s) / 2; draw(); }
+      else if (k === 'center') { x = (vw - iw * s) / 2; y = (vh - ih * s) / 2; draw(); }
+      else if (k === 'cancel') done(null);
+      else if (k === 'original') done('original');
+      else if (k === 'apply') {
+        const cv = document.createElement('canvas'); cv.width = sp.w; cv.height = sp.h;
+        const ctx = cv.getContext('2d'), kf = sp.w / vw;
+        const png = /transparent/.test(sp.fmt) || blob.type === 'image/png' || blob.type === 'image/webp';
+        if (!png) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, sp.w, sp.h); }
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, x * kf, y * kf, iw * s * kf, ih * s * kf);
+        cv.toBlob(b => done(b ? { blob: b, name: String(name || 'photo').replace(/\.[^.]+$/, '') + (png ? '.png' : '.jpg') } : 'original'), png ? 'image/png' : 'image/jpeg', 0.9);
+      }
+    });
+    ov.addEventListener('keydown', e => { if (e.key === 'Escape') done(null); });
+  });
+}
+async function adjustExisting(b) {
+  const g = ghReady(); if (!g) return;
+  const d = D(), cur = getPath(d, b.dataset.target);
+  if (!cur) return;
+  let blob;
+  try { const r = await fetch(LG.asset(cur)); if (!r.ok) throw new Error(r.status); blob = await r.blob(); }
+  catch (e) { return toast('Couldn\'t open that image for editing (it may be on another website, or not live yet). Save it to your computer and use ⬆ Upload instead.', 'err'); }
+  const sp = Object.assign({ key: b.dataset.spec }, IMG_SPECS[b.dataset.spec]);
+  const res = await cropImage(blob, sp, String(cur).split('/').pop().split('?')[0]);
+  if (!res || res === 'original') return;
+  try {
+    toast('Uploading adjusted photo…');
+    const path = await uploadToGitHub(g, res.blob, res.name, b.dataset.folder || 'misc');
+    LG.ASSET_CACHE[path] = URL.createObjectURL(res.blob);
+    setPath(d, b.dataset.target, path); toast('Adjusted ✓ — publish so it shows on the live site'); commit();
+  } catch (err) { toast('Upload failed: ' + err.message, 'err'); }
+}
 async function checkSpec(f, sp) {
   let bmp; try { bmp = await createImageBitmap(f); } catch (e) { return; }
   const want = sp.w / sp.h, got = bmp.width / bmp.height, tips = [];
@@ -828,10 +926,15 @@ async function handleUpload(files, o) {
   const sp = IMG_SPECS[o.spec];
   for (const f of files) {
     try {
-      if (sp) await checkSpec(f, sp);
-      toast(`Uploading ${f.name}…`);
-      const blob = await shrinkImage(f, o.maxDim);
-      const path = await uploadToGitHub(g, blob, f.name, o.folder);
+      let blob = null, fname = f.name;
+      if (sp && files.length === 1 && /^image\/(png|jpeg|webp)$/.test(f.type)) {
+        const res = await cropImage(f, Object.assign({ key: o.spec }, sp), f.name);
+        if (res === null) return;
+        if (res !== 'original') { blob = res.blob; fname = res.name; }
+      }
+      if (!blob) { if (sp) await checkSpec(f, sp); blob = await shrinkImage(f, o.maxDim); }
+      toast(`Uploading ${fname}…`);
+      const path = await uploadToGitHub(g, blob, fname, o.folder);
       LG.ASSET_CACHE[path] = URL.createObjectURL(blob);
       done.push({ path, name: f.name });
     } catch (err) { toast(`Upload failed (${f.name}): ${err.message}`, 'err'); }
