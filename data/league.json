@@ -164,7 +164,7 @@
             "name": "Alexandros Margaritis",
             "country": "GR",
             "number": 54,
-            "photo": "uploads/staff/2026-11-05-rbalexandros-qwds.png"
+            "photo": "uploads/staff/2026-11-05-petroomrender-lk50.png"
           }
         ]
       },
@@ -1134,6 +1134,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-05T07:17:50.693Z"
-  }
+    "updated": "2026-11-05T07:20:34.773Z"
+  },
+  "rulebook": {}
 }
