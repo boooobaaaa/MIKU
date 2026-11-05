@@ -87,6 +87,60 @@
       "principal": "Ayao Komatsu",
       "car": "VF-26",
       "engine": "Ferrari"
+    },
+    {
+      "id": "team-raoctb",
+      "name": "McLaren Mastercard F1 Team",
+      "color": "#f28c32",
+      "base": "Woking, United Kingdom",
+      "principal": "Andrea Stella",
+      "engine": "Mercedes",
+      "car": "MCL40"
+    },
+    {
+      "id": "team-ji57ia",
+      "name": "Mercedes-AMG PETRONAS Formula One Team",
+      "color": "#58e1c1",
+      "base": "Brackley, United Kingdom",
+      "principal": "Toto Wolff",
+      "car": "W17",
+      "engine": "Mercedes"
+    },
+    {
+      "id": "team-tmnl09",
+      "name": "Scuderia Ferrari HP",
+      "color": "#d52d37",
+      "base": "Maranello, Italy",
+      "principal": "Frédéric Vasseur",
+      "engine": "Ferrari",
+      "car": "SF-26"
+    },
+    {
+      "id": "team-3ws3tm",
+      "name": "Oracle Red Bull Racing",
+      "color": "#113b8d",
+      "base": "Milton Keynes, United Kingdom",
+      "principal": "Laurent Mekies",
+      "engine": "Red Bull Ford",
+      "car": "RB22"
+    },
+    {
+      "id": "team-0tr4e5",
+      "name": "Visa Cash App Racing Bulls Formula One Team",
+      "color": "#6f91f7",
+      "base": "Faenza, Italy",
+      "principal": "Alan Permane",
+      "engine": "Red Bull Ford",
+      "car": "VCARB 03"
+    },
+    {
+      "id": "team-rzql3o",
+      "name": "Atlassian Williams F1 Team",
+      "color": "#215dd9",
+      "car": "FW48",
+      "engine": "Mercedes",
+      "base": "Grove, United Kingdom",
+      "principal": "James Vowles"
     }
   ],
   "drivers": [
@@ -959,6 +1013,6 @@
     }
   ],
   "meta": {
-    "updated": "2026-11-05T03:55:30.413Z"
+    "updated": "2026-11-05T03:59:48.387Z"
   }
 }
