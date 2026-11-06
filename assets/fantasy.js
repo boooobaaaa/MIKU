@@ -237,7 +237,7 @@ function builder(d, S) {
     <div class="ft-submit card">
       <h3>Enter the league</h3>
       <div class="pform">
-        <label class="fld"><span>Your name</span><input id="ft-m" type="text" value="${esc(me.manager)}" placeholder="e.g. Phi"></label>
+        <label class="fld"><span>Your name or nickname</span><input id="ft-m" type="text" value="${esc(me.manager)}" placeholder="Name or nickname"></label>
         <label class="fld"><span>Fantasy team name</span><input id="ft-t" type="text" value="${esc(me.name)}" placeholder="e.g. Leek Speed Racing"></label>
         <label class="fld"><span>Discord username</span><input id="ft-dc" type="text" value="${esc(me.discord)}" placeholder="so the admin knows it's you"></label>
       </div>

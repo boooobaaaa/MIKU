@@ -108,6 +108,7 @@ function secLeague(d) {
       ${F.text('Season label', 'league.season', L.season, 'data-reload')}
       ${F.text('Race control name', 'league.raceControl', L.raceControl || 'FIA', 'data-reload')}
       ${F.text('Tagline (home page)', 'league.tagline', L.tagline, 'wide')}
+      ${F.text('Footer text (small line at the bottom of every page)', 'league.footer', L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.', 'wide data-reload')}
       ${F.image('League logo', 'league.logo', L.logo, 'branding', 600, 'logo')}
     </div></div>
     <div class="a-card"><h3>YouTube on the home page</h3><div class="fgrid">
