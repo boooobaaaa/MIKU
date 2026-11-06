@@ -1191,11 +1191,11 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-06T05:07:45.025Z"
+    "updated": "2026-11-06T05:41:12.954Z"
   },
   "rulebook": {},
   "fantasy": {
-    "enabled": true,
+    "enabled": false,
     "budget": 100,
     "captainMult": 2,
     "pole": 1,
