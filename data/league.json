@@ -1172,12 +1172,12 @@
   "stewards": [],
   "history": [],
   "theme": {
-    "accent": "#ff4655",
-    "accentSoft": "#ff9aa2",
-    "accentDeep": "#a11826",
-    "highlight": "#ffd166",
-    "bgDark": "#0a0708",
-    "bgLight": "#fbf4f4",
+    "accent": "#f4a6c6",
+    "accentSoft": "#ffd1e3",
+    "accentDeep": "#b2557f",
+    "highlight": "#5fd3c4",
+    "bgDark": "#0d0a0c",
+    "bgLight": "#fbf4f7",
     "defaultMode": "dark",
     "allowToggle": true,
     "effects": true
@@ -1192,7 +1192,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-06T23:51:49.401Z"
+    "updated": "2026-11-06T23:54:43.627Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1247,7 +1247,30 @@
       "re:team-0tr4e5:tao-yuze": 3.6000000000000005,
       "tp:team-rzql3o": 8
     },
-    "entries": []
+    "entries": [],
+    "tpMult": {
+      "enabled": true,
+      "cap": 2.5,
+      "oneTwo": 2.5,
+      "win": 2,
+      "podium": 1.75,
+      "bothPoints": 1.5,
+      "onePoints": 1.25,
+      "none": 1,
+      "bonus": 0.25
+    },
+    "engMult": {
+      "enabled": true,
+      "cap": 2.5,
+      "win": 2.5,
+      "podium": 2,
+      "top5": 1.75,
+      "points": 1.5,
+      "none": 1,
+      "fl": 0.25,
+      "gained": 0.25,
+      "gainedN": 5
+    }
   },
   "fiaNews": [],
   "fiaFeed": {
