@@ -24,6 +24,7 @@ const IMG_SPECS = {
   driverPhoto: { w: 1000, h: 1200, fmt: 'portrait PNG cut-out, transparent background', note: 'waist-up, top of the head near the top edge — sits bottom-aligned, never cropped' },
   headshot: { w: 400, h: 400, fmt: 'square JPG or PNG', note: 'face centred and filling most of the frame — shown in circles, so the corners get trimmed', round: true, fit: 'cover' },
   cover: { w: 1600, h: 900, fmt: '16:9 JPG or PNG', note: 'cards crop the edges a little, so keep the subject near the middle', fit: 'cover' },
+  og: { w: 1200, h: 630, fmt: 'JPG or PNG', note: 'the standard size for link previews on Discord and social apps', fit: 'cover' },
   clockLogo: { w: 256, h: 256, fmt: 'square PNG, transparent background', note: 'shown small next to the clocks' }
 };
 const TZ_OPTS = [['', 'Auto (from country code)'], ['Asia/Bahrain', 'Bahrain'], ['Asia/Riyadh', 'Saudi Arabia'], ['Australia/Melbourne', 'Melbourne'], ['Asia/Tokyo', 'Japan'], ['Asia/Shanghai', 'China'],
@@ -111,6 +112,18 @@ function secLeague(d) {
       ${F.text('Footer text (small line at the bottom of every page)', 'league.footer', L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.', 'wide data-reload')}
       ${F.image('League logo', 'league.logo', L.logo, 'branding', 600, 'logo')}
     </div></div>
+    <div class="a-card"><h3>Link preview (Discord, iMessage, X…)</h3>
+      <p class="hint" style="margin:-4px 0 12px">What shows when someone pastes your site's link. Saved into your site's page file when you <b>Publish</b>.</p>
+      <div class="fgrid">
+        ${F.text('Preview title', 'seo.title', (d.seo || {}).title || '', 'placeholder="' + esc(L.name || 'F1 League') + '"')}
+        ${F.color('Embed colour (Discord side bar)', 'seo.color', (d.seo || {}).color || d.theme.accent || '#39c5bb')}
+        ${F.area('Preview description', 'seo.description', (d.seo || {}).description || '')}
+        ${F.image('Preview image (optional — shows as a big picture)', 'seo.image', (d.seo || {}).image, 'branding', 1200, 'og')}
+      </div>
+      <div class="seo-prev" style="--sc:${esc((d.seo || {}).color || d.theme.accent || '#39c5bb')}"><span class="seo-site">${esc(location.host || 'your-site')}</span><b>${esc((d.seo || {}).title || L.name || 'F1 League')}</b><p>${esc((d.seo || {}).description || L.tagline || 'Official home of our F1 league.')}</p>${(d.seo || {}).image ? `<img src="${esc(LG.asset(d.seo.image))}" alt="">` : ''}</div>
+      <div class="toolbar" style="margin-top:12px"><button class="btn sm" data-act="seo-now">Update link preview now</button></div>
+      <p class="hint">Discord remembers previews for a while. To see a change immediately, paste the link with something added to the end, like <code>${esc(location.origin + location.pathname)}?v=2</code>.</p>
+    </div>
     <div class="a-card"><h3>YouTube on the home page</h3><div class="fgrid">
       ${F.check('Show the video player', 'youtube.show', (d.youtube || {}).show !== false)}
       ${F.text('Section title', 'youtube.title', (d.youtube || {}).title || 'Latest video')}
@@ -850,6 +863,7 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'seo-now': { const g = ghReady(); if (!g) return; b.disabled = true; try { const ch = await updateIndexMeta(g, d); toast(ch ? 'Link preview updated — live in about a minute' : 'Link preview was already up to date'); } catch (err) { toast('Couldn\'t update: ' + err.message, 'err'); } b.disabled = false; return; }
     case 'add-fia': { d.fiaNews = d.fiaNews || []; const x = { id: uid('fia'), title: 'New announcement', date: new Date().toISOString(), category: 'notice', body: '', roundId: '', docs: [] }; d.fiaNews.push(x); A.open['fia-' + x.id] = true; return commit(); }
     case 'del-fia': if (confirm('Delete this announcement?')) { d.fiaNews.splice(i, 1); commit(); } return;
     case 'del-fia-doc': d.fiaNews[i].docs.splice(Number(b.dataset.k), 1); return commit();
@@ -1127,6 +1141,35 @@ async function testGitHub() {
     toast(j.permissions && j.permissions.push === false ? 'Connected, but this token can\'t write to the repo. Give it Contents: Read and write.' : `Connected to ${j.full_name} ✓`, j.permissions && j.permissions.push === false ? 'err' : 'ok');
   } catch (err) { toast('GitHub said: ' + err.message + ' — check the username, repo name and token.', 'err'); }
 }
+function seoBlock(d) {
+  const sx = d.seo || {}, L = d.league;
+  const e = v => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const title = sx.title || L.name || 'F1 League';
+  const desc = sx.description || L.tagline || 'Official home of our F1 league: calendar, results, standings, drivers, teams and news.';
+  const site = location.origin + location.pathname.replace(/[^/]*$/, '');
+  const img = sx.image ? (/^https?:/.test(sx.image) ? sx.image : site + sx.image) : '';
+  const color = /^#[0-9a-f]{6}$/i.test(sx.color || '') ? sx.color : (d.theme.accent || '#39c5bb');
+  return ['<!--link-preview:start-->', `<title>${e(title)}</title>`, `<meta name="description" content="${e(desc)}">`, '<meta property="og:type" content="website">',
+    `<meta property="og:site_name" content="${e(L.name || title)}">`, `<meta property="og:title" content="${e(title)}">`, `<meta property="og:description" content="${e(desc)}">`, `<meta property="og:url" content="${e(site)}">`,
+    ...(img ? [`<meta property="og:image" content="${e(img)}">`, '<meta name="twitter:card" content="summary_large_image">'] : ['<meta name="twitter:card" content="summary">']),
+    `<meta name="theme-color" content="${e(color)}">`, '<!--link-preview:end-->'].join('\n  ');
+}
+const b64dec = s => { const bin = atob(String(s).replace(/\s/g, '')); const bytes = Uint8Array.from(bin, c => c.charCodeAt(0)); return new TextDecoder().decode(bytes); };
+async function updateIndexMeta(g, d) {
+  const path = g.c.path.replace(/data\/[^/]+$/, '').replace(/[^/]+$/, '') + 'index.html';
+  const api = `https://api.github.com/repos/${encodeURIComponent(g.c.owner)}/${encodeURIComponent(g.c.repo)}/contents/${path.split('/').filter(Boolean).map(encodeURIComponent).join('/')}`;
+  const r = await fetch(`${api}?ref=${encodeURIComponent(g.c.branch)}&t=${Date.now()}`, { headers: g.headers, cache: 'no-store' });
+  if (!r.ok) throw new Error('could not read index.html');
+  const j = await r.json(), html = b64dec(j.content);
+  const block = seoBlock(d);
+  let next;
+  if (/<!--link-preview:start-->[\s\S]*?<!--link-preview:end-->/.test(html)) next = html.replace(/<!--link-preview:start-->[\s\S]*?<!--link-preview:end-->/, block);
+  else next = html.replace(/<title>[\s\S]*?<\/title>/, '').replace(/\s*<meta name="description"[^>]*>/, '').replace(/\s*<meta name="theme-color"[^>]*>/, '').replace(/(<meta name="viewport"[^>]*>)/, `$1\n  ${block}`);
+  if (next === html) return false;
+  const put = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, g.headers), body: JSON.stringify({ message: 'Update link preview', content: b64(next), branch: g.c.branch, sha: j.sha }) });
+  if (!put.ok) throw new Error((await put.json().catch(() => ({}))).message || put.status);
+  return true;
+}
 async function publish(btn) {
   const g = ghReady(); if (!g) return;
   const api = `https://api.github.com/repos/${encodeURIComponent(g.c.owner)}/${encodeURIComponent(g.c.repo)}/contents/${g.c.path.split('/').map(encodeURIComponent).join('/')}`;
@@ -1144,6 +1187,7 @@ async function publish(btn) {
     if (!put.ok) throw new Error((await put.json().catch(() => ({}))).message || put.status);
     LG.S.published = LG.normalize(out); LG.S.data = clone(LG.S.published); LG.clearDraft();
     toast('Published! The live site updates in about a minute. 🏁');
+    try { if (await updateIndexMeta(g, out)) toast('Link preview updated too.'); } catch (e) { toast('Data published, but the link preview couldn\'t be updated: ' + e.message, 'err'); }
   } catch (err) {
     toast('Publish failed: ' + err.message, 'err');
   }
