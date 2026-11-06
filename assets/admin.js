@@ -555,7 +555,21 @@ function secFantasy(d) {
       ${F.num('Team principal: % of both drivers’ points', 'fantasy.principalPct', f.principalPct)}
       ${F.num('Race engineer: % of their driver’s points', 'fantasy.engineerPct', f.engineerPct)}
       ${F.num('Reserve: % of their points when they race', 'fantasy.reservePct', f.reservePct)}
-    </div><p class="hint">Changing scoring recalculates the whole leaderboard instantly. Engineers use the "works with" driver set under Constructors → Team personnel (or the team average if none).</p></div>
+    </div>
+    <div class="ft-mult-ed">
+      <div><h4>Team principal multiplier</h4><div class="fgrid">
+        ${F.check('On', 'fantasy.tpMult.enabled', f.tpMult.enabled)}${F.num('Cap (max)', 'fantasy.tpMult.cap', f.tpMult.cap)}
+        ${F.num('1-2 finish', 'fantasy.tpMult.oneTwo', f.tpMult.oneTwo)}${F.num('Win', 'fantasy.tpMult.win', f.tpMult.win)}${F.num('Podium', 'fantasy.tpMult.podium', f.tpMult.podium)}
+        ${F.num('Both cars in points', 'fantasy.tpMult.bothPoints', f.tpMult.bothPoints)}${F.num('One car in points', 'fantasy.tpMult.onePoints', f.tpMult.onePoints)}${F.num('No points', 'fantasy.tpMult.none', f.tpMult.none)}
+        ${F.num('Extra for pole / fastest lap', 'fantasy.tpMult.bonus', f.tpMult.bonus)}
+      </div></div>
+      <div><h4>Race engineer multiplier</h4><div class="fgrid">
+        ${F.check('On', 'fantasy.engMult.enabled', f.engMult.enabled)}${F.num('Cap (max)', 'fantasy.engMult.cap', f.engMult.cap)}
+        ${F.num('Driver wins', 'fantasy.engMult.win', f.engMult.win)}${F.num('Podium', 'fantasy.engMult.podium', f.engMult.podium)}${F.num('Top 5', 'fantasy.engMult.top5', f.engMult.top5)}
+        ${F.num('Points finish', 'fantasy.engMult.points', f.engMult.points)}${F.num('Outside points / DNF', 'fantasy.engMult.none', f.engMult.none)}
+        ${F.num('Extra for fastest lap', 'fantasy.engMult.fl', f.engMult.fl)}${F.num('Extra for places gained', 'fantasy.engMult.gained', f.engMult.gained)}${F.num('…places needed', 'fantasy.engMult.gainedN', f.engMult.gainedN)}
+      </div></div>
+    </div><p class="hint">Multipliers are worked out each race and capped at the "Cap" value. Changing scoring recalculates the whole leaderboard instantly. Engineers use the "works with" driver set under Constructors → Team personnel (or the team average if none).</p></div>
     <div class="a-card"><h3>Market prices <span class="muted" style="font-weight:400;font-size:13px">· millions · leave empty to use the suggested price shown in grey</span></h3>
       <div class="toolbar" style="margin-bottom:12px"><button class="btn sm" data-act="ft-autoprice">Fill all with suggested prices</button><button class="btn sm danger" data-act="ft-clearprice">Clear all (back to suggested)</button></div>
       ${kinds.map(k => { const list = S.assets.filter(a => a.kind === k); return list.length ? `<div class="ft-price-h">${FT.KIND_LABEL[k]}s</div><div class="ft-price-grid">${list.map(a => `<label class="ft-price-row"><span class="swatch" style="--tc:${esc(LG.teamColor(a.team))}"></span><span class="ft-pn">${esc(a.name)}<small>${esc(a.team ? a.team.name : '')} · ${LG.fmtPts((S.assetPts[a.id] || {}).total || 0)} pts</small></span>${priceInput(a)}</label>`).join('')}</div>` : ''; }).join('') || '<p class="muted">Add drivers and team personnel first.</p>'}
@@ -566,7 +580,7 @@ function secFantasy(d) {
       <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="ft-import">Add / update entries</button></div>
       <div id="ft-import-log"></div>
     </div>
-    <div class="a-card"><h3>Entries (${f.entries.length})</h3>
+    <div class="a-card" style="overflow-x:auto"><h3>Entries (${f.entries.length})</h3>
       ${S.table.length ? `<table class="rtable"><thead><tr><th>#</th><th>Team</th><th>Manager</th><th>Discord</th><th>Picks now</th><th>Changes</th><th>Pts</th><th></th></tr></thead><tbody>${S.table.map(x => { const pk = x.picks || {}; const nm = id => (S.aById[id] || {}).name || '?'; const i = f.entries.indexOf(x.entry); return `<tr><td class="c-pos">${x.rank}</td><td><b>${esc(x.entry.team)}</b></td><td>${esc(x.entry.manager)}</td><td class="muted">${esc(x.entry.discord || '')}</td><td style="font-size:12.5px">${esc((pk.d || []).map(id => nm(id).split(' ').pop() + (id === pk.c ? '★' : '')).join(', '))}${pk.tp ? ' · TP ' + esc(nm(pk.tp).split(' ').pop()) : ''}</td><td class="mono">${(x.entry.history || []).length}</td><td class="c-pts">${LG.fmtPts(x.total)}</td><td class="c-act"><button class="iconbtn del" data-act="ft-del" data-i="${i}">✕</button></td></tr>`; }).join('')}</tbody></table>` : '<p class="muted">No entries yet.</p>'}
     </div>`;
 }

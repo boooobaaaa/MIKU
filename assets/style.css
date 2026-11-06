@@ -1402,3 +1402,11 @@ body.so-lock { overflow: hidden; }
   .ft-scoring { padding: 20px; }
   .fia-live { height: 520px; }
 }
+/* fantasy multipliers */
+.ft-x { font-style: normal; font: 700 11px var(--f-mono); color: var(--gold); background: rgba(243, 210, 122, .14); border-radius: 6px; padding: 1px 5px; }
+:root[data-theme="light"] .ft-x { color: #9a7514; }
+.ft-sc-mult { margin-top: 26px; }
+.ft-mult-ed { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.ft-mult-ed h4 { margin: 0 0 10px; font-size: 15px; }
+.ft-mult-ed .fgrid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+@media (max-width: 980px) { .ft-mult-ed { grid-template-columns: 1fr; } }

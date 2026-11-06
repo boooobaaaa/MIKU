@@ -14,9 +14,11 @@ const DEFAULTS = {
   enabled: false, budget: 100, captainMult: 2, pole: 1, fastestLap: 1, fastestLapTopN: 10,
   positions: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [], dnf: 0,
   principalPct: 100, engineerPct: 50, reservePct: 100,
-  maxEngineers: 2, submitUrl: '', intro: '', prices: {}, entries: []
+  maxEngineers: 2, submitUrl: '', intro: '', prices: {}, entries: [],
+  tpMult: { enabled: true, cap: 2.5, oneTwo: 2.5, win: 2.0, podium: 1.75, bothPoints: 1.5, onePoints: 1.25, none: 1.0, bonus: 0.25 },
+  engMult: { enabled: true, cap: 2.5, win: 2.5, podium: 2.0, top5: 1.75, points: 1.5, none: 1.0, fl: 0.25, gained: 0.25, gainedN: 5 }
 };
-const cfg = d => { d.fantasy = Object.assign({}, DEFAULTS, d.fantasy || {}); d.fantasy.prices = d.fantasy.prices || {}; d.fantasy.entries = d.fantasy.entries || []; return d.fantasy; };
+const cfg = d => { d.fantasy = Object.assign({}, DEFAULTS, d.fantasy || {}); d.fantasy.tpMult = Object.assign({}, DEFAULTS.tpMult, d.fantasy.tpMult || {}); d.fantasy.engMult = Object.assign({}, DEFAULTS.engMult, d.fantasy.engMult || {}); d.fantasy.prices = d.fantasy.prices || {}; d.fantasy.entries = d.fantasy.entries || []; return d.fantasy; };
 const slug = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const money = v => (Math.round((Number(v) || 0) * 10) / 10).toFixed(1).replace(/\.0$/, '') + 'M';
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -74,6 +76,45 @@ function driverRoundPts(d, f, rid, did) {
   }
   return { pts, raced };
 }
+/* success multipliers — worked out per race, capped (default 2.5×) */
+function raceInfo(d, rid) {
+  const pole = LG.poleDriver(d, rid);
+  const cl = LG.classify(LG.session(d, rid, 'race'), 'race', d.scoring, pole);
+  const q = LG.classify(LG.session(d, rid, 'quali'), 'quali', d.scoring);
+  const grid = {}; q.forEach((e, i) => { grid[e.driverId] = i + 1; });
+  return { pole, cl, grid };
+}
+function tpMultiplier(f, info, teamId) {
+  const m = f.tpMult; if (!m.enabled) return { x: 1, why: '' };
+  const es = info.cl.filter(e => e.teamId === teamId);
+  const ps = es.map(e => e.pos).filter(Boolean).sort((a, b) => a - b);
+  let x, why;
+  if (ps[0] === 1 && ps[1] === 2) { x = +m.oneTwo; why = '1-2 finish'; }
+  else if (ps[0] === 1) { x = +m.win; why = 'Win'; }
+  else if (ps[0] <= 3) { x = +m.podium; why = 'Podium'; }
+  else if (ps.filter(p => p <= 10).length >= 2) { x = +m.bothPoints; why = 'Both cars in the points'; }
+  else if (ps.filter(p => p <= 10).length === 1) { x = +m.onePoints; why = 'One car in the points'; }
+  else { x = +m.none; why = 'No points'; }
+  if (+m.bonus && es.some(e => e.driverId === info.pole || e.fastestLap)) { x += +m.bonus; why += ' + pole/fastest lap'; }
+  return { x: Math.min(+m.cap || 2.5, Math.max(0, x || 1)), why };
+}
+function engMultiplier(f, info, driverId) {
+  const m = f.engMult; if (!m.enabled) return { x: 1, why: '' };
+  const e = info.cl.find(z => z.driverId === driverId);
+  if (!e) return { x: +m.none || 1, why: "Driver didn't race" };
+  let x, why;
+  if (e.pos === 1) { x = +m.win; why = 'Win'; }
+  else if (e.pos && e.pos <= 3) { x = +m.podium; why = 'Podium'; }
+  else if (e.pos && e.pos <= 5) { x = +m.top5; why = 'Top 5'; }
+  else if (e.pos && e.pos <= 10) { x = +m.points; why = 'Points finish'; }
+  else { x = +m.none; why = e.pos ? 'Outside the points' : e.status; }
+  if (+m.fl && e.fastestLap) { x += +m.fl; why += ' + fastest lap'; }
+  const g = info.grid[driverId];
+  if (+m.gained && g && e.pos && g - e.pos >= (+m.gainedN || 5)) { x += +m.gained; why += ` + gained ${g - e.pos} places`; }
+  return { x: Math.min(+m.cap || 2.5, Math.max(0, x || 1)), why };
+}
+const fmtX = x => '×' + (Math.round(x * 100) / 100).toString();
+
 function picksAt(entry, roundIdx, order) {
   let cur = null;
   (entry.history || []).forEach(h => { const i = h.from === '' || h.from === undefined ? 0 : order.indexOf(h.from); if (i >= 0 && i <= roundIdx) cur = h.picks; });
@@ -93,23 +134,27 @@ function standings(d) {
     return [...ids];
   };
   const assetPts = {}; // asset id -> { total, rounds }
+  const infoC = {};
+  const info = rid => infoC[rid] || (infoC[rid] = raceInfo(d, rid));
   const scoreAsset = (rid, id) => {
     const a = aById[id];
-    let v = 0;
+    let v = 0, mult = null;
     if (!a) {
       if (id.startsWith('rs:')) v = dp(rid, id.slice(3)).pts * (Number(f.reservePct) / 100);
       else if (byId(d.drivers, id)) v = dp(rid, id).pts;
     } else if (a.kind === 'driver') v = dp(rid, a.id).pts;
     else if (a.kind === 'reserve') v = dp(rid, a.driverId).pts * (Number(f.reservePct) / 100);
-    else if (a.kind === 'principal') v = teamDrivers(rid, a.team.id).reduce((s, x) => s + dp(rid, x).pts, 0) * (Number(f.principalPct) / 100);
+    else if (a.kind === 'principal') { mult = tpMultiplier(f, info(rid), a.team.id); v = teamDrivers(rid, a.team.id).reduce((s, x) => s + dp(rid, x).pts, 0) * (Number(f.principalPct) / 100) * mult.x; }
     else if (a.kind === 'engineer') {
       const tds = teamDrivers(rid, a.team.id);
       const base = a.worksWith && tds.includes(a.worksWith) ? dp(rid, a.worksWith).pts : (tds.length ? tds.reduce((s, x) => s + dp(rid, x).pts, 0) / tds.length : 0);
-      v = base * (Number(f.engineerPct) / 100);
+      if (a.worksWith && tds.includes(a.worksWith)) mult = engMultiplier(f, info(rid), a.worksWith);
+      else { const ms = tds.map(x => engMultiplier(f, info(rid), x)).sort((p, q) => q.x - p.x); mult = ms[0] || { x: 1, why: '' }; }
+      v = base * (Number(f.engineerPct) / 100) * mult.x;
     }
     v = Math.round(v * 10) / 10;
-    const rec = assetPts[id] || (assetPts[id] = { total: 0, rounds: {} });
-    if (rec.rounds[rid] === undefined) { rec.rounds[rid] = v; rec.total += v; }
+    const rec = assetPts[id] || (assetPts[id] = { total: 0, rounds: {}, mult: {} });
+    if (rec.rounds[rid] === undefined) { rec.rounds[rid] = v; rec.total += v; if (mult) rec.mult[rid] = mult; }
     return v;
   };
   done.forEach(r => A.forEach(a => scoreAsset(r.id, a.id)));
@@ -216,7 +261,7 @@ function builder(d, S) {
         const pts = (S.assetPts[a.id] || {}).total || 0;
         return `<button class="ft-row ${isCur ? 'cur' : ''}" data-ft-pick="${esc(a.id)}" ${dis || (!afford && !isCur) ? 'disabled' : ''} style="--tc:${esc(teamColor(a.team))}">
           ${assetFace(a)}<span class="ft-row-n">${nameHTML(a.name)}<small>${esc(a.team ? a.team.name : '')}${a.kind === 'engineer' && a.worksWith && byId(d.drivers, a.worksWith) ? ' · with ' + esc(byId(d.drivers, a.worksWith).name.split(' ').pop()) : ''}</small></span>
-          <span class="ft-row-pts mono">${fmtPts(pts)}<small>pts</small></span><span class="ft-price">${money(a.price)}</span>
+          <span class="ft-row-pts mono">${fmtPts(pts)}<small>${(() => { const mm = (S.assetPts[a.id] || {}).mult || {}; const last = S.done.slice().reverse().find(r => mm[r.id]); return last ? `last ${fmtX(mm[last.id].x)}` : 'pts'; })()}</small></span><span class="ft-price">${money(a.price)}</span>
           <span class="ft-row-act">${isCur ? 'Remove' : dis ? 'Signed' : !afford ? 'Too pricey' : 'Sign'}</span></button>`;
       }).join('')}</div>` : '<p class="muted">Nobody in this role yet — the admin adds them under each team.</p>'}</div>`;
   }
@@ -256,7 +301,7 @@ function leaderboard(d, S) {
     ${S.table.map(x => {
       const p = x.picks || {};
       const det = open === x.entry.id ? `<tr class="ft-det"><td colspan="6"><div class="ft-det-in">
-        ${[...(p.d || []).map(id => [id, id === p.c ? 'Captain' : 'Driver']), [p.tp, 'Principal'], ...(p.re || []).map(id => [id, 'Engineer']), [p.rs, 'Reserve']].filter(([id]) => id).map(([id, r]) => { const a = S.aById[id]; return `<span class="ft-chip" style="--tc:${esc(teamColor(a && a.team))}">${assetFace(a)}<span><small>${r}</small>${esc(a ? a.name : 'Unavailable')}</span><b class="mono">${fmtPts((S.assetPts[id] || {}).total || 0)}</b></span>`; }).join('')}
+        ${[...(p.d || []).map(id => [id, id === p.c ? 'Captain' : 'Driver']), [p.tp, 'Principal'], ...(p.re || []).map(id => [id, 'Engineer']), [p.rs, 'Reserve']].filter(([id]) => id).map(([id, r]) => { const a = S.aById[id]; return `<span class="ft-chip" style="--tc:${esc(teamColor(a && a.team))}">${assetFace(a)}<span><small>${r}</small>${esc(a ? a.name : 'Unavailable')}</span><b class="mono">${fmtPts((S.assetPts[id] || {}).total || 0)}</b>${(() => { const mm = (S.assetPts[id] || {}).mult || {}; const last = S.done.slice().reverse().find(r => mm[r.id]); return last ? `<em class="ft-x" title="Last race: ${esc(mm[last.id].why)}">${fmtX(mm[last.id].x)}</em>` : ''; })()}</span>`; }).join('')}
         <div class="ft-per">${S.done.map(r => `<span title="${esc(r.name)}"><small>R${esc(r.round)}</small><b class="mono">${x.per[r.id] === null ? '–' : fmtPts(x.per[r.id])}</b></span>`).join('')}</div></div></td></tr>` : '';
       return `<tr class="${x.rank <= 3 ? 'top' + x.rank : ''} ft-lbrow" data-ft-open="${esc(x.entry.id)}"><td class="pos">${x.rank}</td><td><b>${esc(x.entry.team || 'Unnamed team')}</b><small class="muted ft-sm-m"> · ${esc(x.entry.manager || '')}</small></td><td class="hide-sm muted">${esc(x.entry.manager || '')}</td><td class="r mono hide-sm">${fmtPts(x.last)}</td><td class="r mono hide-sm">${money(x.value)}</td><td class="pts">${fmtPts(x.total)}</td></tr>${det}`;
     }).join('')}</tbody></table></div><p class="hint" style="margin-top:10px">Tap a team to see its picks and round-by-round score.</p>`;
@@ -290,11 +335,17 @@ function scoringInfo(d, f) {
         ${row('Captain multiplier', `${fmtPts(f.captainMult)}x Total Driver Points`, true)}
         ${Number(f.pole) ? row('Pole position', `+${fmtPts(f.pole)} Bonus PT${Number(f.pole) === 1 ? '' : 'S'}`) : ''}
         ${Number(f.fastestLap) ? row(`Fastest lap${Number(f.fastestLapTopN) ? ` (Top ${esc(f.fastestLapTopN)})` : ''}`, `+${fmtPts(f.fastestLap)} Bonus PT${Number(f.fastestLap) === 1 ? '' : 'S'}`) : ''}
-        ${row('Team principal', Number(f.principalPct) === 100 ? 'Sum of Both Drivers\' PTS' : `${fmtPts(f.principalPct)}% of Both Drivers' PTS`)}
-        ${row('Race engineer', `${fmtPts(f.engineerPct)}% of Their Driver's PTS`)}
+        ${row('Team principal', (Number(f.principalPct) === 100 ? 'Sum of Both Drivers\' PTS' : `${fmtPts(f.principalPct)}% of Both Drivers' PTS`) + (f.tpMult.enabled ? ` × up to ${fmtX(f.tpMult.cap).slice(1)}` : ''))}
+        ${row('Race engineer', `${fmtPts(f.engineerPct)}% of Their Driver's PTS` + (f.engMult.enabled ? ` × up to ${fmtX(f.engMult.cap).slice(1)}` : ''))}
         ${row('Reserve driver', Number(f.reservePct) === 100 ? 'Their PTS When They Race' : `${fmtPts(f.reservePct)}% of Their PTS`)}
       </div>
     </div>
+    ${f.tpMult.enabled || f.engMult.enabled ? `<div class="ft-sc-grid ft-sc-mult">
+      ${f.tpMult.enabled ? `<div><h3>Team principal success multiplier</h3><p class="muted" style="margin:-6px 0 10px;font-size:13px">Multiplies the principal's points each race, based on how their team did — up to ${fmtX(f.tpMult.cap)}.</p>
+        ${row('1-2 finish', fmtX(f.tpMult.oneTwo), true)}${row('Race win', fmtX(f.tpMult.win))}${row('Podium', fmtX(f.tpMult.podium))}${row('Both cars in the points', fmtX(f.tpMult.bothPoints))}${row('One car in the points', fmtX(f.tpMult.onePoints))}${row('No points', fmtX(f.tpMult.none))}${+f.tpMult.bonus ? row('Team takes pole or fastest lap', '+' + fmtX(f.tpMult.bonus).slice(1) + ' extra') : ''}</div>` : '<div></div>'}
+      ${f.engMult.enabled ? `<div><h3>Race engineer success multiplier</h3><p class="muted" style="margin:-6px 0 10px;font-size:13px">Multiplies the engineer's points each race, based on how their driver did — up to ${fmtX(f.engMult.cap)}.</p>
+        ${row('Driver wins', fmtX(f.engMult.win), true)}${row('Podium', fmtX(f.engMult.podium))}${row('Top 5', fmtX(f.engMult.top5))}${row('Points finish (top 10)', fmtX(f.engMult.points))}${row('Outside the points / DNF', fmtX(f.engMult.none))}${+f.engMult.fl ? row('Driver sets fastest lap', '+' + fmtX(f.engMult.fl).slice(1) + ' extra') : ''}${+f.engMult.gained ? row(`Driver gains ${esc(f.engMult.gainedN)}+ places from the grid`, '+' + fmtX(f.engMult.gained).slice(1) + ' extra') : ''}</div>` : ''}
+    </div>` : ''}
     <div class="ft-sc-foot muted">Budget ${money(f.budget)} · 2 main drivers + 1 team principal required · up to ${esc(f.maxEngineers)} race engineers and 1 reserve optional · picks lock at each race start.</div>
   </div>`;
 }
@@ -362,5 +413,5 @@ document.addEventListener('input', e => {
   const t = myTeam(); t.manager = document.getElementById('ft-m').value; t.name = document.getElementById('ft-t').value; t.discord = document.getElementById('ft-dc').value; saveMy(t);
 });
 
-window.Fantasy = { page, standings, assets, cfg, readCodes, validate, effectiveRoundFor, money, DEFAULTS, KIND_LABEL, slug };
+window.Fantasy = { page, standings, fmtX, assets, cfg, readCodes, validate, effectiveRoundFor, money, DEFAULTS, KIND_LABEL, slug };
 })();
