@@ -229,7 +229,8 @@
       "country": "JP",
       "teamId": "aqua",
       "active": true,
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580",
+      "fantasyValue": 32
     },
     {
       "id": "d2",
@@ -238,7 +239,8 @@
       "country": "IT",
       "teamId": "crimson",
       "active": true,
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580",
+      "fantasyValue": 25.5
     },
     {
       "id": "d3",
@@ -247,7 +249,8 @@
       "country": "GB",
       "teamId": "nightjar",
       "active": true,
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580",
+      "fantasyValue": 30.5
     },
     {
       "id": "d4",
@@ -256,7 +259,8 @@
       "country": "SE",
       "teamId": "solstice",
       "active": true,
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580",
+      "fantasyValue": 22.5
     },
     {
       "id": "d5",
@@ -265,7 +269,8 @@
       "country": "FR",
       "teamId": "polar",
       "active": true,
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580",
+      "fantasyValue": 29
     },
     {
       "id": "d6",
@@ -274,7 +279,8 @@
       "country": "ES",
       "teamId": "crimson",
       "active": true,
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580",
+      "fantasyValue": 27
     },
     {
       "id": "d7",
@@ -283,7 +289,8 @@
       "country": "KR",
       "teamId": "aqua",
       "active": true,
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580",
+      "fantasyValue": 21
     },
     {
       "id": "d8",
@@ -292,7 +299,8 @@
       "country": "FI",
       "teamId": "nightjar",
       "active": true,
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580",
+      "fantasyValue": 24
     },
     {
       "id": "d9",
@@ -301,7 +309,8 @@
       "country": "BE",
       "teamId": "polar",
       "active": true,
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580",
+      "fantasyValue": 17.5
     },
     {
       "id": "d10",
@@ -310,7 +319,8 @@
       "country": "US",
       "teamId": "solstice",
       "active": true,
-      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580"
+      "photo": "https://media.discordapp.net/attachments/1213166349577224353/1567753848754544650/seorender.png?ex=6aed540d&is=6aec028d&hm=e25678bb0c84f73e8f74546d3442b1ea93256ec990f78306d4be5119dd3323ef&=&format=webp&quality=lossless&width=2810&height=1580",
+      "fantasyValue": 19
     },
     {
       "id": "drv-8vg761",
@@ -321,7 +331,8 @@
       "active": true,
       "gamertag": "hyosoi",
       "photo": "uploads/drivers/2026-11-05-seorender-dkz1.png",
-      "headshot": "uploads/drivers/2026-11-05-seorender-s6kr.png"
+      "headshot": "uploads/drivers/2026-11-05-seorender-s6kr.png",
+      "fantasyValue": 16
     },
     {
       "id": "drv-ncu50w",
@@ -332,7 +343,8 @@
       "active": true,
       "gamertag": "Fabelynx",
       "photo": "uploads/drivers/2026-11-05-roxrender-pe4n.png",
-      "headshot": "uploads/drivers/2026-11-05-roxrender-vc5k.png"
+      "headshot": "uploads/drivers/2026-11-05-roxrender-vc5k.png",
+      "fantasyValue": 14.5
     },
     {
       "id": "drv-48oaev",
@@ -343,7 +355,8 @@
       "active": true,
       "gamertag": "illia_95849",
       "photo": "uploads/drivers/2026-11-05-dizzy-ynj2.png",
-      "headshot": "uploads/drivers/2026-11-05-dizzy-4x31.png"
+      "headshot": "uploads/drivers/2026-11-05-dizzy-4x31.png",
+      "fantasyValue": 13
     },
     {
       "id": "drv-z9dwau",
@@ -354,7 +367,8 @@
       "active": true,
       "gamertag": "1.800.foreign",
       "photo": "uploads/drivers/2026-11-05-mavodriver-hsgz.png",
-      "headshot": "uploads/drivers/2026-11-05-mavodriver-j22g.png"
+      "headshot": "uploads/drivers/2026-11-05-mavodriver-j22g.png",
+      "fantasyValue": 11
     }
   ],
   "calendar": [
@@ -1177,11 +1191,11 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-05T17:17:39.601Z"
+    "updated": "2026-11-06T05:07:45.025Z"
   },
   "rulebook": {},
   "fantasy": {
-    "enabled": false,
+    "enabled": true,
     "budget": 100,
     "captainMult": 2,
     "pole": 1,
@@ -1216,7 +1230,22 @@
     "maxEngineers": 2,
     "submitUrl": "",
     "intro": "",
-    "prices": {},
+    "prices": {
+      "tp:aqua": 22,
+      "tp:crimson": 26,
+      "tp:nightjar": 24,
+      "tp:solstice": 18,
+      "tp:polar": 20,
+      "tp:team-raoctb": 16,
+      "tp:team-ji57ia": 14,
+      "tp:team-tmnl09": 12,
+      "tp:team-3ws3tm": 10,
+      "re:team-3ws3tm:adam-jones": 4.2,
+      "re:team-3ws3tm:cassidy-leeks": 4.2,
+      "tp:team-0tr4e5": 8,
+      "re:team-0tr4e5:tao-yuze": 3.6000000000000005,
+      "tp:team-rzql3o": 8
+    },
     "entries": []
   },
   "fiaNews": [],
