@@ -1172,12 +1172,12 @@
   "stewards": [],
   "history": [],
   "theme": {
-    "accent": "#7fb8ff",
-    "accentSoft": "#cfe5ff",
-    "accentDeep": "#2f6db5",
-    "highlight": "#ff8fb1",
-    "bgDark": "#070a10",
-    "bgLight": "#f3f7fc",
+    "accent": "#ff4655",
+    "accentSoft": "#ff9aa2",
+    "accentDeep": "#a11826",
+    "highlight": "#ffd166",
+    "bgDark": "#0a0708",
+    "bgLight": "#fbf4f4",
     "defaultMode": "dark",
     "allowToggle": true,
     "effects": true
@@ -1192,7 +1192,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-06T23:50:28.739Z"
+    "updated": "2026-11-06T23:50:32.573Z"
   },
   "rulebook": {},
   "fantasy": {
