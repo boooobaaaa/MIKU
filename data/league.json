@@ -1192,7 +1192,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-06T23:54:43.627Z"
+    "updated": "2026-11-07T01:24:53.109Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1305,5 +1305,27 @@
   "seo": {
     "title": "MIKU Motorsports Association",
     "description": "Official Website for the MIKU Motorosports Association"
+  },
+  "gridDraft": {
+    "enabled": true,
+    "firebase": {
+      "apiKey": "AIzaSyD3KsX7-87U_bqmKoJhRK39Qynn81jMHeo",
+      "authDomain": "league-website-83f79.firebaseapp.com",
+      "projectId": "league-website-83f79",
+      "storageBucket": "league-website-83f79.firebasestorage.app",
+      "messagingSenderId": "34952738966",
+      "appId": "1:34952738966:web:8ccb5dd7bdd9f7d989eab7"
+    },
+    "admins": "itshyosoi@gmail.com",
+    "attempts": 10,
+    "periodHours": 10,
+    "cooldownSec": 3,
+    "iconGap": 10,
+    "primeCount": 3,
+    "elitePct": 25,
+    "advancedPct": 50,
+    "smoothing": 0.05,
+    "minProb": 0.5,
+    "maxProb": 25
   }
 }
