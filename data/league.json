@@ -1192,7 +1192,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-07T02:57:49.492Z"
+    "updated": "2026-11-07T04:22:02.406Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1294,7 +1294,8 @@
       {
         "role": "President of the FIA",
         "name": "rox",
-        "country": "GB"
+        "country": "GB",
+        "photo": "uploads/about/2026-11-07-roxadm2-zyu2.png"
       }
     ],
     "image": "uploads/about/2026-11-05-mikuabouttest-6opq.png"
