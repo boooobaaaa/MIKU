@@ -13,7 +13,7 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -541,6 +541,70 @@ async function postToDiscord(x, d) {
   } catch (err) { toast('Discord refused it: ' + err.message, 'err'); return false; }
 }
 
+/* ---------------- grid draft admin ---------------- */
+const GDA = { players: null, drafts: null, err: '' };
+function secGridDraft(d) {
+  const GD = window.GridDraft, c = GD.cfg(d);
+  d.gridDraft = Object.assign({}, GD.DEFAULTS, d.gridDraft || {});
+  const fbOk = c.firebase && c.firebase.apiKey;
+  let cards = null; try { cards = GD.buildCards(d); } catch (e) { cards = { drivers: [], constructors: [] }; }
+  const s = fbOk ? GD.store(d) : null;
+  const isAdm = s && s.user && String(c.admins || '').toLowerCase().split(/[\s,;]+/).includes(String(s.user.email || '').toLowerCase());
+  const host = location.hostname || 'your-site.github.io';
+  const pct = v => (Math.round(v * 1000) / 10).toFixed(1) + '%';
+  const probTable = (list, isD) => list.length ? `<table class="rtable gd-ptable"><thead><tr><th>Card</th><th>Type</th><th>Season</th><th>Points</th><th>Point share</th><th>Rarity</th><th>Draw probability</th></tr></thead><tbody>${[...list].sort((a, b) => (a.seasonNum || 0) - (b.seasonNum || 0) || b.points - a.points).map(x => `<tr><td><b>${esc(x.name)}</b></td><td>${isD ? 'Driver' : 'Constructor'}</td><td>${isD ? `S${x.seasonNum} · ${esc(x.season)}` : '—'}</td><td class="mono">${LG.fmtPts(x.points)}</td><td class="mono">${pct(x.share)}</td><td><span class="gd-rar r-${x.rarity}">${GD.R_LABEL[x.rarity]}</span></td><td class="mono"><b>${pct(x.prob)}</b></td></tr>`).join('')}</tbody></table>` : '<p class="muted">No eligible cards yet — they appear once drivers have race results.</p>';
+  const rules = GD.rulesText(d);
+  return head('Grid Draft', 'A card-drafting mini-game scored with real championship points. Players sign in with Google; their attempts, rerolls and teams are stored in your own free Firebase project.', '<a class="btn" href="#/griddraft">View game</a>') + `
+    <div class="a-card"><h3>Setup (one time, about 10 minutes)</h3>
+      <ol class="steps gd-steps">
+        <li><b>Create the project.</b> Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a> → <b>Create a project</b> (any name, Google Analytics off is fine). The free <b>Spark</b> plan is all you need.</li>
+        <li><b>Add a web app.</b> In the project overview click the <b>&lt;/&gt;</b> (Web) icon → give it a nickname → <b>Register app</b> (skip "Firebase Hosting"). Copy the <code>firebaseConfig = { … }</code> block it shows and paste it in box ① below.</li>
+        <li><b>Turn on Google sign-in.</b> Build → <b>Authentication</b> → Get started → Sign-in method → <b>Google</b> → Enable → pick a support email → Save.</li>
+        <li><b>Allow your website.</b> Authentication → <b>Settings</b> → <b>Authorized domains</b> → Add domain → <code>${esc(host)}</code>.</li>
+        <li><b>Create the database.</b> Build → <b>Firestore Database</b> → Create database → any location near you → start in <b>production mode</b>.</li>
+        <li><b>Paste the security rules.</b> Firestore → <b>Rules</b> tab → delete everything → paste the rules from box ③ → <b>Publish</b>. These are what stop cheating (extra attempts, extra rerolls, rigged picks).</li>
+        <li>Put your Google email in <b>Admin emails</b>, tick <b>Grid Draft is on</b>, click <b>Publish</b> here, then press <b>Test connection</b>.</li>
+      </ol>
+      <p class="hint">The config values aren't secret — they only identify your project. Security comes from the rules in step 6.</p>
+    </div>
+    <div class="a-card"><h3>① Connection</h3><div class="fgrid">
+      ${F.check('Grid Draft is on (shows in More, and a button on the home page)', 'gridDraft.enabled', c.enabled)}
+      <label class="fld wide"><span>Firebase config — paste the whole <code>firebaseConfig = { … }</code> block</span><textarea id="gd-fbconf" rows="5" placeholder="const firebaseConfig = {\n  apiKey: &quot;…&quot;,\n  authDomain: &quot;…&quot;,\n  projectId: &quot;…&quot;,\n  …\n};">${fbOk ? esc(JSON.stringify(c.firebase, null, 2)) : ''}</textarea></label>
+      ${F.text('Admin emails (your Google account; comma-separated)', 'gridDraft.admins', c.admins || '', 'wide placeholder="you@gmail.com"')}
+    </div>
+    <div class="toolbar" style="margin-top:12px"><button class="btn sm primary" data-act="gd-saveconf">Save config</button>${fbOk ? `<button class="btn sm" data-act="gd-test">Test connection</button><span class="ok-note" style="margin:0;padding:6px 10px">Project: <b>${esc(c.firebase.projectId)}</b></span>` : ''}</div></div>
+    <div class="a-card"><h3>② Game rules</h3><div class="fgrid">
+      ${F.num('Draft attempts per reset', 'gridDraft.attempts', c.attempts, 'data-reload')}
+      ${F.num('Global reset every (hours)', 'gridDraft.periodHours', c.periodHours, 'data-reload')}
+      ${F.num('Cooldown between drafts (seconds)', 'gridDraft.cooldownSec', c.cooldownSec, 'data-reload')}
+    </div><p class="hint">Resets happen for everyone at the same time on a shared UTC schedule. <b>If you change these three, re-copy the rules into Firebase (box ③).</b></p>
+      <h4 style="margin:16px 0 8px">Rarity</h4><div class="fgrid">
+      ${F.num('Icon: 2nd place within … % of the leader', 'gridDraft.iconGap', c.iconGap, 'data-reload')}
+      ${F.num('Prime: how many after Icon', 'gridDraft.primeCount', c.primeCount, 'data-reload')}
+      ${F.num('Elite: top … % of the rest', 'gridDraft.elitePct', c.elitePct, 'data-reload')}
+      ${F.num('Advanced: next … % of the rest', 'gridDraft.advancedPct', c.advancedPct, 'data-reload')}
+    </div><p class="hint">Basic is everyone else (and genuine zero-point entries). Drivers are ranked against others from the <b>same season</b>; constructors against each other.</p>
+      <h4 style="margin:16px 0 8px">Draw probability</h4><div class="fgrid">
+      ${F.num('Minimum chance per card (%)', 'gridDraft.minProb', c.minProb, 'data-reload')}
+      ${F.num('Maximum chance per card (%)', 'gridDraft.maxProb', c.maxProb, 'data-reload')}
+      ${F.num('Smoothing (higher = more even)', 'gridDraft.smoothing', c.smoothing, 'data-reload')}
+    </div><p class="hint">Higher points share → lower chance of appearing. The game uses exactly the numbers in the tables below.</p></div>
+    <div class="a-card"><h3>③ Firestore security rules</h3><p class="hint" style="margin:-4px 0 10px">Copy all of this into Firebase → Firestore Database → Rules → Publish.${!String(c.admins || '').includes('@') ? ' <b style="color:var(--pink-soft)">Add your admin email first.</b>' : ''}</p>
+      <textarea class="gd-rules" readonly rows="10">${esc(rules)}</textarea>
+      <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="gd-copyrules">Copy rules</button></div></div>
+    <div class="a-card"><h3>Constructor points for Grid Draft</h3><p class="hint" style="margin:-4px 0 10px">Leave empty to use each team's current championship points.</p>
+      <div class="ft-price-grid">${d.teams.map((t, i) => `<label class="ft-price-row"><span class="swatch" style="--tc:${esc(LG.teamColor(t))}"></span><span class="ft-pn">${esc(t.name)}<small>${LG.fmtPts(((cards.constructors.find(x => x.key === t.id) || {}).points) || 0)} pts in use</small></span><input type="number" step="any" data-num data-path="teams.${i}.gdPoints" data-reload value="${esc(t.gdPoints ?? '')}" placeholder="auto"></label>`).join('')}</div></div>
+    <div class="a-card" style="overflow-x:auto"><h3>Driver cards (${cards.drivers.length})</h3>${probTable(cards.drivers, true)}</div>
+    <div class="a-card" style="overflow-x:auto"><h3>Constructor cards (${cards.constructors.length})</h3>${probTable(cards.constructors, false)}</div>
+    <div class="a-card" style="overflow-x:auto"><h3>Players & attempts</h3>
+      ${!fbOk ? '<p class="muted">Connect Firebase first.</p>' : !s || !s.ready ? '<p class="muted">Connecting…</p>' : !s.user ? '<button class="btn sm" data-act="gd-adminsignin">Sign in with Google to view players</button>' : !isAdm ? `<p class="warn">Signed in as ${esc(s.user.email)}, which isn't in Admin emails.</p>` : `
+        <div class="toolbar" style="margin-bottom:10px"><button class="btn sm" data-act="gd-loadplayers">${GDA.players ? 'Refresh' : 'Load players & drafts'}</button><button class="btn sm danger" data-act="gd-reset">Global reset now</button><span class="muted" style="font-size:13px">Reset restores everyone's attempts and expires unfinished drafts. Teams and scores are kept.</span></div>
+        ${GDA.err ? `<p class="warn">${esc(GDA.err)}</p>` : ''}
+        ${GDA.players ? (() => { const pi = GD.periodInfo(d, s); const rows = GDA.players.map(p => ({ p, sc: p.team ? GD.teamScore(cards, p.team) : null, n: (GDA.drafts || []).filter(x => x.uid === p.uid).length })).sort((a, b) => (b.sc ? b.sc.total : -1) - (a.sc ? a.sc.total : -1));
+          return `<p class="muted" style="font-size:13px">${rows.length} players · ${(GDA.drafts || []).length} drafts · ${(GDA.drafts || []).filter(x => x.stage === 'done').length} completed</p><table class="rtable"><thead><tr><th>Player</th><th>Attempts this reset</th><th>Total drafts</th><th>Current team</th><th>Score</th><th>Last draft</th></tr></thead><tbody>${rows.map(({ p, sc, n }) => `<tr><td><b>${esc(p.name)}</b></td><td class="mono">${p.period === pi.key ? p.attempts : 0}/${c.attempts}</td><td class="mono">${n}</td><td style="font-size:12.5px">${p.team ? ['d1', 'd2', 'c'].map(k => esc((cards.byId[p.team[k]] || {}).name || '?')).join(' · ') : '<span class="muted">—</span>'}</td><td class="c-pts">${sc ? LG.fmtPts(sc.total) : '—'}</td><td class="muted" style="font-size:12.5px">${p.lastStart ? new Date(p.lastStart).toLocaleString() : ''}</td></tr>`).join('')}</tbody></table>`; })() : ''}`}
+    </div>`;
+}
+
 /* ---------------- fantasy admin ---------------- */
 function secFantasy(d) {
   const FT = window.Fantasy, f = FT.cfg(d), S = FT.standings(d);
@@ -706,7 +770,7 @@ function render(sec) {
   if (!sec) A.section = 'dashboard';
   const d = D();
   if (!unlocked()) return lockHTML();
-  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy }[A.section];
+  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${SECTIONS.map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${l}</a>`).join('')}
@@ -863,6 +927,25 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'gd-saveconf': {
+      const raw = document.getElementById('gd-fbconf').value.trim();
+      let conf = null; try { conf = JSON.parse(raw); } catch (x) { conf = window.GridDraft.parseFirebaseConfig(raw); }
+      if (!conf || !conf.apiKey || !conf.projectId || !conf.appId) return toast('Couldn\'t find apiKey, projectId and appId in that — paste the whole firebaseConfig block', 'err');
+      d.gridDraft = Object.assign({}, window.GridDraft.DEFAULTS, d.gridDraft || {}, { firebase: { apiKey: conf.apiKey, authDomain: conf.authDomain || conf.projectId + '.firebaseapp.com', projectId: conf.projectId, storageBucket: conf.storageBucket || '', messagingSenderId: conf.messagingSenderId || '', appId: conf.appId } });
+      toast('Firebase config saved — publish to make it live'); return commit();
+    }
+    case 'gd-copyrules': { const ta = document.querySelector('.gd-rules'); (navigator.clipboard ? navigator.clipboard.writeText(ta.value) : Promise.reject()).then(() => toast('Rules copied — paste them in Firebase → Firestore → Rules')).catch(() => { ta.select(); toast('Press Ctrl/⌘+C to copy'); }); return; }
+    case 'gd-test': {
+      const s = window.GridDraft.store(d); if (!s) return;
+      for (let i = 0; i < 40 && !s.ready; i++) await new Promise(r => setTimeout(r, 150));
+      if (s.error) return toast(s.error, 'err');
+      try { await s.test(); toast('Connected to Firebase ✓ — the database and rules are reachable'); }
+      catch (x) { toast('Firebase answered with: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — paste the rules from box ③ and publish them in Firebase.' : /not-found|NOT_FOUND|failed-precondition/.test(x.code || x.message) ? ' — create the Firestore database (setup step 5).' : ''), 'err'); }
+      return;
+    }
+    case 'gd-adminsignin': { const s = window.GridDraft.store(d); try { await s.signIn(); } catch (x) { toast('Sign-in failed: ' + (x.code || x.message) + (/unauthorized-domain/.test(x.code || '') ? ' — add this site in Firebase → Authentication → Settings → Authorized domains.' : ''), 'err'); } return; }
+    case 'gd-loadplayers': { const s = window.GridDraft.store(d); GDA.err = ''; try { GDA.players = await s.players(); GDA.drafts = await s.allDrafts(); } catch (x) { GDA.err = 'Couldn\'t load: ' + (x.code || x.message); } return rerender(); }
+    case 'gd-reset': { if (!confirm('Reset everyone\'s attempts now? Unfinished drafts expire. Completed teams and the leaderboard are kept.')) return; const s = window.GridDraft.store(d); try { await s.adminReset(); toast('Global reset done'); } catch (x) { toast('Reset failed: ' + (x.code || x.message), 'err'); } return; }
     case 'seo-now': { const g = ghReady(); if (!g) return; b.disabled = true; try { const ch = await updateIndexMeta(g, d); toast(ch ? 'Link preview updated — live in about a minute' : 'Link preview was already up to date'); } catch (err) { toast('Couldn\'t update: ' + err.message, 'err'); } b.disabled = false; return; }
     case 'add-fia': { d.fiaNews = d.fiaNews || []; const x = { id: uid('fia'), title: 'New announcement', date: new Date().toISOString(), category: 'notice', body: '', roundId: '', docs: [] }; d.fiaNews.push(x); A.open['fia-' + x.id] = true; return commit(); }
     case 'del-fia': if (confirm('Delete this announcement?')) { d.fiaNews.splice(i, 1); commit(); } return;

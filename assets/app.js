@@ -571,6 +571,8 @@ function pageHome(d) {
       </div>
       ${nextCard}
     </section>
+    ${(() => { const g = [d.fantasy && d.fantasy.enabled ? ['#/fantasy', 'Fantasy', `Build a ${d.fantasy.budget || 100}M team and climb the global leaderboard.`, '★', 'ft'] : null, d.gridDraft && d.gridDraft.enabled ? ['#/griddraft', 'Grid Draft', 'Two cards, one choice, three times. Draft the highest-scoring team.', '⇄', 'gd'] : null].filter(Boolean);
+      return g.length ? `<section class="games">${g.map(([h, t, sub, ic, k]) => `<a class="game-btn ${k}" href="${h}"><span class="game-ic">${ic}</span><span><b>${t.toUpperCase()}</b><small>${sub}</small></span><span class="game-go">PLAY →</span></a>`).join('')}</section>` : ''; })()}
 
     <section class="grid grid-3">
       <div class="card">
@@ -1176,7 +1178,7 @@ function pageAbout(d) {
 function searchIndex(d) {
   const items = [];
   const add = (type, title, sub, href, hay, img) => items.push({ type, title, sub, href, hay: (title + ' ' + (hay || '') + ' ' + (sub || '')).toLowerCase(), img });
-  [['Home', '#/'], ['Calendar', '#/schedule'], ['Results', '#/results'], ['Standings', '#/standings'], ['Constructors standings', '#/standings/teams'], ['Points progression', '#/standings/progress'], ['Drivers', '#/drivers'], ['Teams', '#/teams'], ['News', '#/news'], ['Rules', '#/rules'], [rcName(d), '#/fia'], ['Fantasy league', '#/fantasy'], ['Hall of fame', '#/history'], ['Head to head', '#/h2h'], ['About', '#/about'], ['Join the league', '#/join']]
+  [['Home', '#/'], ['Calendar', '#/schedule'], ['Results', '#/results'], ['Standings', '#/standings'], ['Constructors standings', '#/standings/teams'], ['Points progression', '#/standings/progress'], ['Drivers', '#/drivers'], ['Teams', '#/teams'], ['News', '#/news'], ['Rules', '#/rules'], [rcName(d), '#/fia'], ['Fantasy league', '#/fantasy'], ['Grid Draft', '#/griddraft'], ['Hall of fame', '#/history'], ['Head to head', '#/h2h'], ['About', '#/about'], ['Join the league', '#/join']]
     .forEach(([t, h]) => add('Pages', t, '', h, ''));
   d.drivers.forEach(x => { const t = byId(d.teams, x.teamId); add('Drivers', x.name, `${hasVal(x.number) ? '#' + x.number + ' · ' : ''}${t ? t.name : 'Free agent'}`, '#/driver/' + x.id, `${x.number} ${x.gamertag || ''} ${x.country || ''}`, { drv: x, t }); });
   d.teams.forEach(t => {
@@ -1724,7 +1726,7 @@ const notFound = () => `<div class="page">${empty('Page not found', '<p><a href=
 
 /* ---------------- router & chrome ---------------- */
 const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News']];
-const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['join', 'Join the league']];
+const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['griddraft', 'Grid Draft'], ['join', 'Join the league']];
 const ROUTES = [
   [/^$/, d => pageHome(d)],
   [/^schedule$/, d => pageSchedule(d)],
@@ -1744,6 +1746,7 @@ const ROUTES = [
   [/^join$/, d => pageJoin(d)],
   [/^h2h(?:\/(drivers|teams))?(?:\/([^/]+))?(?:\/([^/]+))?$/, (d, m) => pageH2H(d, m[1], m[2], m[3])],
   [/^about$/, d => pageAbout(d)],
+  [/^griddraft(?:\/(\w+))?$/, (d, m) => window.GridDraft ? window.GridDraft.page(d, m[1]) : notFound()],
   [/^fantasy(?:\/(\w+))?$/, (d, m) => window.Fantasy ? window.Fantasy.page(d, m[1]) : notFound()],
   [/^search(?:\/(.*))?$/, (d, m) => pageSearch(d, m[1] || '')],
   [/^admin(?:\/(\w+))?$/, (d, m) => window.Admin ? window.Admin.render(m[1]) : notFound()]
@@ -1791,7 +1794,7 @@ function chrome() {
   const moreOn = MORE.some(([k]) => k === cur);
   const navItems = d.fantasy && d.fantasy.enabled ? [...NAV, ['fantasy', 'Fantasy']] : NAV;
   document.getElementById('nav').innerHTML = navItems.map(link).join('') +
-    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
+    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · Season ${esc(L.season)}<br><span style="font-size:12px">${esc(L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.')}</span></div>
