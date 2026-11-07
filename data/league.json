@@ -1192,7 +1192,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-07T02:18:05.703Z"
+    "updated": "2026-11-07T02:54:44.239Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1288,7 +1288,8 @@
       {
         "name": "seo",
         "role": "League Coordinator",
-        "country": "US"
+        "country": "US",
+        "photo": "uploads/about/2026-11-07-seostaff-53gm.png"
       },
       {
         "role": "President of the FIA",
@@ -1327,6 +1328,5 @@
     "smoothing": 0.05,
     "minProb": 0.5,
     "maxProb": 25
-  },
-  "portalOn": true
+  }
 }
