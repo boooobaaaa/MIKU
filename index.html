@@ -4,22 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!--link-preview:start-->
-  <title>MIKU Motorsports Association</title>
-  <meta name="description" content="Official Website for the MIKU Motorosports Association">
+  <title>F1 League</title>
+  <meta name="description" content="Official home of our F1 league: calendar, results, standings, drivers, teams and news.">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="MIKU Motorsports Association">
-  <meta property="og:title" content="MIKU Motorsports Association">
-  <meta property="og:description" content="Official Website for the MIKU Motorosports Association">
-  <meta property="og:url" content="https://boooobaaaa.github.io/MIKU/">
-  <meta name="twitter:card" content="summary">
-  <meta name="theme-color" content="#f4a6c6">
+  <meta property="og:title" content="F1 League">
+  <meta property="og:description" content="Official home of our F1 league: calendar, results, standings, drivers, teams and news.">
+  <meta name="theme-color" content="#39c5bb">
   <!--link-preview:end-->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%2307090c'/><path d='M14 44 L30 20 H50 L34 44 Z' fill='%2339c5bb'/><circle cx='50' cy='44' r='4' fill='%23e12885'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Cinzel:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
-  <script>try { var m = localStorage.getItem('league.mode'); if (m === 'light' || m === 'dark') document.documentElement.dataset.theme = m; } catch (e) {}</script>
+  <script>try { var r = document.documentElement, dm = r.getAttribute('data-default-mode') || 'dark', m = localStorage.getItem('league.mode'), v = localStorage.getItem('league.mode.v');
+    if ((m === 'light' || m === 'dark') && v === dm) r.dataset.theme = m; else if (dm === 'system') r.dataset.theme = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; else r.dataset.theme = dm === 'light' ? 'light' : 'dark'; } catch (e) {}</script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><div class="bg-glow g1"></div><div class="bg-glow g2"></div><div class="bg-grid"></div></div>
@@ -45,6 +43,7 @@
 
   <script src="assets/app.js"></script>
   <script src="assets/fantasy.js"></script>
+  <script src="assets/portal.js"></script>
   <script src="assets/griddraft.js"></script>
   <script src="assets/admin.js"></script>
 </body>

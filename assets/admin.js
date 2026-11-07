@@ -13,7 +13,7 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -467,6 +467,7 @@ function secTheme(d) {
   const t = d.theme;
   const sw = (k, p) => `<button class="theme-swatch" data-act="theme-preset" data-k="${esc(k)}" style="--a:${p.accent};--b:${p.bgDark};--c:${p.highlight};--l:${p.bgLight}"><span class="ts-prev"><i></i><i></i><i></i></span>${esc(k)}</button>`;
   return head('Look & theme', 'Recolour the whole site. Changes preview instantly here and on the public pages in this browser — publish to make them live for everyone.', '<button class="btn" data-act="theme-reset">Reset to Miku classic</button>') + `
+    ${LG.S.isDraft ? '<div class="warn">These changes are only showing <b>in your browser</b> right now. Press <b>Publish</b> to apply them for everyone.</div>' : '<div class="ok-note">The look you see here is what every visitor sees.</div>'}
     <div class="a-card"><h3>Presets</h3><div class="theme-presets">${Object.entries(THEMES).map(([k, p]) => sw(k, p)).join('')}</div></div>
     <div class="a-card"><h3>Colours</h3><div class="fgrid">
       ${F.color('Main accent (buttons, points, active tabs)', 'theme.accent', t.accent)}
@@ -482,7 +483,7 @@ function secTheme(d) {
       ${F.check('Background glow & dot pattern', 'theme.effects', t.effects !== false)}
       ${F.check('Next-race strip at the very top (your time + track time)', 'theme.topBanner', t.topBanner !== false)}
       ${F.image('Logo on the clock widget (your league logo is used if empty — or use a real sponsor of yours)', 'theme.timingLogo', t.timingLogo === 'none' ? '' : t.timingLogo, 'branding', 400, 'clockLogo')}
-    </div><p class="hint">A visitor's own toggle choice is remembered in their browser and wins over the default. <button class="btn xs" data-act="clear-mode">Forget my choice</button></p></div>
+    </div><p class="hint">A visitor's ☀/☾ choice is remembered in their browser — until you change the default mode, which resets everyone to your new default. <button class="btn xs" data-act="clear-mode">Forget my choice</button></p></div>
     <div class="a-card"><h3>Preview</h3><div class="toolbar"><span class="btn primary">Primary</span><span class="btn">Button</span><span class="badge next">Next race</span><span class="badge sprint">Sprint</span><span class="tag-fl">FL</span><span class="tag-pole">POLE</span><span class="cell p1">1</span><span class="cell pts">6</span><span class="cell nopts">14</span><span class="cell dnf">DNF</span></div>
       <p class="hint">Tip: use the ☀ / ☾ button in the top bar to check both modes.</p></div>`;
 }
@@ -541,6 +542,50 @@ async function postToDiscord(x, d) {
   } catch (err) { toast('Discord refused it: ' + err.message, 'err'); return false; }
 }
 
+/* ---------------- team portal admin ---------------- */
+const PTA = { subs: null, members: null, err: '', open: '', loading: false };
+window.addEventListener('hashchange', () => { if (/^#\/admin\/portal/.test(location.hash) && !PTA.loading) { PTA.subs = null; PTA.members = null; setTimeout(rerender, 0); } });
+function secPortal(d) {
+  const PT = window.Portal, s = PT.store(d);
+  const c = window.GridDraft.cfg(d);
+  const adminList = String(c.admins || '').toLowerCase().split(/[\s,;]+/);
+  const top = head('Team portal', 'Team principals and executives sign in with Google and submit articles. Approved articles are added to <b>News</b> (tagged to their team) — then you publish as usual.', '<a class="btn" href="#/portal">Open the portal page</a>');
+  const onBox = `<div class="a-card"><div class="fgrid">${F.check('Show a “Team portal” link in the site footer', 'portalOn', d.portalOn)}</div><p class="hint">The portal page is <code>${esc(location.origin + location.pathname)}#/portal</code> — you can also just send staff that link.</p></div>`;
+  if (!s) return top + `<div class="warn">The portal uses the same Firebase project as Grid Draft. Finish the setup in <a href="#/admin/griddraft">Grid Draft</a> first (steps 1–7).</div>` + onBox;
+  if (!s.ready) return top + '<p class="muted">Connecting…</p>';
+  if (!s.user) return top + onBox + `<div class="a-card"><p>Sign in with your admin Google account to review articles and manage staff access.</p><button class="btn primary" data-act="pt-signin">Sign in with Google</button></div>`;
+  if (!adminList.includes(s.user.email)) return top + `<div class="warn">Signed in as ${esc(s.user.email)}, which isn't in the admin emails (Grid Draft → ①).</div>`;
+  if (!PTA.loading && (PTA.subs === null || PTA.members === null)) {
+    PTA.loading = true;
+    Promise.all([s.allSubs(), s.members()]).then(([a, m]) => { PTA.subs = a.sort((x, y) => y.updatedAt - x.updatedAt); PTA.members = m; PTA.err = ''; })
+      .catch(e => { PTA.subs = PTA.subs || []; PTA.members = PTA.members || []; PTA.err = (e.code || e.message) + (/permission/.test(e.code || e.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase (they now include the portal).' : ''); })
+      .finally(() => { PTA.loading = false; rerender(); });
+  }
+  const subs = PTA.subs || [], mem = PTA.members || [];
+  const pend = subs.filter(x => x.status === 'pending'), done = subs.filter(x => x.status !== 'pending');
+  const tName = id => (byId(d.teams, id) || {}).name || 'Unknown team';
+  const card = x => `<details class="item" data-key="pt-${x.id}" ${A.open['pt-' + x.id] ? 'open' : ''}>
+      <summary>${window.Portal.badge(x.status)}<b>${esc(x.title)}</b><span class="muted" style="font-size:13px">${esc(x.name)} · ${esc(x.role)}, ${esc(tName(x.teamId))} · ${x.updatedAt ? new Date(x.updatedAt).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}</span></summary>
+      <div class="body"><article class="article pt-review">${x.tag ? `<div class="eyebrow">${esc(x.tag)}</div>` : ''}<h2>${esc(x.title)}</h2>${x.image ? `<div class="a-cover"><img src="${esc(x.image)}" alt=""></div>` : ''}<div class="prose">${LG.md(x.body)}</div></article>
+        ${x.note ? `<p class="hint"><b>Your note:</b> ${esc(x.note)}</p>` : ''}
+        <div class="item-actions">${x.status !== 'approved' ? `<button class="btn sm primary" data-act="pt-approve" data-id="${esc(x.id)}">✓ Approve & add to News</button><button class="btn sm" data-act="pt-changes" data-id="${esc(x.id)}">Request changes</button>${x.status !== 'rejected' ? `<button class="btn sm danger" data-act="pt-reject" data-id="${esc(x.id)}">Reject</button>` : ''}` : `${x.newsId ? `<a class="btn sm" href="#/admin/news" data-act="edit-news" data-id="${esc(x.newsId)}">Open in News posts</a>` : ''}`}<button class="btn sm ghost" data-act="pt-delete" data-id="${esc(x.id)}">Delete</button></div></div>
+    </details>`;
+  return top + `${PTA.err ? `<div class="warn">${esc(PTA.err)}</div>` : ''}
+    <div class="a-card"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0">Waiting for review (${pend.length})</h3><button class="btn sm" data-act="pt-reload">Refresh</button></div>
+      ${PTA.subs === null ? '<p class="muted">Loading…</p>' : pend.map(card).join('') || '<p class="muted">Nothing waiting. 🩵</p>'}</div>
+    ${done.length ? `<div class="a-card"><h3>Reviewed (${done.length})</h3>${done.map(card).join('')}</div>` : ''}
+    <div class="a-card" style="overflow-x:auto"><h3>Staff access</h3><p class="hint" style="margin:-4px 0 12px">Only these Google accounts can open the portal. Each one can only write for their own team. Emails are stored privately in Firebase — never in your public site files.</p>
+      ${mem.length ? `<table class="rtable"><thead><tr><th>Google email</th><th>Name shown</th><th>Role</th><th>Team</th><th></th></tr></thead><tbody>${mem.map(m => `<tr><td class="mono" style="font-size:13px">${esc(m.email)}</td><td>${esc(m.name)}</td><td>${esc(m.role)}</td><td><span class="swatch" style="--tc:${esc(LG.teamColor(byId(d.teams, m.teamId)))}"></span>${esc(tName(m.teamId))}</td><td class="c-act"><button class="iconbtn del" data-act="pt-rm" data-email="${esc(m.email)}">✕</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">No staff added yet.</p>'}
+      <div class="fgrid" style="margin-top:14px">
+        <label class="fld"><span>Their Google email</span><input type="text" id="pt-m-email" placeholder="principal@gmail.com"></label>
+        <label class="fld"><span>Name shown on articles</span><input type="text" id="pt-m-name"></label>
+        <label class="fld"><span>Role</span><input type="text" id="pt-m-role" list="pt-roles" value="Team principal"></label>
+        <label class="fld"><span>Team</span><select id="pt-m-team">${d.teams.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select></label>
+      </div><datalist id="pt-roles">${window.Portal.ROLES.map(r => `<option value="${esc(r)}">`).join('')}</datalist>
+      <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="pt-add">+ Give access</button></div>
+    </div>` + onBox;
+}
+
 /* ---------------- grid draft admin ---------------- */
 const GDA = { players: null, drafts: null, err: '' };
 function secGridDraft(d) {
@@ -570,7 +615,7 @@ function secGridDraft(d) {
     <div class="a-card"><h3>① Connection</h3><div class="fgrid">
       ${F.check('Grid Draft is on (shows in More, and a button on the home page)', 'gridDraft.enabled', c.enabled)}
       <label class="fld wide"><span>Firebase config — paste the whole <code>firebaseConfig = { … }</code> block</span><textarea id="gd-fbconf" rows="5" placeholder="const firebaseConfig = {\n  apiKey: &quot;…&quot;,\n  authDomain: &quot;…&quot;,\n  projectId: &quot;…&quot;,\n  …\n};">${fbOk ? esc(JSON.stringify(c.firebase, null, 2)) : ''}</textarea></label>
-      ${F.text('Admin emails (your Google account; comma-separated)', 'gridDraft.admins', c.admins || '', 'wide placeholder="you@gmail.com"')}
+      ${F.text('Admin emails — can run Grid Draft & review Team portal articles (comma-separated)', 'gridDraft.admins', c.admins || '', 'wide placeholder="you@gmail.com"')}
     </div>
     <div class="toolbar" style="margin-top:12px"><button class="btn sm primary" data-act="gd-saveconf">Save config</button>${fbOk ? `<button class="btn sm" data-act="gd-test">Test connection</button><span class="ok-note" style="margin:0;padding:6px 10px">Project: <b>${esc(c.firebase.projectId)}</b></span>` : ''}</div></div>
     <div class="a-card"><h3>② Game rules</h3><div class="fgrid">
@@ -770,7 +815,7 @@ function render(sec) {
   if (!sec) A.section = 'dashboard';
   const d = D();
   if (!unlocked()) return lockHTML();
-  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft }[A.section];
+  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${SECTIONS.map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${l}</a>`).join('')}
@@ -927,6 +972,41 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'pt-signin': { try { await window.Portal.store(d).signIn(); } catch (x) { toast('Sign-in failed: ' + (x.code || x.message), 'err'); } return; }
+    case 'pt-reload': PTA.subs = null; PTA.members = null; return rerender();
+    case 'pt-add': {
+      const email = document.getElementById('pt-m-email').value.trim().toLowerCase(), name = document.getElementById('pt-m-name').value.trim(), role = document.getElementById('pt-m-role').value.trim() || 'Team principal', teamId = document.getElementById('pt-m-team').value;
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast('Enter their full Google email', 'err');
+      if (!name) return toast('Add the name to show on their articles', 'err');
+      try { await window.Portal.store(d).setMember(email, { name, role, teamId }); toast(`${name} can now use the portal`); PTA.members = null; } catch (x) { toast('Couldn\'t save: ' + (x.code || x.message), 'err'); }
+      return rerender();
+    }
+    case 'pt-rm': if (!confirm('Remove portal access for ' + b.dataset.email + '?')) return; try { await window.Portal.store(d).removeMember(b.dataset.email); PTA.members = null; } catch (x) { toast('Couldn\'t remove: ' + (x.code || x.message), 'err'); } return rerender();
+    case 'pt-changes': case 'pt-reject': {
+      const note = prompt(act === 'pt-changes' ? 'What should they change? (they\'ll see this)' : 'Reason (optional — they\'ll see this):', '');
+      if (note === null) return;
+      try { await window.Portal.store(d).review(b.dataset.id, act === 'pt-changes' ? 'changes' : 'rejected', note.trim(), ''); toast(act === 'pt-changes' ? 'Sent back for changes' : 'Rejected'); PTA.subs = null; } catch (x) { toast('Failed: ' + (x.code || x.message), 'err'); }
+      return rerender();
+    }
+    case 'pt-delete': if (!confirm('Delete this submission permanently?')) return; try { await window.Portal.store(d).withdraw(b.dataset.id); PTA.subs = null; } catch (x) { toast('Failed: ' + (x.code || x.message), 'err'); } return rerender();
+    case 'pt-approve': {
+      const x = (PTA.subs || []).find(z => z.id === b.dataset.id); if (!x) { PTA.subs = null; toast('That list was out of date — refreshed, please try again', 'err'); return rerender(); }
+      b.disabled = true;
+      try {
+        let image = '';
+        if (x.image && x.image.startsWith('data:')) {
+          const g = ghReady(); if (!g) { b.disabled = false; return; }
+          const blob = await (await fetch(x.image)).blob();
+          image = await uploadToGitHub(g, blob, 'portal-cover.jpg', 'news');
+          LG.ASSET_CACHE[image] = URL.createObjectURL(blob);
+        }
+        const t = byId(d.teams, x.teamId);
+        const n = { id: uid('news'), title: x.title, date: new Date().toISOString().slice(0, 10), author: `${x.name} · ${x.role}${t ? ', ' + t.name : ''}`, tag: x.tag || 'Team news', body: x.body, image, teams: t ? [t.id] : [], pinned: false, hidden: false };
+        d.news.push(n);
+        await window.Portal.store(d).review(x.id, 'approved', '', n.id);
+        PTA.subs = null; toast('Approved and added to News — press Publish to make it live'); return commit();
+      } catch (err) { b.disabled = false; toast('Approve failed: ' + (err.code || err.message), 'err'); return; }
+    }
     case 'gd-saveconf': {
       const raw = document.getElementById('gd-fbconf').value.trim();
       let conf = null; try { conf = JSON.parse(raw); } catch (x) { conf = window.GridDraft.parseFirebaseConfig(raw); }
@@ -1224,6 +1304,10 @@ async function testGitHub() {
     toast(j.permissions && j.permissions.push === false ? 'Connected, but this token can\'t write to the repo. Give it Contents: Read and write.' : `Connected to ${j.full_name} ✓`, j.permissions && j.permissions.push === false ? 'err' : 'ok');
   } catch (err) { toast('GitHub said: ' + err.message + ' — check the username, repo name and token.', 'err'); }
 }
+function themeBoot(d) {
+  const t = d.theme || {}, hx = (v, f) => /^#[0-9a-f]{6}$/i.test(v || '') ? v : f, D = LG.DEFAULT_THEME;
+  return `<style id="theme-boot">html:root{--miku:${hx(t.accent, D.accent)};--miku-soft:${hx(t.accentSoft, D.accentSoft)};--miku-deep:${hx(t.accentDeep, D.accentDeep)};--pink:${hx(t.highlight, D.highlight)};--bg-dark:${hx(t.bgDark, D.bgDark)};--bg-light:${hx(t.bgLight, D.bgLight)}}</style>`;
+}
 function seoBlock(d) {
   const sx = d.seo || {}, L = d.league;
   const e = v => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1235,7 +1319,7 @@ function seoBlock(d) {
   return ['<!--link-preview:start-->', `<title>${e(title)}</title>`, `<meta name="description" content="${e(desc)}">`, '<meta property="og:type" content="website">',
     `<meta property="og:site_name" content="${e(L.name || title)}">`, `<meta property="og:title" content="${e(title)}">`, `<meta property="og:description" content="${e(desc)}">`, `<meta property="og:url" content="${e(site)}">`,
     ...(img ? [`<meta property="og:image" content="${e(img)}">`, '<meta name="twitter:card" content="summary_large_image">'] : ['<meta name="twitter:card" content="summary">']),
-    `<meta name="theme-color" content="${e(color)}">`, '<!--link-preview:end-->'].join('\n  ');
+    `<meta name="theme-color" content="${e(color)}">`, themeBoot(d), '<!--link-preview:end-->'].join('\n  ');
 }
 const b64dec = s => { const bin = atob(String(s).replace(/\s/g, '')); const bytes = Uint8Array.from(bin, c => c.charCodeAt(0)); return new TextDecoder().decode(bytes); };
 async function updateIndexMeta(g, d) {
@@ -1248,8 +1332,10 @@ async function updateIndexMeta(g, d) {
   let next;
   if (/<!--link-preview:start-->[\s\S]*?<!--link-preview:end-->/.test(html)) next = html.replace(/<!--link-preview:start-->[\s\S]*?<!--link-preview:end-->/, block);
   else next = html.replace(/<title>[\s\S]*?<\/title>/, '').replace(/\s*<meta name="description"[^>]*>/, '').replace(/\s*<meta name="theme-color"[^>]*>/, '').replace(/(<meta name="viewport"[^>]*>)/, `$1\n  ${block}`);
+  const dm = ['light', 'dark', 'system'].includes((d.theme || {}).defaultMode) ? d.theme.defaultMode : 'dark';
+  next = next.replace(/<html([^>]*)>/, (m0, at) => `<html${at.replace(/\s*data-default-mode="[^"]*"/, '')} data-default-mode="${dm}">`);
   if (next === html) return false;
-  const put = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, g.headers), body: JSON.stringify({ message: 'Update link preview', content: b64(next), branch: g.c.branch, sha: j.sha }) });
+  const put = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, g.headers), body: JSON.stringify({ message: 'Update site look & link preview', content: b64(next), branch: g.c.branch, sha: j.sha }) });
   if (!put.ok) throw new Error((await put.json().catch(() => ({}))).message || put.status);
   return true;
 }

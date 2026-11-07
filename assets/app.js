@@ -67,7 +67,12 @@ function normalize(x) {
 
 function themeMode(d) {
   const t = d.theme;
-  let m = (t.allowToggle !== false && lsGet(MODE_KEY)) || t.defaultMode || 'dark';
+  let m = t.defaultMode || 'dark';
+  if (t.allowToggle !== false) {
+    const saved = lsGet(MODE_KEY), v = lsGet(MODE_KEY + '.v');
+    // a visitor's own choice only counts while the site's default is the one they chose against
+    if ((saved === 'light' || saved === 'dark') && v === String(t.defaultMode || 'dark')) m = saved;
+  }
   if (m === 'system') m = window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   return m === 'light' ? 'light' : 'dark';
 }
@@ -1746,6 +1751,7 @@ const ROUTES = [
   [/^join$/, d => pageJoin(d)],
   [/^h2h(?:\/(drivers|teams))?(?:\/([^/]+))?(?:\/([^/]+))?$/, (d, m) => pageH2H(d, m[1], m[2], m[3])],
   [/^about$/, d => pageAbout(d)],
+  [/^portal$/, d => window.Portal ? window.Portal.page(d) : notFound()],
   [/^griddraft(?:\/(\w+))?$/, (d, m) => window.GridDraft ? window.GridDraft.page(d, m[1]) : notFound()],
   [/^fantasy(?:\/(\w+))?$/, (d, m) => window.Fantasy ? window.Fantasy.page(d, m[1]) : notFound()],
   [/^search(?:\/(.*))?$/, (d, m) => pageSearch(d, m[1] || '')],
@@ -1798,7 +1804,7 @@ function chrome() {
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · Season ${esc(L.season)}<br><span style="font-size:12px">${esc(L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.')}</span></div>
-    <div class="links">${ext}<a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/admin">Admin</a></div></div>`;
+    <div class="links">${ext}<a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}<a href="#/admin">Admin</a></div></div>`;
 }
 
 function render(resetScroll) {
@@ -1856,6 +1862,7 @@ document.addEventListener('keydown', e => {
   if ((e.key === '/' || (e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey))) && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable) { e.preventDefault(); openSearch(); } if (e.key === 'Escape') document.querySelectorAll('.lightbox').forEach(o => o.remove()); });
 document.getElementById('mode-toggle').addEventListener('click', () => {
   lsSet(MODE_KEY, themeMode(S.data) === 'light' ? 'dark' : 'light');
+  lsSet(MODE_KEY + '.v', String(S.data.theme.defaultMode || 'dark'));
   applyTheme(S.data);
 });
 if (window.matchMedia) matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (S.data) applyTheme(S.data); });
