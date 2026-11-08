@@ -2,8 +2,8 @@
   "league": {
     "name": "Hikari Motorsports Association",
     "season": "2026",
-    "tagline": "when did leeks have wheels?",
-    "logo": "uploads/branding/2026-11-05-migu-copy-zq1w.png",
+    "tagline": "Where Legends Blossom",
+    "logo": "uploads/branding/2026-11-08-hikari-i8zk.png",
     "rules": "# Sporting regulations\n\n## Race format\n- Races are **50% distance**, dynamic weather, parc fermé on.\n- One-shot qualifying, 18 minutes.\n- Assists: ABS and traction control allowed; no racing line.\n\n## Conduct\n- Racing incidents are reviewed by the stewards after each round. Submit tickets in Discord within **24 hours**.\n- Penalties: warnings → time penalties → championship points deductions.\n- Three no-shows without notice and your seat goes to a reserve driver.\n\n## Reserves\nReserve drivers score points for the **team**, and keep their own points in the drivers' table.",
     "links": {
       "discord": "https://discord.gg/cuY4QGXA39",
@@ -1192,7 +1192,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-08T05:31:29.800Z"
+    "updated": "2026-11-08T05:32:37.289Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1302,11 +1302,12 @@
   },
   "youtube": {
     "channelUrl": "https://www.youtube.com/@MIKUMotorsports",
-    "channelId": "UCDXs7HTZzy8fO4pXRUR32hQ"
+    "channelId": "UCDXs7HTZzy8fO4pXRUR32hQ",
+    "title": "Latest Upload"
   },
   "seo": {
-    "title": "MIKU Motorsports Association",
-    "description": "Official Website for the MIKU Motorosports Association"
+    "title": "Hikari Motorsports Association",
+    "description": "Official Website for the Hikari Motorsports Association"
   },
   "gridDraft": {
     "enabled": true,
