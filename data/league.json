@@ -1,6 +1,6 @@
 {
   "league": {
-    "name": "MIKU Motorsports Association",
+    "name": "Hikari Motorsports Association",
     "season": "2026",
     "tagline": "when did leeks have wheels?",
     "logo": "uploads/branding/2026-11-05-migu-copy-zq1w.png",
@@ -10,7 +10,7 @@
       "youtube": "https://www.youtube.com/@MIKUMotorsports",
       "twitch": ""
     },
-    "footer": "Not affiliated with Formula 1."
+    "footer": "Official Motorsport Championship Series"
   },
   "settings": {
     "adminHash": "c68438b1a741a0233f4737f687079093c9bae2f3a2ccadd3284bee145ea2f45e"
