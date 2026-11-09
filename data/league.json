@@ -1180,7 +1180,8 @@
     "bgLight": "#fbf4f7",
     "defaultMode": "dark",
     "allowToggle": true,
-    "effects": true
+    "effects": true,
+    "timingLogo": "uploads/branding/2026-11-09-mirai-kjis.png"
   },
   "signups": {
     "open": true,
@@ -1192,7 +1193,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T00:44:29.578Z"
+    "updated": "2026-11-09T02:43:20.260Z"
   },
   "rulebook": {},
   "fantasy": {
