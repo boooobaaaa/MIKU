@@ -30,7 +30,8 @@ const MODE_KEY = 'league.mode';
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } };
 const isHex = v => /^#[0-9a-f]{6}$/i.test(v || '');
-const rcName = d => String((d.league && d.league.raceControl) || 'FIA').trim() || 'FIA';
+const rcName = d => String((d.league && d.league.raceControl) || 'KIRA').trim() || 'KIRA';
+const HIST_ROLES = ['Race Driver', 'Reserve Driver', 'Academy Driver', 'Race Engineer', 'Team Principal'];
 const hasVal = x => x !== '' && x !== null && x !== undefined;
 const TZ_BY_CC = { BH: 'Asia/Bahrain', SA: 'Asia/Riyadh', AU: 'Australia/Melbourne', JP: 'Asia/Tokyo', CN: 'Asia/Shanghai', US: 'America/New_York', IT: 'Europe/Rome', MC: 'Europe/Monaco',
   ES: 'Europe/Madrid', CA: 'America/Toronto', AT: 'Europe/Vienna', GB: 'Europe/London', HU: 'Europe/Budapest', BE: 'Europe/Brussels', NL: 'Europe/Amsterdam', AZ: 'Asia/Baku',
@@ -56,6 +57,8 @@ function normalize(x) {
   d.league = Object.assign(emptyLeague().league, d.league || {});
   d.league.links = d.league.links || {};
   d.settings = Object.assign({ adminHash: '' }, d.settings || {});
+  if (!d.league.rcKira) { if (!d.league.raceControl || /^\s*fia\s*$/i.test(d.league.raceControl)) d.league.raceControl = 'KIRA'; d.league.rcKira = true; }
+  (d.drivers || []).forEach(x => (x.history || []).forEach(h => { const m = h && HIST_ROLES.find(r => r.toLowerCase() === String(h.role || '').trim().toLowerCase().replace('principle', 'principal')); if (m) h.role = m; }));
   d.scoring = Object.assign(clone(DEFAULT_SCORING), d.scoring || {});
   d.theme = Object.assign(clone(DEFAULT_THEME), d.theme || {});
   d.signups = Object.assign(clone(DEFAULT_SIGNUPS), d.signups || {});
@@ -1241,7 +1244,7 @@ function runSearch(d, q) {
     return { ...it, sc };
   }).filter(Boolean).sort((a, b) => b.sc - a.sc);
 }
-const SEARCH_ORDER = ['Drivers', 'Teams', 'Races', 'People', 'News', 'Rules', 'FIA', 'Hall of fame', 'Pages'];
+const SEARCH_ORDER = ['Drivers', 'Teams', 'Races', 'People', 'News', 'Rules', 'KIRA', 'FIA', 'Hall of fame', 'Pages'];
 function searchResultHTML(it, q) {
   const hl = t => { let h = esc(t); q.toLowerCase().split(/\s+/).filter(w => w.length > 1).forEach(w => { h = h.replace(new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>'); }); return h; };
   const ic = it.img && it.img.drv ? avatar(it.img.drv, it.img.t, 'sm') : it.img && it.img.team ? `<span class="swatch" style="--tc:${esc(teamColor(it.img.team))};height:26px;margin:0 8px 0 4px"></span>` : it.img && it.img.flag ? `<span class="sr-flag">${flag(it.img.flag)}</span>` : `<span class="sr-ic">${{ News: '✎', Rules: '§', Pages: '↗', People: '◉', 'Hall of fame': '♛' }[it.type] || '⚑'}</span>`;
@@ -1942,7 +1945,7 @@ window.addEventListener('hashchange', () => render(true));
 
 /* expose helpers for the admin console */
 window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
-  rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
+  rcName, HIST_ROLES, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
   DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, titleCaseText, applyTitleCase, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 
 load().then(() => render(false));

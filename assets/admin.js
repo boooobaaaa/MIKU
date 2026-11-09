@@ -13,7 +13,7 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'KIRA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -117,7 +117,7 @@ function secDashboard(d) {
     <div class="a-card"><h3>Race-weekend checklist</h3>
       <div class="quick">
         ${nx ? `<a href="#/admin/results" data-act="goto-round" data-id="${esc(nx.id)}">▤ Enter results<small>Round ${esc(nx.round)} · ${esc(nx.name)}</small></a>` : ''}
-        <a href="#/admin/stewards">⚑ Log an FIA decision<small>Incidents, penalties, documents</small></a>
+        <a href="#/admin/stewards">⚑ Log a ${esc(LG.rcName(d))} decision<small>Incidents, penalties, documents</small></a>
         <a href="#/admin/adjust">± Adjust points<small>Add or remove points with a reason</small></a>
         <a href="#/admin/news" data-act="new-news">✎ Write a race report<small>New news post</small></a>
         <a href="#/admin/publish">⇪ Publish to the site<small>${LG.S.isDraft ? 'You have unpublished changes' : 'Everything is live'}</small></a>
@@ -133,7 +133,7 @@ function secLeague(d) {
     <div class="a-card"><h3>Identity</h3><div class="fgrid">
       ${F.text('League name', 'league.name', L.name, 'data-reload')}
       ${F.text('Season label', 'league.season', L.season, 'data-reload')}
-      ${F.text('Race control name', 'league.raceControl', L.raceControl || 'FIA', 'data-reload')}
+      ${F.text('Race control name', 'league.raceControl', L.raceControl || 'KIRA', 'data-reload')}
       ${F.text('Tagline (home page)', 'league.tagline', L.tagline, 'wide')}
       ${F.text('Footer text (small line at the bottom of every page)', 'league.footer', L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.', 'wide data-reload')}
       ${F.image('League logo', 'league.logo', L.logo, 'branding', 600, 'logo')}
@@ -195,14 +195,14 @@ function secDrivers(d) {
         <div class="wide th-ed"><div class="fld"><span>Team history (newest shown first on the profile — leave the "to" side empty for their current team)</span></div>
           ${(x.history || []).length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Team</th><th>Role</th><th>From season</th><th>Round</th><th>To season</th><th>Round</th><th></th></tr></thead><tbody>${(x.history || []).map((h, k) => `<tr>
             <td><select data-path="${p}.history.${k}.teamId" data-reload>${[['', '— other team (type) —'], ...d.teams.map(t => [t.id, t.name])].map(([v, l]) => opt(v, l, h.teamId)).join('')}</select>${h.teamId ? '' : `<input type="text" data-path="${p}.history.${k}.team" value="${esc(h.team || '')}" placeholder="Team name" style="margin-top:4px">`}</td>
-            <td class="c-md"><input type="text" data-path="${p}.history.${k}.role" value="${esc(h.role || '')}" placeholder="Race driver" list="th-roles"></td>
+            <td class="c-md"><select data-path="${p}.history.${k}.role">${[...LG.HIST_ROLES, ...(h.role && !LG.HIST_ROLES.includes(h.role) ? [h.role] : [])].map(r => `<option value="${esc(r)}" ${r === (h.role || 'Race Driver') ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></td>
             <td class="c-sm"><input type="text" data-path="${p}.history.${k}.fromSeason" value="${esc(h.fromSeason || '')}" placeholder="${esc(d.league.season)}"></td>
             <td class="c-sm"><input type="number" data-num data-path="${p}.history.${k}.fromRound" value="${esc(h.fromRound ?? '')}" placeholder="1"></td>
             <td class="c-sm"><input type="text" data-path="${p}.history.${k}.toSeason" value="${esc(h.toSeason || '')}" placeholder="now"></td>
             <td class="c-sm"><input type="number" data-num data-path="${p}.history.${k}.toRound" value="${esc(h.toRound ?? '')}"></td>
             <td class="c-act"><button class="iconbtn del" data-act="th-del" data-i="${i}" data-k="${k}">✕</button></td></tr>`).join('')}</tbody></table></div>` : ''}
           <div class="toolbar" style="margin-top:8px"><button class="btn sm" data-act="th-add" data-i="${i}">+ Add team spell</button><button class="btn sm" data-act="th-auto" data-i="${i}">Fill from this season's results</button></div>
-          <datalist id="th-roles"><option value="Race driver"><option value="Reserve driver"><option value="Academy driver"><option value="Test driver"></datalist>
+          
         </div>
       </div>
       <div class="item-actions"><a class="btn sm ghost" href="#/driver/${esc(x.id)}">View page</a><button class="btn sm danger" data-act="del-driver" data-i="${i}">Delete driver</button></div></div>
@@ -420,7 +420,7 @@ function secAdjust(d) {
   return head('Penalties & points', 'Add or remove championship points from any driver or team — penalties, bonuses, corrections. Use a negative number to take points away.',
     `<button class="btn primary" data-act="add-adj">+ Add adjustment</button>`) + `
     <div class="a-card" style="overflow-x:auto">${rows ? `<table class="rtable"><thead><tr><th>Applies to</th><th>Who</th><th>Points</th><th>Round</th><th>Reason</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="muted">No adjustments. Standings come purely from results.</p>'}</div>
-    <p class="hint">Points given in <a href="#/admin/stewards">FIA reports</a> are applied automatically and don't need repeating here.</p>
+    <p class="hint">Points given in <a href="#/admin/stewards">${esc(LG.rcName(d))} reports</a> are applied automatically and don't need repeating here.</p>
     <p class="hint">Want to change a finishing position instead (e.g. a time penalty that drops someone a place)? Edit that round in <a href="#/admin/results">Results</a> and move the driver down.</p>`;
 }
 
@@ -562,7 +562,7 @@ function fiaAnnouncements(d) {
   const order = [...list.keys()].sort((a, b) => String(list[b].date || '').localeCompare(String(list[a].date || '')));
   const hook = ls.get(WH_KEY) || '';
   return `<div class="a-card"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0">Announcements</h3><button class="btn sm primary" data-act="add-fia">+ New announcement</button></div>
-    <p class="hint" style="margin:-4px 0 12px">The 3 newest show on the home page under "Latest from the ${esc(d.league.raceControl || 'FIA')}" with a link to all of them.</p>
+    <p class="hint" style="margin:-4px 0 12px">The 3 newest show on the home page under "Latest from the ${esc(LG.rcName(d))}" with a link to all of them.</p>
     ${order.map(i => { const x = list[i], key = 'fia-' + x.id, pp = `fiaNews.${i}`; return `<details class="item" data-key="${key}" ${A.open[key] ? 'open' : ''}>
       <summary><span class="chip">${esc((x.category || 'notice'))}</span><b>${esc(x.title || 'Untitled')}</b><span class="muted" style="font-size:13px">${x.date ? LG.fmtDate(x.date) : ''}</span>${x.pinned ? '📌' : ''}${x.posted ? '<span class="pill-inactive">sent to Discord</span>' : ''}${x.hidden ? '<span class="pill-inactive">hidden</span>' : ''}</summary>
       <div class="body"><div class="fgrid">
@@ -581,15 +581,15 @@ function fiaAnnouncements(d) {
   </div>
   <div class="a-card"><h3>Discord connection</h3>
     <div class="fgrid">
-      <label class="fld wide"><span>Webhook for your FIA channel — lets you send announcements to Discord from here (saved in this browser only)</span><input type="password" id="wh-url" value="${esc(hook)}" placeholder="https://discord.com/api/webhooks/…" autocomplete="off"></label>
+      <label class="fld wide"><span>Webhook for your ${esc(LG.rcName(d))} channel — lets you send announcements to Discord from here (saved in this browser only)</span><input type="password" id="wh-url" value="${esc(hook)}" placeholder="https://discord.com/api/webhooks/…" autocomplete="off"></label>
     </div>
     <div class="toolbar" style="margin-top:10px"><button class="btn sm" data-act="save-wh">Save webhook</button>${hook ? '<button class="btn sm" data-act="test-wh">Send test message</button><button class="btn sm danger" data-act="forget-wh">Forget</button>' : ''}</div>
-    <p class="hint">Discord → your FIA channel → ⚙ Edit channel → Integrations → Webhooks → New webhook → Copy URL. Keep it private: anyone with it can post in that channel.</p>
+    <p class="hint">Discord → your ${esc(LG.rcName(d))} channel → ⚙ Edit channel → Integrations → Webhooks → New webhook → Copy URL. Keep it private: anyone with it can post in that channel.</p>
     <div class="fgrid" style="margin-top:14px">
       ${F.text('Discord server ID (optional live feed)', 'fiaFeed.server', (d.fiaFeed || {}).server || '', 'placeholder="123456789012345678"')}
-      ${F.text('FIA channel ID', 'fiaFeed.channel', (d.fiaFeed || {}).channel || '', 'placeholder="123456789012345678"')}
+      ${F.text(LG.rcName(d) + ' channel ID', 'fiaFeed.channel', (d.fiaFeed || {}).channel || '', 'placeholder="123456789012345678"')}
     </div>
-    <p class="hint">Optional: shows the real Discord channel live on the ${esc(d.league.raceControl || 'FIA')} page ("Live from Discord" tab). It uses the free <a href="https://widgetbot.io" target="_blank" rel="noopener">WidgetBot</a> service — add their bot to your server first. Get IDs by turning on Discord → Settings → Advanced → Developer Mode, then right-click the server / channel → Copy ID.</p>
+    <p class="hint">Optional: shows the real Discord channel live on the ${esc(LG.rcName(d))} page ("Live from Discord" tab). It uses the free <a href="https://widgetbot.io" target="_blank" rel="noopener">WidgetBot</a> service — add their bot to your server first. Get IDs by turning on Discord → Settings → Advanced → Developer Mode, then right-click the server / channel → Copy ID.</p>
   </div>`;
 }
 async function postToDiscord(x, d) {
@@ -598,7 +598,7 @@ async function postToDiscord(x, d) {
   const site = location.href.split('#')[0];
   const files = (x.docs || []).filter(u => !/^https?:/.test(u)).map(u => site + u).concat((x.docs || []).filter(u => /^https?:/.test(u)));
   const img = files.find(u => LG.isImg(u));
-  const body = { username: d.league.raceControl || 'FIA', embeds: [{ title: x.title, url: site + '#/fia/announcements', description: String(x.body || '').slice(0, 3900) + (files.filter(u => !LG.isImg(u)).length ? '\n\n' + files.filter(u => !LG.isImg(u)).map(u => `📄 ${u}`).join('\n') : ''), color: colors[x.category] || colors.notice, timestamp: x.date || new Date().toISOString(), footer: { text: d.league.name } }] };
+  const body = { username: LG.rcName(d), embeds: [{ title: x.title, url: site + '#/fia/announcements', description: String(x.body || '').slice(0, 3900) + (files.filter(u => !LG.isImg(u)).length ? '\n\n' + files.filter(u => !LG.isImg(u)).map(u => `📄 ${u}`).join('\n') : ''), color: colors[x.category] || colors.notice, timestamp: x.date || new Date().toISOString(), footer: { text: d.league.name } }] };
   if (img) body.embeds[0].image = { url: img };
   try {
     const r = await fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -626,7 +626,7 @@ function secAccess(d) {
   }
   const mem = ACT.members || [], ed = ACT.edit || { email: '', name: '', sections: [] };
   const all = (ed.sections || []).includes('*');
-  const secLabel = ss => (ss || []).includes('*') ? '<span class="chip">Everything</span>' : (ss || []).map(k => (SECTIONS.find(x => x[0] === k) || [k, k])[1]).map(l => `<span class="chip">${esc(l)}</span>`).join(' ') || '<span class="muted">Dashboard only</span>';
+  const secLabel = ss => (ss || []).includes('*') ? '<span class="chip">Everything</span>' : (ss || []).map(k => (k === 'stewards' ? LG.rcName(d) : (SECTIONS.find(x => x[0] === k) || [k, k])[1])).map(l => `<span class="chip">${esc(l)}</span>`).join(' ') || '<span class="muted">Dashboard only</span>';
   const hasLocal = !!ls.get(K.token), c = ghCfg(), k = ACT.key;
   return top + `${ACT.err ? `<div class="warn">${esc(ACT.err)}</div>` : ''}
     <div class="a-card"><h3>How it works</h3><ol class="steps">
@@ -647,7 +647,7 @@ function secAccess(d) {
         <label class="fld"><span>Their Google email</span><input type="text" inputmode="email" autocomplete="off" id="ac-email" value="${esc(ed.email)}" placeholder="name@gmail.com" ${ACT.edit ? 'readonly' : ''}></label>
         <label class="fld"><span>Name (for the activity log)</span><input type="text" id="ac-name" value="${esc(ed.name)}" maxlength="80"></label></div>
       <div class="ac-grid"><label class="ac-all"><input type="checkbox" id="ac-all" ${all ? 'checked' : ''}> <b>Everything</b> <span class="muted">(full editor — still can't change the passcode, GitHub connection or this team)</span></label>
-        ${ACCESS_SECTIONS().map(([k, l, ic]) => `<label><input type="checkbox" class="ac-sec" value="${k}" ${all || (ed.sections || []).includes(k) ? 'checked' : ''} ${all ? 'disabled' : ''}> <span class="ic">${ic}</span> ${esc(l)}</label>`).join('')}</div>
+        ${ACCESS_SECTIONS().map(([k, l, ic]) => `<label><input type="checkbox" class="ac-sec" value="${k}" ${all || (ed.sections || []).includes(k) ? 'checked' : ''} ${all ? 'disabled' : ''}> <span class="ic">${ic}</span> ${esc(k === 'stewards' ? LG.rcName(d) : l)}</label>`).join('')}</div>
       <div class="toolbar" style="margin-top:12px"><button class="btn sm primary" data-act="ac-add">${ACT.edit ? 'Save access' : '+ Give access'}</button>${ACT.edit ? '<button class="btn sm ghost" data-act="ac-cancel">Cancel</button>' : ''}</div>
       <p class="hint">Everyone on the team can open Dashboard and Publish. Removing someone takes effect the next time they load the console. To be 100% sure they can't publish again, also replace the team token.</p></div>
     <div class="a-card" style="overflow-x:auto"><h3>Recent activity</h3>
@@ -672,14 +672,14 @@ function secSeasons(d) {
   const done = LG.rounds(d).filter(r => LG.isDone(d, r)).length, total = d.calendar.filter(r => !r.cancelled).length;
   const saved = list.find(x => String(x.label) === String(d.league.season));
   const n = parseInt(d.league.season, 10), nextGuess = !isNaN(n) && String(n) === String(d.league.season).trim() ? String(n + 1) : '';
-  return head('Seasons', 'Every archived season keeps its full calendar, results, standings, drivers, teams and FIA decisions. Visitors browse them from <b>More → Seasons</b>.', '<a class="btn" href="#/seasons">View Seasons page</a>') + `
+  return head('Seasons', 'Every archived season keeps its full calendar, results, standings, drivers, teams and race control decisions. Visitors browse them from <b>More → Seasons</b>.', '<a class="btn" href="#/seasons">View Seasons page</a>') + `
     <div class="a-card"><h3>Current season · ${esc(d.league.season)}</h3>
       <p class="muted" style="margin:-4px 0 14px">${done}/${total} rounds completed${saved ? ` · a copy was saved ${saved.savedAt ? LG.fmtDate(saved.savedAt) : ''}` : ''}</p>
       <div class="toolbar"><button class="btn sm" data-act="sea-save">💾 Save a full copy now</button></div>
       <p class="hint">Saves the season as it stands (doesn't clear anything). Handy after the final race, or as a checkpoint. Saving again replaces the earlier copy.</p>
     </div>
     <div class="a-card"><h3>Start a new season</h3>
-      <ol class="steps"><li>Saves a full copy of Season ${esc(d.league.season)} and adds its champions to the Hall of fame.</li><li>Downloads a backup file to your computer.</li><li>Clears results, penalties, FIA decisions and the calendar. Drivers, teams, scoring, news, rules and fantasy settings are kept.</li></ol>
+      <ol class="steps"><li>Saves a full copy of Season ${esc(d.league.season)} and adds its champions to the Hall of fame.</li><li>Downloads a backup file to your computer.</li><li>Clears results, penalties, race control decisions and the calendar. Drivers, teams, scoring, news, rules and fantasy settings are kept.</li></ol>
       <div class="fgrid"><label class="fld"><span>New season label</span><input type="text" id="sea-next" value="${esc(nextGuess)}" placeholder="e.g. 2027 or Season 3"></label></div>
       <div class="toolbar" style="margin-top:10px"><button class="btn sm danger" data-act="sea-new">Archive ${esc(d.league.season)} & start the new season</button></div>
       <p class="hint">Needs your GitHub connection (Publish & backup) to save the archive file. Nothing goes live until you press Publish.</p>
@@ -721,7 +721,7 @@ async function seasonArchive(d, startNew, btn) {
     next = (document.getElementById('sea-next').value || '').trim();
     if (!next) return toast('Type the new season label first', 'err');
     if (String(next) === String(d.league.season)) return toast('The new season needs a different label', 'err');
-    if (!confirm(`Archive Season ${d.league.season} and start ${next}?\n\nA backup downloads first. Results, penalties, FIA decisions and the calendar will be cleared (nothing goes live until you publish).`)) return;
+    if (!confirm(`Archive Season ${d.league.season} and start ${next}?\n\nA backup downloads first. Results, penalties, race control decisions and the calendar will be cleared (nothing goes live until you publish).`)) return;
   }
   if (!ghReady()) return;
   btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving…';
@@ -956,7 +956,7 @@ function secStewards(d) {
       </div><div class="item-actions"><a class="btn sm ghost" href="#/stewards">View page</a><button class="btn sm danger" data-act="del-sd" data-i="${i}">Delete report</button></div></div>
     </details>`;
   }).join('');
-  return head(esc((d.league.raceControl || 'FIA')), "Log incidents and decisions. They show on the " + esc(d.league.raceControl || 'FIA') + " page and under that round's results. Championship points entered here are applied to the standings automatically.", '<button class="btn primary" data-act="add-sd">+ New report</button>') +
+  return head(esc((LG.rcName(d))), "Log incidents and decisions. They show on the " + esc(LG.rcName(d)) + " page and under that round's results. Championship points entered here are applied to the standings automatically.", '<button class="btn primary" data-act="add-sd">+ New report</button>') +
     fiaAnnouncements(d) + `<h2 style="font-size:20px;margin:26px 0 12px">Decisions & incident reports</h2><div class="a-card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><button class="btn primary" data-act="upload" data-mode="new-sd" data-folder="stewards" data-max="2600" data-multiple="1" data-accept="image/*,application/pdf">⬆ New report(s) from files</button><span class="hint" style="margin:0">Pick one or more filled-in templates — each becomes a report on the latest round. Then just set the dropdowns.</span></div>
     <div class="a-card">${items || '<p class="muted">No reports yet.</p>'}</div>
     <p class="hint">Time penalties that change the finishing order still need the driver moved down in <a href="#/admin/results">Results</a>.</p>`;
@@ -1025,7 +1025,7 @@ function render(sec) {
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${me ? `<div class="side-who"><b>${esc(me.name)}</b><span>${me.owner ? 'Owner' : lim ? 'Admin team' : 'Admin team · passcode'} · <a href="javascript:void 0" data-team="signout">sign out</a></span></div>` : ''}
-      ${SECTIONS.filter(([k]) => allowed(k)).map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${l}</a>`).join('')}
+      ${SECTIONS.filter(([k]) => allowed(k)).map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${k === 'stewards' ? esc(LG.rcName(d)) : l}</a>`).join('')}
       <div class="status-pill ${LG.S.isDraft ? 'draft' : 'clean'}">${LG.S.isDraft ? '● Unpublished changes' : '✓ All changes live'}${LG.S.isDraft ? '<button class="btn sm primary" data-act="publish">Publish</button>' : ''}</div>
     </aside>
     <section class="admin-main">${fn(d)}</section></div>`;
@@ -1232,11 +1232,11 @@ document.addEventListener('click', async e => {
       return rerender();
     }
     case 'gal-del': if (confirm('Remove this photo from the gallery?')) { d.gallery.splice(i, 1); commit(); } return;
-    case 'th-add': { const x = d.drivers[i]; (x.history = x.history || []).push({ teamId: x.teamId || '', role: 'Race driver', fromSeason: String(d.league.season), fromRound: 1, toSeason: '', toRound: '' }); A.open['drv-' + x.id] = true; return commit(); }
+    case 'th-add': { const x = d.drivers[i]; (x.history = x.history || []).push({ teamId: x.teamId || '', role: 'Race Driver', fromSeason: String(d.league.season), fromRound: 1, toSeason: '', toRound: '' }); A.open['drv-' + x.id] = true; return commit(); }
     case 'th-del': d.drivers[i].history.splice(Number(b.dataset.k), 1); return commit();
     case 'th-auto': {
       const x = d.drivers[i], season = String(d.league.season), stints = [];
-      LG.rounds(d).forEach(r => { const e = [...LG.session(d, r.id, 'race'), ...LG.session(d, r.id, 'sprint')].find(z => z.driverId === x.id && z.teamId); if (!e) return; const last = stints[stints.length - 1]; if (last && last.teamId === e.teamId) last.toRound = r.round; else stints.push({ teamId: e.teamId, role: 'Race driver', fromSeason: season, fromRound: r.round, toSeason: season, toRound: r.round }); });
+      LG.rounds(d).forEach(r => { const e = [...LG.session(d, r.id, 'race'), ...LG.session(d, r.id, 'sprint')].find(z => z.driverId === x.id && z.teamId); if (!e) return; const last = stints[stints.length - 1]; if (last && last.teamId === e.teamId) last.toRound = r.round; else stints.push({ teamId: e.teamId, role: 'Race Driver', fromSeason: season, fromRound: r.round, toSeason: season, toRound: r.round }); });
       if (!stints.length) return toast('No race results for this driver this season yet', 'err');
       const lastS = stints[stints.length - 1]; if (lastS.teamId === x.teamId) { lastS.toSeason = ''; lastS.toRound = ''; }
       x.history = (x.history || []).filter(h => String(h.fromSeason) !== season).concat(stints);
@@ -1658,7 +1658,7 @@ async function publish(btn) {
   }
   rerender();
 }
-const PART_NAMES = { league: 'league info', drivers: 'drivers', teams: 'constructors', calendar: 'calendar', results: 'results', scoring: 'scoring', adjustments: 'penalties', news: 'news', stewards: 'FIA', theme: 'look & theme', history: 'hall of fame', signups: 'sign-ups', about: 'about page', fantasy: 'fantasy', gridDraft: 'grid draft', gallery: 'gallery', seo: 'link preview', settings: 'settings', announcements: 'FIA announcements', music: 'music' };
+const PART_NAMES = { league: 'league info', drivers: 'drivers', teams: 'constructors', calendar: 'calendar', results: 'results', scoring: 'scoring', adjustments: 'penalties', news: 'news', stewards: 'decisions', theme: 'look & theme', history: 'hall of fame', signups: 'sign-ups', about: 'about page', fantasy: 'fantasy', gridDraft: 'grid draft', gallery: 'gallery', seo: 'link preview', settings: 'settings', announcements: 'announcements', music: 'music' };
 function changedParts(a, b) {
   if (!a) return [];
   return Object.keys(Object.assign({}, a, b)).filter(k => k !== 'meta' && JSON.stringify(a[k]) !== JSON.stringify(b[k])).map(k => PART_NAMES[k] || k).slice(0, 12);
