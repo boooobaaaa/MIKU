@@ -1751,3 +1751,16 @@ button.gd-card:hover { transform: translateY(-6px) rotate(-.5deg); }
 .pt-press-ic { font-size: 40px; line-height: 1; }
 .drv-about > section { margin: 0; }
 .pt-form select { appearance: auto; }
+
+/* ---------- admin team ---------- */
+.side-who { display: grid; gap: 1px; margin: -4px 0 12px; padding: 9px 12px; border-radius: 12px; background: color-mix(in srgb, var(--miku) 10%, transparent); font-size: 13.5px; }
+.side-who span { color: var(--muted); font-size: 12px; }
+.side-who a { color: var(--miku); }
+.lock-or { display: flex; align-items: center; gap: 10px; margin: 16px 0 12px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
+.lock-or::before, .lock-or::after { content: ""; flex: 1; height: 1px; background: var(--line-strong); }
+.lock .card > .btn { width: 100%; justify-content: center; }
+.ac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 14px; margin-top: 12px; font-size: 14px; }
+.ac-grid label { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.ac-grid .ic { width: 16px; text-align: center; color: var(--miku); }
+.ac-all { grid-column: 1 / -1; padding-bottom: 6px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.ac-secs .chip { margin: 2px 2px 2px 0; }

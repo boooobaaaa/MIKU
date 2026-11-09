@@ -1854,6 +1854,7 @@ function titleCaseText(t, first) {
     const isFirst = first && !/[A-Za-z0-9]/.test(before);
     const afterColon = /[:—–·]\s*$/.test(before);
     if (/[A-Z]/.test(w.slice(1)) || /^(e|i)\.?$/.test(w) && t[i + w.length] === '.') return w;
+    if (t[i - 1] === '.' || (t[i + w.length] === '.' && /[A-Za-z]/.test(t[i + w.length + 1] || ''))) return w; // file names like league.json
     if (!isFirst && !afterColon && SMALL.has(w.toLowerCase()) && !/-$/.test(before)) return w;
     return w[0].toUpperCase() + w.slice(1);
   });

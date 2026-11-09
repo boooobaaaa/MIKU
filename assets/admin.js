@@ -13,7 +13,7 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -42,7 +42,33 @@ async function sha256(s) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('league-salt::' + s));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
-const unlocked = () => !D().settings.adminHash || sessionStorage.getItem(K.auth) === D().settings.adminHash;
+const passOK = () => !!D().settings.adminHash && sessionStorage.getItem(K.auth) === D().settings.adminHash;
+/* ----- admin team: Google sign-in via the Grid Draft Firebase ----- */
+function teamStore() { const d = D(); return window.Portal && d.gridDraft && d.gridDraft.firebase && d.gridDraft.firebase.apiKey || window.PT_TEST_STORE ? window.Portal.store(d) : null; }
+function ownerEmails() { return String((window.GridDraft ? window.GridDraft.cfg(D()).admins : '') || '').toLowerCase().split(/[\s,;]+/).filter(Boolean); }
+function team() {
+  const s = teamStore(); if (!s || !s.ready || !s.user) return null;
+  const nm = s.user.displayName || s.user.email.split('@')[0];
+  if (ownerEmails().includes(s.user.email)) return { owner: true, email: s.user.email, name: nm, sections: ['*'], s };
+  if (s.siteAdmin) return { owner: false, email: s.user.email, name: s.siteAdmin.name || nm, sections: s.siteAdmin.sections || [], s };
+  return null;
+}
+/* a co-admin who got in by Google sign-in (not the passcode) only sees the sections you gave them */
+function limited() { if (passOK()) return null; const t = team(); return t && !t.owner ? t : null; }
+function allowed(k) {
+  const t = limited(); if (!t) return true;
+  if (k === 'dashboard' || k === 'publish') return true;
+  if (k === 'access') return false;
+  return t.sections.includes('*') || t.sections.includes(k);
+}
+const unlocked = () => !D().settings.adminHash || passOK() || !!team();
+const TEAMKEY = { key: undefined, loading: false };
+function loadTeamKey() {
+  const t = team(); if (!t || ls.get(K.token) || TEAMKEY.key !== undefined || TEAMKEY.loading) return;
+  TEAMKEY.loading = true;
+  t.s.getKey().then(k => { TEAMKEY.key = k && k.token ? k : null; }).catch(() => { TEAMKEY.key = null; }).finally(() => { TEAMKEY.loading = false; rerender(); });
+}
+function teamLog(action, detail) { const t = team(); if (t) t.s.log(action, detail, t.name).catch(() => { }); }
 
 /* ---------------- field helpers ---------------- */
 const opt = (v, label, cur) => `<option value="${esc(v)}" ${String(v) === String(cur ?? '') ? 'selected' : ''}>${esc(label)}</option>`;
@@ -141,12 +167,12 @@ function secLeague(d) {
     </div></div>
     <div class="a-card"><h3>Rulebook</h3><p class="hint" style="margin:-6px 0 12px">Shown on the Rules page under the points tables. Formatting: <code># Heading</code>, <code>**bold**</code>, <code>*italic*</code>, <code>- list item</code>, <code>[link](https://…)</code></p>
       <div class="fgrid">${F.area('Rules text', 'league.rules', L.rules, 'tall')}</div></div>
-    <div class="a-card"><h3>Admin passcode</h3>
+    ${limited() ? '' : `<div class="a-card"><h3>Admin passcode</h3>
       <p class="hint" style="margin:-6px 0 12px">Hides this console from visitors. It's a convenience lock — the actual protection is that publishing needs your GitHub token, which never leaves your browser.</p>
       <div class="fgrid"><label class="fld"><span>New passcode</span><input type="password" id="new-pass" autocomplete="new-password"></label>
       <div style="display:flex;gap:8px;align-items:flex-end"><button class="btn sm primary" data-act="set-pass">Save passcode</button>${d.settings.adminHash ? '<button class="btn sm danger" data-act="clear-pass">Remove</button>' : ''}</div></div>
       ${d.settings.adminHash ? '<p class="hint">A passcode is set. Remember to publish so it applies on the live site.</p>' : ''}
-    </div>`;
+    </div>`}`;
 }
 
 function secDrivers(d) {
@@ -429,15 +455,18 @@ function ghCfg() {
     const seg = location.pathname.split('/').filter(Boolean)[0];
     c.repo = seg && !seg.includes('.') ? seg : location.hostname;
   }
+  if (!ls.get(K.token) && TEAMKEY.key) { const k = TEAMKEY.key; c = { owner: k.owner || c.owner, repo: k.repo || c.repo, branch: k.branch || c.branch, path: k.path || c.path }; }
   return Object.assign({ owner: '', repo: '', branch: 'main', path: 'data/league.json' }, c);
 }
+const ghToken = () => ls.get(K.token) || (TEAMKEY.key && TEAMKEY.key.token) || '';
 function secPublish(d) {
   const c = ghCfg(), hasTok = !!ls.get(K.token);
   return head('Publish & backup', 'Publishing commits your draft to <code>data/league.json</code> in your GitHub repo. GitHub Pages rebuilds the site in about a minute.') + `
     ${LG.S.isDraft ? `<div class="warn">You have unpublished changes${LG.S.draftStale ? ' — and the live site was updated since you started this draft (maybe from another device). Publishing will overwrite it.' : '.'}</div>` : '<div class="ok-note">Everything is published. The live site matches this console.</div>'}
     <div class="a-card"><h3>Publish</h3><div class="toolbar"><button class="btn primary" data-act="publish" ${LG.S.isDraft ? '' : 'disabled'}>⇪ Publish changes</button>${LG.S.isDraft ? '<button class="btn danger" data-act="discard-draft">Discard draft</button>' : ''}<button class="btn" data-act="reload-live">Reload live data</button></div>
       ${d.meta.updated ? `<p class="hint">Last published: ${new Date(d.meta.updated).toLocaleString()}</p>` : ''}</div>
-    <div class="a-card"><h3>GitHub connection</h3>
+    ${!ls.get(K.token) && team() && !team().owner ? `<div class="a-card"><h3>Publishing access</h3>${TEAMKEY.key ? `<div class="ok-note">You publish with the league's shared key (set up by the owner). Every publish is logged under your name.</div>` : TEAMKEY.loading ? '<p class="muted">Fetching the team key…</p>' : '<div class="warn">The league owner hasn\'t shared a publishing key yet, so you can edit but not publish.</div>'}</div>` : ''}
+    ${limited() ? '' : `<div class="a-card"><h3>GitHub connection</h3>
       <div class="fgrid">
         <label class="fld"><span>GitHub username / org</span><input type="text" data-gh="owner" value="${esc(c.owner)}"></label>
         <label class="fld"><span>Repository name</span><input type="text" data-gh="repo" value="${esc(c.repo)}"></label>
@@ -455,13 +484,13 @@ function secPublish(d) {
         </ol>
         <p class="hint">The token is stored only in this browser's local storage — it is never written into your site files. Use the same steps on any other device you want to admin from.</p>
       </details>
-    </div>
+    </div>`}
     <div class="a-card"><h3>Backup & restore</h3><div class="toolbar">
       <button class="btn sm" data-act="download">⬇ Download league.json</button>
-      <label class="btn sm">⬆ Import league.json<input type="file" accept=".json,application/json" data-ctl="import" hidden></label>
+      ${limited() ? '' : `<label class="btn sm">⬆ Import league.json<input type="file" accept=".json,application/json" data-ctl="import" hidden></label>`}
     </div><p class="hint">Download a backup before big changes. Importing replaces your draft (nothing goes live until you publish).</p></div>
-    <div class="a-card"><h3>New season</h3><p class="hint" style="margin:-6px 0 12px">Archive this season and start the next one from <b>Seasons</b>.</p>
-      <a class="btn sm" href="#/admin/seasons">Go to Seasons →</a></div>`;
+    ${allowed('seasons') ? `<div class="a-card"><h3>New season</h3><p class="hint" style="margin:-6px 0 12px">Archive this season and start the next one from <b>Seasons</b>.</p>
+      <a class="btn sm" href="#/admin/seasons">Go to Seasons →</a></div>` : ''}`;
 }
 
 /* ---------------- theme ---------------- */
@@ -578,6 +607,53 @@ async function postToDiscord(x, d) {
   } catch (err) { toast('Discord refused it: ' + err.message, 'err'); return false; }
 }
 
+/* ---------------- admin team ---------------- */
+const ACT = { members: null, logs: null, key: undefined, err: '', loading: false, edit: null };
+window.addEventListener('hashchange', () => { if (/^#\/admin\/access/.test(location.hash) && !ACT.loading) { ACT.members = null; setTimeout(rerender, 0); } });
+const ACCESS_SECTIONS = () => SECTIONS.filter(([k]) => !['dashboard', 'publish', 'access'].includes(k));
+function secAccess(d) {
+  const s = teamStore();
+  const top = head('Admin team', 'Let other people into this console with their Google account and publish the site — without giving them your passcode or GitHub token. Their emails are stored privately in Firebase, never in your public site files.');
+  if (!s) return top + `<div class="warn">The admin team uses the same Firebase project as Grid Draft. Finish the setup in <a href="#/admin/griddraft">Grid Draft</a> first (steps 1–7).</div>`;
+  if (!s.ready) return top + '<p class="muted">Connecting…</p>';
+  if (!s.user) return top + `<div class="a-card"><p>Sign in with your owner Google account (the admin email from Grid Draft ①) to manage the team.</p><button class="btn primary" data-team="signin">Sign in with Google</button></div>`;
+  if (!ownerEmails().includes(s.user.email)) return top + `<div class="warn">Signed in as ${esc(s.user.email)}. Only owner emails (Grid Draft → ①) can manage the admin team.</div>`;
+  if (!ACT.loading && ACT.members === null) {
+    ACT.loading = true;
+    Promise.all([s.siteAdmins(), s.logs().catch(() => []), s.getKey()]).then(([m, l, k]) => { ACT.members = m; ACT.logs = l; ACT.key = k; ACT.err = ''; })
+      .catch(e => { ACT.members = ACT.members || []; ACT.logs = ACT.logs || []; ACT.err = (e.code || e.message) + (/permission/.test(e.code || e.message) ? ' — re-copy the security rules from Grid Draft ③ into Firebase (they now include the admin team).' : ''); })
+      .finally(() => { ACT.loading = false; rerender(); });
+  }
+  const mem = ACT.members || [], ed = ACT.edit || { email: '', name: '', sections: [] };
+  const all = (ed.sections || []).includes('*');
+  const secLabel = ss => (ss || []).includes('*') ? '<span class="chip">Everything</span>' : (ss || []).map(k => (SECTIONS.find(x => x[0] === k) || [k, k])[1]).map(l => `<span class="chip">${esc(l)}</span>`).join(' ') || '<span class="muted">Dashboard only</span>';
+  const hasLocal = !!ls.get(K.token), c = ghCfg(), k = ACT.key;
+  return top + `${ACT.err ? `<div class="warn">${esc(ACT.err)}</div>` : ''}
+    <div class="a-card"><h3>How it works</h3><ol class="steps">
+      <li>Share a <b>publishing key</b> once (below). It's kept in Firebase and only the admin team can read it.</li>
+      <li>Add each person's Google email and pick which parts of the console they can use.</li>
+      <li>Send them <code>${esc(location.origin + location.pathname)}#/admin</code> — they choose <b>Sign in with Google (admin team)</b> instead of the passcode.</li>
+      <li>Every publish is saved with their name in <b>Recent activity</b> and in the GitHub commit message.</li></ol></div>
+    <div class="a-card"><h3>Publishing key</h3>
+      ${k ? `<div class="ok-note">Shared — publishing to <b>${esc(k.owner)}/${esc(k.repo)}</b>${k.at ? ` · since ${esc(new Date(k.at).toLocaleDateString())}` : ''}.</div>` : ACT.members === null ? '<p class="muted">Loading…</p>' : '<div class="warn">Not shared yet — your team can edit but can\'t publish.</div>'}
+      <p class="hint">Best practice: make a <b>separate</b> fine-grained GitHub token just for the team (same steps as yours: only this repo, Contents: Read and write). If you ever need to cut everyone off, delete that token on GitHub — yours keeps working.</p>
+      <div class="fgrid"><label class="fld wide"><span>Team token</span><input type="password" id="ac-token" placeholder="github_pat_… (leave blank to share the one saved in this browser)" autocomplete="off"></label></div>
+      <div class="toolbar" style="margin-top:12px"><button class="btn sm primary" data-act="ac-share" ${hasLocal ? '' : 'data-need="1"'}>${k ? 'Replace shared key' : 'Share publishing key'}</button>${k ? '<button class="btn sm danger" data-act="ac-unshare">Stop sharing</button>' : ''}
+        <span class="hint" style="margin:0">Repo: ${esc(c.owner || '?')}/${esc(c.repo || '?')} · branch ${esc(c.branch)}</span></div></div>
+    <div class="a-card" style="overflow-x:auto"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0">Team members</h3><button class="btn sm" data-act="ac-reload">Refresh</button></div>
+      ${mem.length ? `<table class="rtable"><thead><tr><th>Google email</th><th>Name</th><th>Can use</th><th></th></tr></thead><tbody>${mem.map(m => `<tr><td class="mono" style="font-size:13px">${esc(m.email)}</td><td>${esc(m.name)}</td><td class="ac-secs">${secLabel(m.sections)}</td><td class="c-act" style="white-space:nowrap"><button class="btn xs" data-act="ac-edit" data-email="${esc(m.email)}">Edit</button><button class="iconbtn del" data-act="ac-rm" data-email="${esc(m.email)}">✕</button></td></tr>`).join('')}</tbody></table>` : ACT.members === null ? '<p class="muted">Loading…</p>' : '<p class="muted">Nobody added yet.</p>'}
+      <h4 style="margin:18px 0 8px">${ACT.edit ? 'Edit access' : 'Add someone'}</h4>
+      <div class="fgrid">
+        <label class="fld"><span>Their Google email</span><input type="text" inputmode="email" autocomplete="off" id="ac-email" value="${esc(ed.email)}" placeholder="name@gmail.com" ${ACT.edit ? 'readonly' : ''}></label>
+        <label class="fld"><span>Name (for the activity log)</span><input type="text" id="ac-name" value="${esc(ed.name)}" maxlength="80"></label></div>
+      <div class="ac-grid"><label class="ac-all"><input type="checkbox" id="ac-all" ${all ? 'checked' : ''}> <b>Everything</b> <span class="muted">(full editor — still can't change the passcode, GitHub connection or this team)</span></label>
+        ${ACCESS_SECTIONS().map(([k, l, ic]) => `<label><input type="checkbox" class="ac-sec" value="${k}" ${all || (ed.sections || []).includes(k) ? 'checked' : ''} ${all ? 'disabled' : ''}> <span class="ic">${ic}</span> ${esc(l)}</label>`).join('')}</div>
+      <div class="toolbar" style="margin-top:12px"><button class="btn sm primary" data-act="ac-add">${ACT.edit ? 'Save access' : '+ Give access'}</button>${ACT.edit ? '<button class="btn sm ghost" data-act="ac-cancel">Cancel</button>' : ''}</div>
+      <p class="hint">Everyone on the team can open Dashboard and Publish. Removing someone takes effect the next time they load the console. To be 100% sure they can't publish again, also replace the team token.</p></div>
+    <div class="a-card" style="overflow-x:auto"><h3>Recent activity</h3>
+      ${(ACT.logs || []).length ? `<table class="rtable"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody>${ACT.logs.map(x => `<tr><td class="mono muted" style="font-size:12.5px;white-space:nowrap">${x.at ? esc(new Date(x.at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })) : ''}</td><td><b>${esc(x.name || x.email)}</b></td><td>${esc(x.action)}${x.detail ? ` <span class="muted">— ${esc(x.detail)}</span>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="muted">Nothing yet. Publishes (by you or the team) show up here.</p>'}</div>`;
+}
+
 /* ---------------- gallery ---------------- */
 function secGallery(d) {
   const g = d.gallery = d.gallery || [];
@@ -674,7 +750,7 @@ function secPortal(d) {
   if (!s) return top + `<div class="warn">The portal uses the same Firebase project as Grid Draft. Finish the setup in <a href="#/admin/griddraft">Grid Draft</a> first (steps 1–7).</div>` + onBox;
   if (!s.ready) return top + '<p class="muted">Connecting…</p>';
   if (!s.user) return top + onBox + `<div class="a-card"><p>Sign in with your admin Google account to review articles and manage staff access.</p><button class="btn primary" data-act="pt-signin">Sign in with Google</button></div>`;
-  if (!adminList.includes(s.user.email)) return top + `<div class="warn">Signed in as ${esc(s.user.email)}, which isn't in the admin emails (Grid Draft → ①).</div>`;
+  if (!adminList.includes(s.user.email) && !(s.siteAdmin && allowed('portal'))) return top + `<div class="warn">Signed in as ${esc(s.user.email)}, which isn't in the admin emails (Grid Draft → ①) or on the admin team with Team portal access.</div>`;
   if (!PTA.loading && (PTA.subs === null || PTA.members === null)) {
     PTA.loading = true;
     Promise.all([s.allSubs(), s.members()]).then(([a, m]) => { PTA.subs = a.sort((x, y) => y.updatedAt - x.updatedAt); PTA.members = m; PTA.err = ''; })
@@ -929,21 +1005,32 @@ function secSignups(d) {
 /* ---------------- layout ---------------- */
 function lockHTML() {
   return `<div class="lock"><div class="card"><div class="eyebrow">Admin console</div><h2>Paddock access only</h2>
-    <form data-form="unlock"><input type="password" id="unlock-pass" placeholder="Passcode" autofocus><button class="btn primary">Unlock</button></form></div></div>`;
+    <form data-form="unlock"><input type="password" id="unlock-pass" placeholder="Passcode" autofocus><button class="btn primary">Unlock</button></form>
+    ${teamLock()}</div></div>`;
+}
+function teamLock() {
+  const s = teamStore(); if (!s) return '';
+  if (!s.ready) return '<p class="hint" style="margin-top:14px">Checking admin team sign-in…</p>';
+  if (s.user) return `<p class="hint" style="margin-top:14px">Signed in as <b>${esc(s.user.email)}</b>, which isn't on the admin team. <a href="javascript:void 0" data-team="signout">Sign out</a></p>`;
+  return `<div class="lock-or"><span>or</span></div><button class="btn" data-team="signin">Sign in with Google (admin team)</button>`;
 }
 function render(sec) {
   if (sec && SECTIONS.some(s => s[0] === sec)) A.section = sec;
   if (!sec) A.section = 'dashboard';
   const d = D();
   if (!unlocked()) return lockHTML();
-  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, seasons: secSeasons, gallery: secGallery }[A.section];
+  loadTeamKey();
+  const me = team(), lim = limited();
+  const fn = !allowed(A.section) ? noAccess : { access: secAccess, dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, seasons: secSeasons, gallery: secGallery }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
-      ${SECTIONS.map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${l}</a>`).join('')}
+      ${me ? `<div class="side-who"><b>${esc(me.name)}</b><span>${me.owner ? 'Owner' : lim ? 'Admin team' : 'Admin team · passcode'} · <a href="javascript:void 0" data-team="signout">sign out</a></span></div>` : ''}
+      ${SECTIONS.filter(([k]) => allowed(k)).map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${l}</a>`).join('')}
       <div class="status-pill ${LG.S.isDraft ? 'draft' : 'clean'}">${LG.S.isDraft ? '● Unpublished changes' : '✓ All changes live'}${LG.S.isDraft ? '<button class="btn sm primary" data-act="publish">Publish</button>' : ''}</div>
     </aside>
     <section class="admin-main">${fn(d)}</section></div>`;
 }
+function noAccess() { return head('No access', 'The league owner hasn\'t given you access to this part of the console. Ask them to add it under <b>Admin team</b>.'); }
 const rerender = () => LG.render(false);
 const commit = () => { LG.saveDraft(); rerender(); };
 
@@ -1104,6 +1191,46 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'ac-reload': ACT.members = null; return rerender();
+    case 'ac-cancel': ACT.edit = null; return rerender();
+    case 'ac-edit': { const m = (ACT.members || []).find(x => x.email === b.dataset.email); ACT.edit = m ? { email: m.email, name: m.name, sections: m.sections || [] } : null; return rerender(); }
+    case 'ac-add': {
+      const s = teamStore(), email = document.getElementById('ac-email').value.trim().toLowerCase(), name = document.getElementById('ac-name').value.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast('Enter their Google email', 'err');
+      if (!name) return toast('Add a name for them', 'err');
+      if (ownerEmails().includes(email)) return toast('That email is already an owner (Grid Draft ①)', 'err');
+      const sections = document.getElementById('ac-all').checked ? ['*'] : [...document.querySelectorAll('.ac-sec:checked')].map(x => x.value);
+      b.disabled = true;
+      try { await s.setSiteAdmin(email, { name, sections }); s.log(ACT.edit ? 'Changed access' : 'Added to admin team', `${name} (${sections.includes('*') ? 'everything' : sections.length + ' sections'})`, team() ? team().name : '').catch(() => { }); toast(ACT.edit ? 'Access updated' : `${name} can now sign in to the console`); ACT.edit = null; ACT.members = null; }
+      catch (x) { toast('Could not save: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — re-copy the rules from Grid Draft ③' : ''), 'err'); }
+      b.disabled = false; return rerender();
+    }
+    case 'ac-rm': {
+      const m = (ACT.members || []).find(x => x.email === b.dataset.email); if (!m || !confirm(`Remove ${m.name} from the admin team?`)) return;
+      try { await teamStore().removeSiteAdmin(m.email); teamStore().log('Removed from admin team', m.name, team() ? team().name : '').catch(() => { }); toast('Removed'); ACT.members = null; } catch (x) { toast('Could not remove: ' + (x.code || x.message), 'err'); }
+      return rerender();
+    }
+    case 'ac-share': {
+      const typed = document.getElementById('ac-token').value.trim(), tok = typed || ls.get(K.token), c = ghCfg();
+      if (!tok) return toast('Paste a team token first (or connect GitHub on this browser under Publish & backup)', 'err');
+      if (!c.owner || !c.repo) return toast('Set your GitHub username and repo under Publish & backup first', 'err');
+      b.disabled = true;
+      try {
+        const r = await fetch(`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`, { headers: { Authorization: `Bearer ${tok}`, Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error('GitHub rejected that token: ' + (j.message || r.status));
+        if (j.permissions && j.permissions.push === false) throw new Error('that token can\'t write to the repo — give it Contents: Read and write');
+        await teamStore().setKey({ token: tok, owner: c.owner, repo: c.repo, branch: c.branch, path: c.path, by: team() ? team().name : '' });
+        teamStore().log('Shared publishing key', `${c.owner}/${c.repo}`, team() ? team().name : '').catch(() => { });
+        toast('Publishing key shared with the admin team ✓'); ACT.members = null;
+      } catch (x) { toast((x.code || x.message), 'err'); }
+      b.disabled = false; return rerender();
+    }
+    case 'ac-unshare': {
+      if (!confirm('Stop sharing the publishing key? The team will be able to edit but not publish. (Also delete the token on GitHub if you think it was copied.)')) return;
+      try { await teamStore().clearKey(); teamStore().log('Stopped sharing publishing key', '', team() ? team().name : '').catch(() => { }); toast('Key removed'); ACT.members = null; } catch (x) { toast('Could not remove: ' + (x.code || x.message), 'err'); }
+      return rerender();
+    }
     case 'gal-del': if (confirm('Remove this photo from the gallery?')) { d.gallery.splice(i, 1); commit(); } return;
     case 'th-add': { const x = d.drivers[i]; (x.history = x.history || []).push({ teamId: x.teamId || '', role: 'Race driver', fromSeason: String(d.league.season), fromRound: 1, toSeason: '', toRound: '' }); A.open['drv-' + x.id] = true; return commit(); }
     case 'th-del': d.drivers[i].history.splice(Number(b.dataset.k), 1); return commit();
@@ -1455,8 +1582,11 @@ function b64(str) {
   return btoa(bin);
 }
 function ghReady() {
-  const c = ghCfg(), tok = ls.get(K.token);
-  if (!c.owner || !c.repo || !tok) { toast('Connect GitHub first (Publish & backup → GitHub connection)', 'err'); location.hash = '#/admin/publish'; return null; }
+  const c = ghCfg(), tok = ghToken();
+  if (!c.owner || !c.repo || !tok) {
+    if (limited() || (team() && !team().owner)) { toast(TEAMKEY.loading ? 'Still fetching the team publishing key — try again in a second' : 'The league owner hasn\'t shared the publishing key yet (Admin team → Publishing key)', 'err'); return null; }
+    toast('Connect GitHub first (Publish & backup → GitHub connection)', 'err'); location.hash = '#/admin/publish'; return null;
+  }
   return { c, headers: { Authorization: `Bearer ${tok}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } };
 }
 async function testGitHub() {
@@ -1514,17 +1644,24 @@ async function publish(btn) {
     else if (cur.status !== 404) throw new Error((await cur.json().catch(() => ({}))).message || cur.status);
     const out = clone(D());
     out.meta = Object.assign({}, out.meta, { updated: new Date().toISOString() });
-    const body = { message: `League update · ${new Date().toLocaleString()}`, content: b64(JSON.stringify(out, null, 2) + '\n'), branch: g.c.branch };
+    const changed = changedParts(LG.S.published, out), me = team();
+    const body = { message: `League update${me ? ' by ' + me.name : ''} · ${new Date().toLocaleString()}${changed.length ? ' · ' + changed.join(', ') : ''}`, content: b64(JSON.stringify(out, null, 2) + '\n'), branch: g.c.branch };
     if (sha) body.sha = sha;
     const put = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, g.headers), body: JSON.stringify(body) });
     if (!put.ok) throw new Error((await put.json().catch(() => ({}))).message || put.status);
     LG.S.published = LG.normalize(out); LG.S.data = clone(LG.S.published); LG.clearDraft();
     toast('Published! The live site updates in about a minute. 🏁');
+    teamLog('Published', changed.length ? 'Changed: ' + changed.join(', ') : 'Republished');
     try { if (await updateIndexMeta(g, out)) toast('Link preview updated too.'); } catch (e) { toast('Data published, but the link preview couldn\'t be updated: ' + e.message, 'err'); }
   } catch (err) {
     toast('Publish failed: ' + err.message, 'err');
   }
   rerender();
+}
+const PART_NAMES = { league: 'league info', drivers: 'drivers', teams: 'constructors', calendar: 'calendar', results: 'results', scoring: 'scoring', adjustments: 'penalties', news: 'news', stewards: 'FIA', theme: 'look & theme', history: 'hall of fame', signups: 'sign-ups', about: 'about page', fantasy: 'fantasy', gridDraft: 'grid draft', gallery: 'gallery', seo: 'link preview', settings: 'settings', announcements: 'FIA announcements', music: 'music' };
+function changedParts(a, b) {
+  if (!a) return [];
+  return Object.keys(Object.assign({}, a, b)).filter(k => k !== 'meta' && JSON.stringify(a[k]) !== JSON.stringify(b[k])).map(k => PART_NAMES[k] || k).slice(0, 12);
 }
 async function reloadLive() {
   if (LG.S.isDraft && !confirm('This throws away your unpublished draft and loads what is live right now. Continue?')) return;
@@ -1549,6 +1686,18 @@ function importFile(file) {
   };
   fr.readAsText(file);
 }
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-team]'); if (!b) return;
+  e.preventDefault();
+  const s = teamStore(); if (!s) return;
+  if (b.dataset.team === 'signin') { try { await s.signIn(); } catch (x) { toast('Sign-in failed: ' + (x.code || x.message), 'err'); } }
+  if (b.dataset.team === 'signout') { await s.signOut(); TEAMKEY.key = undefined; ACT.members = null; }
+  rerender();
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'ac-all') document.querySelectorAll('.ac-sec').forEach(x => { x.disabled = e.target.checked; if (e.target.checked) x.checked = true; });
+});
 
 window.Admin = { render };
 })();

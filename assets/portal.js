@@ -27,8 +27,9 @@ function fbStore(conf) {
       auth = A.getAuth(a); db = F.getFirestore(a);
       A.onAuthStateChanged(auth, async u => {
         s.user = u ? { uid: u.uid, email: String(u.email || '').toLowerCase(), displayName: u.displayName } : null;
-        s.member = null;
+        s.member = null; s.siteAdmin = null;
         if (u && u.email) { try { const m = await F.getDoc(F.doc(db, 'portal_members', s.user.email)); s.member = m.exists() ? m.data() : null; } catch (e) { s.member = null; } }
+        if (u && u.email) { try { const m = await F.getDoc(F.doc(db, 'site_admins', s.user.email)); s.siteAdmin = m.exists() ? m.data() : null; } catch (e) { s.siteAdmin = null; } }
         s.ready = true; emit();
       });
     } catch (e) { s.error = 'Could not load Firebase: ' + e.message; s.ready = true; emit(); }
@@ -49,12 +50,21 @@ function fbStore(conf) {
     async review(id, status, note, newsId) { await F.updateDoc(F.doc(db, 'portal_subs', id), { status, note: note || '', newsId: newsId || '', reviewedAt: F.serverTimestamp() }); },
     async members() { const q = await F.getDocs(F.collection(db, 'portal_members')); return q.docs.map(x => Object.assign({ email: x.id }, x.data())); },
     async setMember(email, x) { await F.setDoc(F.doc(db, 'portal_members', email), { name: x.name, role: x.role, teamId: x.teamId }); },
-    async removeMember(email) { await F.deleteDoc(F.doc(db, 'portal_members', email)); }
+    async removeMember(email) { await F.deleteDoc(F.doc(db, 'portal_members', email)); },
+    /* admin team */
+    async siteAdmins() { const q = await F.getDocs(F.collection(db, 'site_admins')); return q.docs.map(x => Object.assign({ email: x.id }, x.data())); },
+    async setSiteAdmin(email, x) { await F.setDoc(F.doc(db, 'site_admins', email), { name: x.name, sections: x.sections }); },
+    async removeSiteAdmin(email) { await F.deleteDoc(F.doc(db, 'site_admins', email)); },
+    async getKey() { const k = await F.getDoc(F.doc(db, 'site_secrets', 'github')); if (!k.exists()) return null; const v = k.data(); return Object.assign({}, v, { at: ts(v.at) }); },
+    async setKey(x) { await F.setDoc(F.doc(db, 'site_secrets', 'github'), { token: x.token, owner: x.owner, repo: x.repo, branch: x.branch, path: x.path, by: x.by || '', at: F.serverTimestamp() }); },
+    async clearKey() { await F.deleteDoc(F.doc(db, 'site_secrets', 'github')); },
+    async log(action, detail, name) { await F.addDoc(F.collection(db, 'site_log'), { email: s.user.email, name: String(name || '').slice(0, 80), action: String(action).slice(0, 60), detail: String(detail || '').slice(0, 500), at: F.serverTimestamp() }); },
+    async logs() { const q = await F.getDocs(F.query(F.collection(db, 'site_log'), F.orderBy('at', 'desc'), F.limit(40))); return q.docs.map(x => Object.assign({ id: x.id }, x.data(), { at: ts(x.data().at) })); }
   });
   return s;
 }
 let STORE = null, KEY = '';
-function hook(s) { if (s && !s.__hooked) { s.__hooked = true; s.on(() => { P.subs = null; if (/^#\/(portal|admin\/portal)/.test(location.hash)) LG.render(false); }); } return s; }
+function hook(s) { if (s && !s.__hooked) { s.__hooked = true; s.on(() => { P.subs = null; if (/^#\/(portal|admin)/.test(location.hash)) LG.render(false); }); } return s; }
 function store(d) {
   if (window.PT_TEST_STORE) return hook(window.PT_TEST_STORE);
   const conf = d.gridDraft && d.gridDraft.firebase && d.gridDraft.firebase.apiKey ? d.gridDraft.firebase : null;
@@ -79,11 +89,11 @@ const RULES = `
         && (s.kind == 'photos' ? s.images.size() > 0 : s.body.size() > 0);
     }
     match /portal_members/{email} {
-      allow read: if isAdmin() || (signedIn() && request.auth.token.email_verified == true && myEmail() == email);
-      allow write: if isAdmin();
+      allow read: if canReview() || (signedIn() && request.auth.token.email_verified == true && myEmail() == email);
+      allow write: if canReview();
     }
     match /portal_subs/{id} {
-      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow read: if canReview() || (signedIn() && resource.data.uid == request.auth.uid);
       allow create: if isMember()
         && request.resource.data.keys().hasOnly(['uid', 'email', 'name', 'role', 'teamId', 'title', 'tag', 'body', 'image', 'kind', 'images', 'roundId', 'status', 'note', 'newsId', 'createdAt', 'updatedAt', 'reviewedAt'])
         && request.resource.data.uid == request.auth.uid && request.resource.data.email == myEmail()
@@ -94,9 +104,33 @@ const RULES = `
       allow update: if (isMember() && resource.data.uid == request.auth.uid && resource.data.status in ['pending', 'changes']
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'tag', 'body', 'image', 'kind', 'images', 'roundId', 'status', 'updatedAt'])
           && request.resource.data.status == 'pending' && request.resource.data.updatedAt == request.time && validSub(request.resource.data))
-        || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'note', 'reviewedAt', 'newsId'])
+        || (canReview() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'note', 'reviewedAt', 'newsId'])
           && request.resource.data.status in ['pending', 'approved', 'rejected', 'changes'] && request.resource.data.note is string && request.resource.data.note.size() <= 2000);
-      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid && resource.data.status in ['pending', 'changes', 'rejected']);
+      allow delete: if canReview() || (signedIn() && resource.data.uid == request.auth.uid && resource.data.status in ['pending', 'changes', 'rejected']);
+    }
+
+    // ---------------- Admin team (people you let into the console to publish) ----------------
+    function isCoAdmin() { return signedIn() && request.auth.token.email_verified == true && exists(/databases/$(db)/documents/site_admins/$(myEmail())); }
+    function coSections() { return get(/databases/$(db)/documents/site_admins/$(myEmail())).data.sections; }
+    function canReview() { return isAdmin() || (isCoAdmin() && ('*' in coSections() || 'portal' in coSections())); }
+    match /site_admins/{email} {
+      allow read: if isAdmin() || (signedIn() && request.auth.token.email_verified == true && myEmail() == email);
+      allow write: if isAdmin();
+    }
+    match /site_secrets/{id} {
+      allow read: if isAdmin() || isCoAdmin();
+      allow write: if isAdmin();
+    }
+    match /site_log/{id} {
+      allow read: if isAdmin() || isCoAdmin();
+      allow create: if (isAdmin() || isCoAdmin())
+        && request.resource.data.keys().hasOnly(['email', 'name', 'action', 'detail', 'at'])
+        && request.resource.data.email == myEmail() && request.resource.data.at == request.time
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && request.resource.data.action is string && request.resource.data.action.size() <= 60
+        && request.resource.data.detail is string && request.resource.data.detail.size() <= 500;
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 `;
 
