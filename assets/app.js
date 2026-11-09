@@ -1475,18 +1475,46 @@ function champPhoto(d, name) {
   const p = d.drivers.find(x => x.name && name && x.name.trim().toLowerCase() === String(name).trim().toLowerCase());
   return p && (p.headshot || p.photo) ? asset(p.headshot || p.photo) : '';
 }
+/* ---------- sakura (cherry blossom) hall of fame ---------- */
+const isSakura = d => ((d.theme || {}).hofStyle || 'sakura') === 'sakura';
+const SK_PETAL = 'M0 0C-7.5-5-9-14.5-4.2-20.5L0-17.2L4.2-20.5C9-14.5 7.5-5 0 0Z';
+function skFlower(x, y, s, rot, op = 1, open = true) {
+  const petals = [0, 72, 144, 216, 288].map(a => `<path d="${SK_PETAL}" transform="rotate(${a})"/>`).join('');
+  const stamens = open ? [15, 87, 159, 231, 303].map(a => `<line x1="0" y1="0" x2="0" y2="-7.5" transform="rotate(${a})"/><circle cx="0" cy="-8" r="1.1" transform="rotate(${a})"/>`).join('') : '';
+  return `<g class="skf" transform="translate(${x} ${y}) rotate(${rot}) scale(${s})" opacity="${op}"><g class="skp">${petals}</g><circle class="skc" r="3.2"/><g class="sks">${stamens}</g></g>`;
+}
+function skBranch() {
+  return `<svg viewBox="0 0 440 230" aria-hidden="true"><g class="skb" fill="none" stroke-linecap="round">
+      <path d="M-10 26C70 34 120 58 176 92S290 150 360 152" stroke-width="9"/><path d="M118 60C140 30 168 18 204 14" stroke-width="5"/><path d="M228 118C246 150 252 176 250 206" stroke-width="5"/>
+      <path d="M300 146C326 126 352 118 386 120" stroke-width="3.5"/><path d="M60 36C66 60 64 84 54 104" stroke-width="3.5"/></g>
+    ${skFlower(206, 14, 1.25, 10)}${skFlower(176, 30, 1, 40, .95)}${skFlower(142, 64, 1.35, -12)}${skFlower(98, 52, 1.05, 30, .9)}${skFlower(54, 104, 1.15, 5)}${skFlower(30, 30, .9, -25, .85)}
+    ${skFlower(250, 206, 1.15, 22)}${skFlower(240, 162, .95, -8, .9)}${skFlower(206, 112, 1.2, 16)}${skFlower(300, 148, 1.3, -30)}${skFlower(346, 126, 1, 12, .9)}${skFlower(388, 120, 1.15, 48)}${skFlower(364, 156, .85, 0, .8)}
+    <g class="skbud"><ellipse cx="232" cy="8" rx="4" ry="6" transform="rotate(40 232 8)"/><ellipse cx="80" cy="118" rx="3.5" ry="5.5"/><ellipse cx="408" cy="134" rx="3.5" ry="5.5" transform="rotate(60 408 134)"/><ellipse cx="270" cy="182" rx="3" ry="5" transform="rotate(-30 270 182)"/></g></svg>`;
+}
+const skIcon = (cls = '') => `<svg class="sk-icon ${cls}" viewBox="-24 -24 48 48" aria-hidden="true">${skFlower(0, 0, 1, 0)}</svg>`;
+function skFall(n = 22) {
+  let out = '';
+  for (let i = 0; i < n; i++) {
+    const x = (i * 37 + 11) % 100, dur = 9 + (i * 7) % 9, del = -((i * 13) % 17), sz = 9 + (i * 5) % 9, sw = 30 + (i * 11) % 60, rot = (i * 47) % 360;
+    out += `<i style="--x:${x}%;--d:${dur}s;--dl:${del}s;--s:${sz}px;--sw:${sw}px;--r:${rot}deg"></i>`;
+  }
+  return `<div class="sk-fall" aria-hidden="true">${out}</div>`;
+}
+const skHeroDeco = () => `<div class="sk-branch l">${skBranch()}</div><div class="sk-branch r">${skBranch()}</div><div class="sk-kanji" aria-hidden="true">殿堂</div><div class="sk-moon" aria-hidden="true"></div>`;
+
 function champCard(d, h, current) {
   const photo = champPhoto(d, h.driverChampion);
+  const sk = isSakura(d);
   return `<article class="hof-card ${current ? 'current' : ''}">
-    <div class="hof-sheen"></div>
+    <div class="hof-sheen"></div>${sk ? `<div class="sk-corner" aria-hidden="true">${skIcon()}${skIcon('b')}</div>` : ''}
     <div class="hof-top"><span class="hof-season">${esc(h.season)}</span><span class="hof-tag">${current ? 'In progress' : 'Champions'}</span></div>
     <div class="hof-driver">
-      <div class="hof-medal"><span class="hof-trophy">${current ? '◆' : TROPHY}</span>${photo ? `<img src="${esc(photo)}" alt="" onerror="this.remove()">` : ''}</div>
+      <div class="hof-medal"><span class="hof-trophy">${sk ? skIcon() : current ? '◆' : TROPHY}</span>${photo ? `<img src="${esc(photo)}" alt="" onerror="this.remove()">` : ''}</div>
       <div style="min-width:0"><div class="hof-label">${current ? 'Championship leader' : "Drivers' Champion"}</div>
         <div class="hof-name">${h.driverChampion ? nameHTML(h.driverChampion) : '—'}</div>
         <div class="hof-sub"><span class="swatch" style="--tc:${esc(h.driverColor || '#e6b84f')}"></span>${esc(h.driverTeam || '')}${hasVal(h.driverPoints) ? ` · <b>${fmtPts(h.driverPoints)}</b> pts` : ''}</div></div>
     </div>
-    <div class="hof-divider"><span>✦</span></div>
+    <div class="hof-divider"><span>${sk ? skIcon() : '✦'}</span></div>
     <div class="hof-label">${current ? 'Leading constructor' : "Constructors' Champion"}</div>
     <div class="hof-tname"><span class="swatch" style="--tc:${esc(h.teamColor || '#e6b84f')}"></span>${esc(h.teamChampion || '—')}${hasVal(h.teamPoints) ? `<span class="hof-pts">${fmtPts(h.teamPoints)} pts</span>` : ''}</div>
     ${h.notes ? `<div class="hof-notes prose">${md(h.notes)}</div>` : ''}
@@ -1505,11 +1533,12 @@ function pageHistory(d) {
   list.forEach(h => { if (h.driverChampion) tally[h.driverChampion] = (tally[h.driverChampion] || 0) + 1; });
   const ranked = Object.entries(tally).sort((a, b) => b[1] - a[1]);
   const multi = ranked.filter(([, n]) => n > 1);
-  return `<div class="page hof">
-    <header class="hof-hero">
-      <div class="hof-crest">${TROPHY}</div>
+  const sk = isSakura(d);
+  return `<div class="page hof ${sk ? 'hof-sakura' : ''}">${sk ? skFall() : ''}
+    <header class="hof-hero">${sk ? skHeroDeco() : ''}
+      <div class="hof-crest">${sk ? skIcon() : TROPHY}</div>
       <div class="hof-eyebrow">${esc(d.league.name)}</div>
-      <h1 class="hof-title">Hall of Fame</h1>
+      <h1 class="hof-title">Hall of Fame${sk ? '<span class="sk-seal" aria-hidden="true">桜</span>' : ''}</h1>
       <p class="hof-subtitle">The drivers and teams who conquered the grid.</p>
       <div class="hof-stats">
         <div><b>${list.length}</b><span>Seasons</span></div>
@@ -1517,7 +1546,7 @@ function pageHistory(d) {
         <div><b>${ranked[0] ? esc(ranked[0][0].split(' ').pop()) : '—'}</b><span>Most titles${ranked[0] ? ' · ' + ranked[0][1] : ''}</span></div>
       </div>
     </header>
-    ${multi.length ? `<div class="hof-multi">${multi.map(([nm, n]) => `<span class="hof-chip">${'★'.repeat(Math.min(n, 7))} ${esc(nm)} <b>×${n}</b></span>`).join('')}</div>` : ''}
+    ${multi.length ? `<div class="hof-multi">${multi.map(([nm, n]) => `<span class="hof-chip">${sk ? skIcon().repeat(Math.min(n, 7)) : '★'.repeat(Math.min(n, 7))} ${esc(nm)} <b>×${n}</b></span>`).join('')}</div>` : ''}
     ${cur || list.length ? `<div class="hof-grid">${cur}${list.map(h => champCard(d, h)).join('')}</div>` : empty('No champions crowned yet', '<p>When a season ends, the admin archives it here.</p>')}
   </div>`;
 }
@@ -1525,9 +1554,10 @@ function pageHistorySeason(d, id) {
   const h = byId(d.history, id);
   if (!h) return notFound();
   const sd = (h.standings && h.standings.drivers) || [], tm = (h.standings && h.standings.teams) || [], w = h.winners || [];
-  return `<div class="page hof"><a class="back" href="#/history">← Hall of fame</a>
-    <header class="hof-hero sm">
-      <div class="hof-crest">${TROPHY}</div>
+  const sk = isSakura(d);
+  return `<div class="page hof ${sk ? 'hof-sakura' : ''}">${sk ? skFall(14) : ''}<a class="back" href="#/history">← Hall of fame</a>
+    <header class="hof-hero sm">${sk ? skHeroDeco() : ''}
+      <div class="hof-crest">${sk ? skIcon() : TROPHY}</div>
       <div class="hof-eyebrow">Season ${esc(h.season)} · Final standings</div>
       <h1 class="hof-title">${h.driverChampion ? esc(h.driverChampion) : 'Season ' + esc(h.season)}</h1>
       <p class="hof-subtitle">${h.driverChampion ? "Drivers' Champion" : ''}${h.teamChampion ? ` · ${esc(h.teamChampion)}, Constructors' Champion` : ''}</p>

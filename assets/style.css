@@ -1812,3 +1812,93 @@ button.gd-card:hover { transform: translateY(-6px) rotate(-.5deg); }
 @media (max-width: 520px) { .th-card { grid-template-columns: auto 1fr; } .th-len { grid-column: 2; text-align: left; display: flex; gap: 6px; align-items: baseline; } }
 .th-when .nw { white-space: nowrap; }
 .stats-drv .stat span { display: block; line-height: 1.35; margin-top: 4px; }
+
+/* =========================================================
+   HALL OF FAME — SAKURA NIGHT (yozakura) style
+   ========================================================= */
+.hof-sakura { --g1: #ffe4ee; --g2: #f4a6c6; --g3: #b2557f; --sk-gold: #e9c98a; position: relative; }
+.hof-sakura .hof-hero {
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(244, 166, 198, .34), transparent 60%),
+    radial-gradient(ellipse at 15% 110%, rgba(178, 85, 127, .28), transparent 55%),
+    linear-gradient(180deg, #1d0f1a, #0c0710 70%, #08060a);
+  border-color: rgba(244, 166, 198, .38); box-shadow: 0 30px 70px -40px rgba(244, 166, 198, .6); padding-top: 64px; padding-bottom: 44px; }
+/* seigaiha wave pattern instead of dots */
+.hof-sakura .hof-hero::before {
+  background-image: radial-gradient(circle at 50% 100%, transparent 9px, rgba(255, 210, 228, .09) 9.5px, rgba(255, 210, 228, .09) 10.5px, transparent 11px, transparent 15px, rgba(255, 210, 228, .07) 15.5px, rgba(255, 210, 228, .07) 16.5px, transparent 17px);
+  background-size: 40px 20px; mask-image: linear-gradient(0deg, #000, transparent 55%); }
+.hof-sakura .hof-hero > .sk-branch, .hof-sakura .hof-hero > .sk-kanji, .hof-sakura .hof-hero > .sk-moon { position: absolute; }
+.sk-branch { top: -6px; width: min(42%, 440px); pointer-events: none; filter: drop-shadow(0 8px 18px rgba(0,0,0,.45)); }
+.sk-branch.l { left: -18px; }
+.sk-branch.r { right: -18px; transform: scaleX(-1); top: auto; bottom: -38px; opacity: .8; }
+.sk-branch svg { width: 100%; height: auto; display: block; overflow: visible; }
+.skb { stroke: #3a1f27; }
+.skb path:first-child { stroke: #2c171e; }
+.skp path { fill: #ffd3e3; stroke: #f2a3c3; stroke-width: .8; }
+.skf:nth-child(3n) .skp path { fill: #ffe6ef; }
+.skf:nth-child(4n+1) .skp path { fill: #f8b9d1; }
+.skc { fill: #d9547f; }
+.sks line { stroke: #c4436f; stroke-width: .8; }
+.sks circle { fill: #f6d58c; }
+.skbud ellipse { fill: #e783a9; }
+.sk-kanji { right: 34px; top: 26px; writing-mode: vertical-rl; font-family: "Shippori Mincho", serif; font-weight: 800; font-size: 54px; letter-spacing: .12em; color: rgba(255, 210, 228, .08); pointer-events: none; }
+.sk-moon { left: 50%; top: -120px; width: 260px; height: 260px; margin-left: -130px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 236, 244, .16), transparent 66%); pointer-events: none; }
+.hof-sakura .hof-crest .sk-icon { width: 64px; height: 64px; filter: drop-shadow(0 6px 20px rgba(244, 166, 198, .75)); animation: skSpin 26s linear infinite; }
+.hof-sakura .hof-hero.sm .hof-crest .sk-icon { width: 46px; height: 46px; }
+@keyframes skSpin { to { transform: rotate(360deg); } }
+.hof-sakura .hof-eyebrow { color: var(--g2); }
+.hof-sakura .hof-title { font-family: "Shippori Mincho", "Cinzel", Georgia, serif; letter-spacing: .06em;
+  background: linear-gradient(180deg, #fff 0%, #ffe4ee 38%, var(--g2) 72%, #c96a95 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sk-seal { display: inline-grid; place-items: center; vertical-align: .7em; margin-left: 14px; width: .5em; height: .5em; min-width: 34px; min-height: 34px; font-size: .32em; border-radius: 6px;
+  background: #c8283c; color: #fff4ec; -webkit-text-fill-color: #fff4ec; font-family: "Shippori Mincho", serif; transform: rotate(-6deg); box-shadow: 0 4px 14px rgba(200, 40, 60, .45), inset 0 0 0 2px rgba(255, 230, 220, .35); }
+.hof-sakura .hof-subtitle { color: #d8b9c6; }
+.hof-sakura .hof-stats div { border-color: rgba(244, 166, 198, .3); background: rgba(244, 166, 198, .07); backdrop-filter: blur(2px); }
+.hof-sakura .hof-stats b { font-family: "Shippori Mincho", "Cinzel", serif; color: #ffe4ee; }
+.hof-sakura .hof-stats span { color: #c99cb0; }
+.hof-sakura .hof-chip { border-color: rgba(244, 166, 198, .45); background: rgba(244, 166, 198, .1); color: #b2557f; }
+:root[data-theme="dark"] .hof-sakura .hof-chip { color: #ffd3e3; }
+
+/* cards */
+.hof-sakura .hof-card {
+  background: radial-gradient(ellipse at 100% 0%, rgba(244, 166, 198, .16), transparent 55%) padding-box, linear-gradient(165deg, #1e1019, #0c080b 72%) padding-box,
+              linear-gradient(135deg, #ffe4ee, var(--g2) 30%, var(--g3) 55%, #ffd3e3 80%, var(--g3)) border-box;
+  box-shadow: 0 22px 50px -26px rgba(244, 166, 198, .5); }
+.hof-sakura .hof-card:hover { box-shadow: 0 28px 60px -24px rgba(244, 166, 198, .7); }
+.hof-sakura .hof-card.current { --g1: #f3eef6; --g2: #cdbfd6; --g3: #7d6f88;
+  background: linear-gradient(165deg, #16131b, #0b0a0e 72%) padding-box, linear-gradient(135deg, #faf6fc, var(--g2) 30%, var(--g3) 55%, #ece4f1 80%, var(--g3)) border-box; }
+.hof-sakura .hof-sheen { background: linear-gradient(115deg, transparent 32%, rgba(255, 220, 235, .12) 46%, transparent 60%); }
+.hof-sakura .hof-season { font-family: "Shippori Mincho", "Cinzel", serif; }
+.hof-sakura .hof-tag { color: #ffe4ee; }
+.hof-sakura .hof-medal { background: conic-gradient(from 200deg, #fff0f6, var(--g2), var(--g3), var(--g1), var(--g2), #fff0f6); }
+.hof-sakura .hof-medal .hof-trophy { background: #170b12; }
+.hof-sakura .hof-medal .sk-icon { width: 46px; height: 46px; }
+.hof-sakura .hof-name { color: #fff3f8; }
+.hof-sakura .hof-name .fn { color: #dcbccb; }
+.hof-sakura .hof-sub { color: #cfa9ba; }
+.hof-sakura .hof-sub b, .hof-sakura .hof-tname { color: #fff3f8; }
+.hof-sakura .hof-divider .sk-icon { width: 18px; height: 18px; vertical-align: middle; }
+.hof-sakura .hof-link { color: var(--g2); }
+.sk-corner { position: absolute; top: -14px; right: -12px; width: 90px; height: 90px; pointer-events: none; opacity: .9; }
+.sk-corner .sk-icon { position: absolute; width: 54px; height: 54px; top: 8px; right: 8px; transform: rotate(18deg); filter: drop-shadow(0 4px 10px rgba(0,0,0,.4)); }
+.sk-corner .sk-icon.b { width: 30px; height: 30px; top: 52px; right: 46px; transform: rotate(-30deg); opacity: .75; }
+.hof-sakura .hof-top { padding-right: 40px; }
+.hof-sakura .hof-table .top1 td { background: rgba(244, 166, 198, .1); }
+
+/* falling petals */
+.sk-fall { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 2; }
+.sk-fall i { position: absolute; top: -30px; left: var(--x); width: var(--s); height: calc(var(--s) * .78);
+  background: radial-gradient(ellipse at 30% 30%, #fff0f6, #f8b9d1 60%, #ec94b8); border-radius: 80% 0 80% 20%; opacity: .85;
+  animation: skFall var(--d) linear var(--dl) infinite, skSway calc(var(--d) / 3) ease-in-out var(--dl) infinite alternate; }
+@keyframes skFall { from { transform: translateY(0) rotate(var(--r)); } to { transform: translateY(var(--fallH, 1400px)) rotate(calc(var(--r) + 540deg)); } }
+@keyframes skSway { from { margin-left: calc(var(--sw) * -1); } to { margin-left: var(--sw); } }
+.sk-fall i:nth-child(3n) { opacity: .55; filter: blur(.6px); }
+.sk-fall i:nth-child(5n) { opacity: .35; filter: blur(1.2px); }
+@media (prefers-reduced-motion: reduce) { .sk-fall { display: none; } .hof-sakura .hof-crest .sk-icon { animation: none; } }
+@media (max-width: 640px) {
+  .sk-branch { width: 62%; } .sk-branch.r { display: none; } .sk-kanji { font-size: 36px; right: 14px; }
+  .sk-seal { min-width: 26px; min-height: 26px; margin-left: 8px; }
+}
+.sk-branch.r { width: min(32%, 360px); bottom: -64px; opacity: .7; }
+.hof-sakura .hof-stats { position: relative; z-index: 3; }
+.hof-sakura .hof-stats div { background: rgba(32, 14, 26, .72); }
+.hof-sakura .hof-chip .sk-icon { width: 15px; height: 15px; vertical-align: -2px; }

@@ -984,7 +984,8 @@ function secHistory(d) {
   }).join('');
   return head('Hall of fame', 'Past champions. "Start a new season" archives automatically; you can also archive now or type in seasons from before this website existed.',
     `<button class="btn" data-act="add-hist">+ Add past season</button><button class="btn primary" data-act="archive-now">♛ Archive season ${esc(d.league.season)} now</button>`) +
-    `<div class="a-card">${items || '<p class="muted">No seasons archived yet.</p>'}</div>
+    `<div class="a-card"><div class="fgrid">${F.select('Page style', 'theme.hofStyle', (d.theme || {}).hofStyle || 'sakura', [['sakura', '🌸 Sakura night (cherry blossoms)'], ['classic', '🏆 Classic gold']])}</div></div>
+    <div class="a-card">${items || '<p class="muted">No seasons archived yet.</p>'}</div>
     <p class="hint">"Archive now" saves a snapshot of the current final standings and race winners without clearing anything — handy right after the last race.</p>`;
 }
 
