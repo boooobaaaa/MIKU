@@ -1705,3 +1705,7 @@ button.gd-card:hover { transform: translateY(-6px) rotate(-.5deg); }
 }
 .mu-warn { grid-column: 1 / -1; margin: 0; font-size: 13px; }
 .search-fab { z-index: 91; }
+.mu-hint { position: absolute; left: 60px; bottom: 9px; white-space: nowrap; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line-strong); cursor: pointer;
+  background: var(--card-solid); color: var(--text); font: 600 13px var(--f-body); box-shadow: var(--shadow); animation: muhint 2.4s ease-in-out infinite; }
+@keyframes muhint { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+@media (max-width: 760px) { .mu-hint { left: 54px; bottom: 6px; font-size: 12px; } }

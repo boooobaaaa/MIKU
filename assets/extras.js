@@ -62,13 +62,13 @@ function autostart() {
     if (okd || M.waiting) return;
     // Browsers block sound until the visitor interacts. Phones only count a finished tap (click/touchend),
     // so keep listening on every interaction until playback actually starts.
-    M.waiting = true;
+    M.waiting = true; ui();
     const EVENTS = ['click', 'touchend', 'pointerup', 'keydown'];
     const stop = () => { EVENTS.forEach(t => document.removeEventListener(t, go, true)); M.waiting = false; };
     const go = e => {
-      if (M.el && M.el.contains(e.target)) { stop(); return; }
+      if (M.el && M.el.contains(e.target) && !e.target.closest('[data-mu="fab"]')) { stop(); return; }
       const q = prefs(); if (q.off || q.muted || !M.audio.paused) { stop(); return; }
-      play().then(started => { if (started) stop(); });
+      play().then(started => { if (started) { stop(); ui(); } });
     };
     EVENTS.forEach(t => document.addEventListener(t, go, true));
   });
@@ -92,7 +92,8 @@ function ui() {
   if (!M.el || M.el.hidden) return;
   const p = prefs(), playing = M.audio && !M.audio.paused, muted = p.muted, t = M.tracks[M.idx] || {};
   const vol = Math.round((p.vol === null ? (Number(M.cfg.volume) || 35) / 100 : p.vol) * 100);
-  const html = `<button class="mu-fab ${playing && !muted ? 'on' : ''} ${muted ? 'muted' : ''}" data-mu="fab" aria-label="Music" title="Music">
+  const hint = M.waiting && !playing && !muted && !p.off && !M.open ? `<button class="mu-hint" data-mu="fab">🎵 Tap anywhere for music</button>` : '';
+  const html = `${hint}<button class="mu-fab ${playing && !muted ? 'on' : ''} ${muted ? 'muted' : ''}" data-mu="fab" aria-label="Music" title="Music">
       ${playing && !muted ? '<span class="mu-eq"><i></i><i></i><i></i><i></i></span>' : muted ? ICON.mute : '<span class="mu-note">♪</span>'}</button>
     <div class="mu-panel" ${M.open ? '' : 'hidden'}>
       <div class="mu-h"><span class="mu-lbl">${esc(M.cfg.label || 'Now playing')}</span><b class="mu-t">${esc(t.title || 'Untitled track')}</b>${M.tracks.length > 1 ? `<small class="muted">${M.idx + 1} / ${M.tracks.length}</small>` : ''}</div>
@@ -101,7 +102,7 @@ function ui() {
       <p class="mu-note-s">Your choice is remembered on this device.</p>
     </div>`;
   const sl = M.el.querySelector('[data-mu="vol"]');
-  if (sl && document.activeElement === sl) { M.el.querySelector('.mu-fab').outerHTML = html.split('<div class="mu-panel"')[0]; return; }
+  if (sl && document.activeElement === sl) return;
   M.el.innerHTML = html;
 }
 
