@@ -1192,7 +1192,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T00:28:52.729Z"
+    "updated": "2026-11-09T00:29:07.329Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1342,6 +1342,6 @@
     "volume": 35,
     "shuffle": false,
     "autoplay": true,
-    "label": "Now playing"
+    "label": "Now "
   }
 }
