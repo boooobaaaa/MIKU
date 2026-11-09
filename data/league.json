@@ -1193,11 +1193,11 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T04:26:43.851Z"
+    "updated": "2026-11-09T04:40:25.400Z"
   },
   "rulebook": {},
   "fantasy": {
-    "enabled": false,
+    "enabled": true,
     "budget": 100,
     "captainMult": 2,
     "pole": 1,
@@ -1346,5 +1346,6 @@
     "loop": true,
     "label": "Now "
   },
-  "portalOn": true
+  "portalOn": true,
+  "gallery": []
 }
