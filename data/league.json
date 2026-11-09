@@ -1,6 +1,6 @@
 {
   "league": {
-    "name": "Hikari Motorsports Association",
+    "name": "Mirai Racing Association",
     "season": "2026",
     "tagline": "Where Legends Blossom",
     "logo": "uploads/branding/2026-11-08-hikari-i8zk.png",
@@ -13,7 +13,7 @@
     "footer": "Official Motorsport Championship Series"
   },
   "settings": {
-    "adminHash": ""
+    "adminHash": "48b6656a90305a9b5246cf16455ba0176547d6c99cfd1b865c9120050a240c7c"
   },
   "scoring": {
     "race": [
@@ -1192,7 +1192,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-08T06:04:16.016Z"
+    "updated": "2026-11-09T00:27:43.846Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1306,7 +1306,7 @@
     "title": "Latest Upload"
   },
   "seo": {
-    "title": "Hikari Motorsports Association",
+    "title": "Mirai Racing Association",
     "description": "Official Website for the Hikari Motorsports Association"
   },
   "gridDraft": {
