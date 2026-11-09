@@ -1764,3 +1764,51 @@ button.gd-card:hover { transform: translateY(-6px) rotate(-.5deg); }
 .ac-grid .ic { width: 16px; text-align: center; color: var(--miku); }
 .ac-all { grid-column: 1 / -1; padding-bottom: 6px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .ac-secs .chip { margin: 2px 2px 2px 0; }
+
+/* driver stat tiles: one row on desktop, 3×3 below */
+.stats-drv { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 980px) {
+  .stats-drv { grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 10px; }
+  .stats-drv .stat { padding: 14px 12px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+  .stats-drv .stat b { font-size: 24px; }
+  .stats-drv .stat span { font-size: 10px; letter-spacing: .09em; line-height: 1.35; }
+}
+
+/* ---------- team history: career strip ---------- */
+.th-strip { display: flex; height: 34px; border-radius: 10px; overflow: hidden; gap: 3px; margin: 6px 0 6px; }
+.th-strip span { min-width: 10px; background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 92%, #fff), var(--tc)); display: flex; align-items: center; padding: 0 10px; overflow: hidden; position: relative; }
+.th-strip span.cur::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 60%, rgba(255,255,255,.28)); animation: thPulse 2.4s ease-in-out infinite; }
+@keyframes thPulse { 50% { opacity: .2; } }
+.th-strip em { font-style: normal; font-size: 11.5px; font-weight: 700; color: #fff; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+.th-strip-ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-bottom: 14px; }
+.th-rows { list-style: none; margin: 0; padding: 0; }
+.th-rows li { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.th-rows li a, .th-cards a { color: var(--text); text-decoration: none; }
+.th-rows li a:hover, .th-cards a:hover { color: var(--miku); }
+.th-pill { font-size: 11.5px; padding: 3px 9px; border-radius: 99px; background: color-mix(in srgb, var(--tc) 18%, transparent); color: var(--text); white-space: nowrap; }
+.th-rows li.cur .th-pill { background: var(--tc); color: #fff; }
+
+/* shared logo tile */
+.th-logo { width: 54px; height: 54px; border-radius: 14px; display: grid; place-items: center; background: color-mix(in srgb, var(--tc) 16%, var(--card)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc) 45%, transparent); overflow: hidden; flex: none; }
+.th-logo.sm { width: 38px; height: 38px; border-radius: 10px; }
+.th-logo img { width: 78%; height: 78%; object-fit: contain; }
+.th-logo i { font-style: normal; font-weight: 800; font-size: 20px; color: var(--tc); }
+.th-logo.sm i { font-size: 15px; }
+
+/* ---------- team history: cards ---------- */
+.th-cards { display: grid; gap: 10px; }
+.th-card { position: relative; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 12px 14px 12px 16px; border-radius: 16px; overflow: hidden;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--tc) 20%, transparent), transparent 65%), var(--card); border: 1px solid color-mix(in srgb, var(--tc) 30%, var(--line)); }
+.th-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--tc); }
+.th-card.cur { box-shadow: 0 0 0 1px var(--tc), 0 10px 30px -14px var(--tc); }
+.th-card .th-body > b { font-size: 16px; display: block; }
+.th-top { display: flex; gap: 6px; margin-bottom: 2px; min-height: 0; }
+.th-badge, .th-role { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; }
+.th-badge { color: #fff; background: var(--tc); padding: 2px 7px; border-radius: 6px; }
+.th-role { color: var(--muted); padding: 2px 0; }
+.th-len { text-align: center; min-width: 52px; }
+.th-len b { display: block; font-family: var(--f-mono); font-size: 22px; line-height: 1; color: var(--text); }
+.th-len span { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 520px) { .th-card { grid-template-columns: auto 1fr; } .th-len { grid-column: 2; text-align: left; display: flex; gap: 6px; align-items: baseline; } }
+.th-when .nw { white-space: nowrap; }
+.stats-drv .stat span { display: block; line-height: 1.35; margin-top: 4px; }

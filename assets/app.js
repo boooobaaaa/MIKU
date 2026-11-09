@@ -818,16 +818,45 @@ function pageDrivers(d) {
   </div>`;
 }
 
+const isNowWord = v => /^\s*(now|present|current|today|-|—)\s*$/i.test(String(v ?? ''));
+const seasonNum = v => { const n = parseFloat(String(v ?? '').replace(/[^\d.]/g, '')); return isNaN(n) ? null : n; };
+function careerStints(d, D) {
+  const curSeason = d.league.season, cal = d.calendar.filter(r => !r.cancelled).length || 1, last = lastRound(d);
+  const lastNo = last ? Number(last.round) || 0 : 0;
+  return (D.history || []).filter(h => h && (h.teamId || h.team)).map((h, k) => {
+    const t = byId(d.teams, h.teamId);
+    const cur = (!h.toSeason && !h.toRound) || isNowWord(h.toSeason) || isNowWord(h.toRound);
+    const fs = h.fromSeason || '', fr = Number(h.fromRound) || 1;
+    const ts = cur ? curSeason : (h.toSeason || fs), tr = cur ? Math.max(lastNo, fr) : (Number(h.toRound) || fr);
+    const a = seasonNum(fs); let b = seasonNum(ts);
+    if (cur && (b === null || a === null || b < a)) b = a;
+    let len = 1;
+    if (a !== null && b !== null) len = b === a ? Math.max(1, tr - fr + 1) : Math.max(1, (cal - fr + 1) + (b - a - 1) * cal + tr);
+    const startKey = (a ?? 0) * 1000 + fr, endKey = cur ? Infinity : (b ?? a ?? 0) * 1000 + tr;
+    return { h, k, t, cur, fs, fr, ts, tr, len, startKey, endKey, name: t ? t.name : h.team, color: t ? teamColor(t) : (h.color || '#8a9aa0'), logo: t && t.logo, role: h.role || '' };
+  }).sort((x, y) => (y.endKey - x.endKey) || (y.startKey - x.startKey) || (y.k - x.k)); // current first, then most recent finish
+}
+const stintPt = (s, r) => `${s ? 'Season ' + esc(s) : ''}${r ? `${s ? ' · ' : ''}R${esc(r)}` : ''}`;
+const stintWhen = x => `<span class="nw">${stintPt(x.fs, x.h.fromRound) || 'Start'}</span> <span class="nw">→ ${x.cur ? '<b class="th-now">Present</b>' : stintPt(x.h.toSeason || x.fs, x.h.toRound)}</span>`;
+const stintLen = x => `${x.len} round${x.len === 1 ? '' : 's'}${x.cur ? ' so far' : ''}`;
+const teamLink = x => x.t ? `<a href="#/team/${esc(x.t.id)}">${esc(x.name)}</a>` : esc(x.name);
+const stintLogo = x => x.logo ? `<img src="${esc(asset(x.logo))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('i'),{textContent:'${esc(String(x.name || '?')[0])}'}))">` : `<i>${esc(String(x.name || '?')[0])}</i>`;
 function teamHistory(d, D) {
-  const pt = (s, r) => `${s ? 'Season ' + esc(s) : ''}${r ? `${s ? ' · ' : ''}R${esc(r)}` : ''}`;
-  const rows = (D.history || []).filter(h => h && (h.teamId || h.team));
-  const key = h => String(h.fromSeason || '').padStart(8, '0') + String(h.fromRound || 0).padStart(4, '0');
-  return `<ol class="th-list">${rows.slice().sort((a, b) => key(b).localeCompare(key(a))).map(h => {
-    const t = byId(d.teams, h.teamId), name = t ? t.name : h.team, cur = !h.toSeason && !h.toRound;
-    return `<li class="${cur ? 'cur' : ''}" style="--tc:${esc(t ? teamColor(t) : (h.color || '#8a9aa0'))}"><span class="th-dot"></span>
-      <div><b>${t ? `<a href="#/team/${esc(t.id)}">${esc(name)}</a>` : esc(name)}</b>${h.role ? ` <span class="chip">${esc(h.role)}</span>` : ''}
-      <div class="th-when mono">${pt(h.fromSeason, h.fromRound) || 'Start'} <span>→</span> ${cur ? '<b class="th-now">Present</b>' : pt(h.toSeason, h.toRound)}</div></div></li>`;
-  }).join('')}</ol>`;
+  const xs = careerStints(d, D), style = (d.theme && d.theme.historyStyle) || 'timeline';
+  if (style === 'cards') return `<div class="th-cards">${xs.map(x => `<div class="th-card ${x.cur ? 'cur' : ''}" style="--tc:${esc(x.color)}">
+      <div class="th-logo">${stintLogo(x)}</div>
+      <div class="th-body"><div class="th-top">${x.cur ? '<span class="th-badge">Current</span>' : ''}${x.role ? `<span class="th-role">${esc(x.role)}</span>` : ''}</div>
+        <b>${teamLink(x)}</b><div class="th-when mono">${stintWhen(x)}</div></div>
+      <div class="th-len"><b>${x.len}</b><span>${x.len === 1 ? 'round' : 'rounds'}</span></div></div>`).join('')}</div>`;
+  if (style === 'strip') {
+    const chrono = xs.slice().reverse(), total = chrono.reduce((a, x) => a + x.len, 0);
+    return `<div class="th-strip" role="img" aria-label="Career timeline">${chrono.map(x => `<span class="${x.cur ? 'cur' : ''}" style="--tc:${esc(x.color)};flex:${x.len}" title="${esc(x.name)} · ${esc(stintLen(x))}">${x.len / total > .14 ? `<em>${esc(String(x.name).split(' ').slice(0, 2).join(' '))}</em>` : ''}</span>`).join('')}</div>
+      <div class="th-strip-ends mono"><span>${chrono[0] ? stintPt(chrono[0].fs, chrono[0].h.fromRound) : ''}</span><span>${xs[0] && xs[0].cur ? 'Today' : xs[0] ? stintPt(xs[0].ts, xs[0].tr) : ''}</span></div>
+      <ul class="th-rows">${xs.map(x => `<li class="${x.cur ? 'cur' : ''}" style="--tc:${esc(x.color)}"><div class="th-logo sm">${stintLogo(x)}</div><div><b>${teamLink(x)}</b>${x.role ? ` <span class="chip">${esc(x.role)}</span>` : ''}<div class="th-when mono">${stintWhen(x)}</div></div><span class="th-pill mono">${esc(stintLen(x))}</span></li>`).join('')}</ul>`;
+  }
+  return `<ol class="th-list">${xs.map(x => `<li class="${x.cur ? 'cur' : ''}" style="--tc:${esc(x.color)}"><span class="th-dot"></span>
+      <div><b>${teamLink(x)}</b>${x.role ? ` <span class="chip">${esc(x.role)}</span>` : ''}
+      <div class="th-when mono">${stintWhen(x)}</div></div></li>`).join('')}</ol>`;
 }
 function pageDriver(d, id) {
   const drv = byId(d.drivers, id);
@@ -854,7 +883,7 @@ function pageDriver(d, id) {
       <h1>${nameHTML(D.name).replace('class="dname"', 'class="dname"')}</h1>
       <div class="ph-meta">${flag(D.country, 'lg')}${D.number !== undefined && D.number !== '' ? `<span class="mono">#${esc(D.number)}</span>` : ''}${D.active === false ? '<span class="pill-inactive">Inactive</span>' : ''}</div>
     </div>
-    <div class="stats">
+    <div class="stats stats-drv">
       <div class="stat"><b>${x.position || '—'}</b><span>Position</span></div>
       <div class="stat"><b>${fmtPts(x.points)}</b><span>Points</span></div>
       <div class="stat"><b>${x.wins}</b><span>Wins</span></div>
