@@ -13,7 +13,7 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -165,7 +165,19 @@ function secDrivers(d) {
         ${F.check('Active on the grid', p + '.active', x.active !== false)}
         ${F.image('Driver photo (driver cards, team page & profile)', p + '.photo', x.photo, 'drivers', 1400, 'driverPhoto')}
         ${F.image('Headshot for the small circles (optional — the photo is used if empty)', p + '.headshot', x.headshot, 'drivers', 500, 'headshot')}
-        ${F.area('Bio (optional)', p + '.bio', x.bio)}
+        ${F.area('Biography — shown on their profile (# headings, **bold**, - lists, [links](https://…))', p + '.bio', x.bio)}
+        <div class="wide th-ed"><div class="fld"><span>Team history (newest shown first on the profile — leave the "to" side empty for their current team)</span></div>
+          ${(x.history || []).length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Team</th><th>Role</th><th>From season</th><th>Round</th><th>To season</th><th>Round</th><th></th></tr></thead><tbody>${(x.history || []).map((h, k) => `<tr>
+            <td><select data-path="${p}.history.${k}.teamId" data-reload>${[['', '— other team (type) —'], ...d.teams.map(t => [t.id, t.name])].map(([v, l]) => opt(v, l, h.teamId)).join('')}</select>${h.teamId ? '' : `<input type="text" data-path="${p}.history.${k}.team" value="${esc(h.team || '')}" placeholder="Team name" style="margin-top:4px">`}</td>
+            <td class="c-md"><input type="text" data-path="${p}.history.${k}.role" value="${esc(h.role || '')}" placeholder="Race driver" list="th-roles"></td>
+            <td class="c-sm"><input type="text" data-path="${p}.history.${k}.fromSeason" value="${esc(h.fromSeason || '')}" placeholder="${esc(d.league.season)}"></td>
+            <td class="c-sm"><input type="number" data-num data-path="${p}.history.${k}.fromRound" value="${esc(h.fromRound ?? '')}" placeholder="1"></td>
+            <td class="c-sm"><input type="text" data-path="${p}.history.${k}.toSeason" value="${esc(h.toSeason || '')}" placeholder="now"></td>
+            <td class="c-sm"><input type="number" data-num data-path="${p}.history.${k}.toRound" value="${esc(h.toRound ?? '')}"></td>
+            <td class="c-act"><button class="iconbtn del" data-act="th-del" data-i="${i}" data-k="${k}">✕</button></td></tr>`).join('')}</tbody></table></div>` : ''}
+          <div class="toolbar" style="margin-top:8px"><button class="btn sm" data-act="th-add" data-i="${i}">+ Add team spell</button><button class="btn sm" data-act="th-auto" data-i="${i}">Fill from this season's results</button></div>
+          <datalist id="th-roles"><option value="Race driver"><option value="Reserve driver"><option value="Academy driver"><option value="Test driver"></datalist>
+        </div>
       </div>
       <div class="item-actions"><a class="btn sm ghost" href="#/driver/${esc(x.id)}">View page</a><button class="btn sm danger" data-act="del-driver" data-i="${i}">Delete driver</button></div></div>
     </details>`;
@@ -566,6 +578,17 @@ async function postToDiscord(x, d) {
   } catch (err) { toast('Discord refused it: ' + err.message, 'err'); return false; }
 }
 
+/* ---------------- gallery ---------------- */
+function secGallery(d) {
+  const g = d.gallery = d.gallery || [];
+  const rs = LG.rounds(d);
+  return head('Gallery', 'Photos shown on the public Gallery page (and under each round). Press & media submissions you approve land here; you can also add photos yourself.', '<a class="btn" href="#/gallery">View Gallery</a>') + `
+    <div class="a-card"><div class="toolbar"><button class="btn sm primary" data-act="upload" data-mode="gallery" data-folder="gallery" data-max="1920" data-multiple="1">⬆ Add photos</button><span class="hint" style="margin:0">Up to 1920 px wide · JPG or PNG</span></div></div>
+    <div class="a-card">${g.length ? `<div class="gal-admin">${g.map((x, k) => `<div class="gal-item"><img class="zoomable" src="${esc(LG.asset(x.src))}" alt="">
+        <div class="fgrid">${F.text('Caption', `gallery.${k}.caption`, x.caption || '')}${F.text('Credit', `gallery.${k}.credit`, x.credit || '')}${F.select('Round', `gallery.${k}.roundId`, x.roundId || '', [['', '— none —'], ...rs.map(r => [r.id, 'R' + r.round + ' ' + r.name])])}</div>
+        <button class="iconbtn del" data-act="gal-del" data-i="${k}" title="Remove from gallery">✕</button></div>`).join('')}</div>` : '<p class="muted">No photos yet.</p>'}</div>`;
+}
+
 /* ---------------- seasons ---------------- */
 const seaSlug = s => 'season-' + (String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'x');
 function secSeasons(d) {
@@ -646,7 +669,7 @@ function secPortal(d) {
   const PT = window.Portal, s = PT.store(d);
   const c = window.GridDraft.cfg(d);
   const adminList = String(c.admins || '').toLowerCase().split(/[\s,;]+/);
-  const top = head('Team portal', 'Team principals and executives sign in with Google and submit articles. Approved articles are added to <b>News</b> (tagged to their team) — then you publish as usual.', '<a class="btn" href="#/portal">Open the portal page</a>');
+  const top = head('Team portal', 'Team principals, executives and press / media sign in with Google and submit articles or photos. Approved articles are added to <b>News</b> (tagged to their team) — then you publish as usual.', '<a class="btn" href="#/portal">Open the portal page</a>');
   const onBox = `<div class="a-card"><div class="fgrid">${F.check('Show a “Team portal” link in the site footer', 'portalOn', d.portalOn)}</div><p class="hint">The portal page is <code>${esc(location.origin + location.pathname)}#/portal</code> — you can also just send staff that link.</p></div>`;
   if (!s) return top + `<div class="warn">The portal uses the same Firebase project as Grid Draft. Finish the setup in <a href="#/admin/griddraft">Grid Draft</a> first (steps 1–7).</div>` + onBox;
   if (!s.ready) return top + '<p class="muted">Connecting…</p>';
@@ -662,22 +685,23 @@ function secPortal(d) {
   const pend = subs.filter(x => x.status === 'pending'), done = subs.filter(x => x.status !== 'pending');
   const tName = id => (byId(d.teams, id) || {}).name || 'Unknown team';
   const card = x => `<details class="item" data-key="pt-${x.id}" ${A.open['pt-' + x.id] ? 'open' : ''}>
-      <summary>${window.Portal.badge(x.status)}<b>${esc(x.title)}</b><span class="muted" style="font-size:13px">${esc(x.name)} · ${esc(x.role)}, ${esc(tName(x.teamId))} · ${x.updatedAt ? new Date(x.updatedAt).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}</span></summary>
-      <div class="body"><article class="article pt-review">${x.tag ? `<div class="eyebrow">${esc(x.tag)}</div>` : ''}<h2>${esc(x.title)}</h2>${x.image ? `<div class="a-cover"><img src="${esc(x.image)}" alt=""></div>` : ''}<div class="prose">${LG.md(x.body)}</div></article>
+      <summary>${window.Portal.badge(x.status)}<b>${x.kind === 'photos' ? '📷 ' : ''}${esc(x.title)}</b><span class="muted" style="font-size:13px">${esc(x.name)} · ${esc(x.role)}${x.teamId ? ', ' + esc(tName(x.teamId)) : ''} · ${x.updatedAt ? new Date(x.updatedAt).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}</span></summary>
+      <div class="body">${x.kind === 'photos' ? `<div class="pt-review"><h2>${esc(x.title)}</h2>${x.roundId && byId(d.calendar, x.roundId) ? `<p class="chip">R${esc(byId(d.calendar, x.roundId).round)} · ${esc(byId(d.calendar, x.roundId).name)}</p>` : ''}<div class="gal-grid adm">${(x.images || []).map(u => `<img class="zoomable" src="${esc(u)}" alt="">`).join('')}</div>${x.body ? `<p class="hint"><b>Their notes:</b> ${esc(x.body)}</p>` : ''}</div>`
+        : `<article class="article pt-review">${x.tag ? `<div class="eyebrow">${esc(x.tag)}</div>` : ''}<h2>${esc(x.title)}</h2>${x.image ? `<div class="a-cover"><img src="${esc(x.image)}" alt=""></div>` : ''}<div class="prose">${LG.md(x.body)}</div></article>`}
         ${x.note ? `<p class="hint"><b>Your note:</b> ${esc(x.note)}</p>` : ''}
-        <div class="item-actions">${x.status !== 'approved' ? `<button class="btn sm primary" data-act="pt-approve" data-id="${esc(x.id)}">✓ Approve & add to News</button><button class="btn sm" data-act="pt-changes" data-id="${esc(x.id)}">Request changes</button>${x.status !== 'rejected' ? `<button class="btn sm danger" data-act="pt-reject" data-id="${esc(x.id)}">Reject</button>` : ''}` : `${x.newsId ? `<a class="btn sm" href="#/admin/news" data-act="edit-news" data-id="${esc(x.newsId)}">Open in News posts</a>` : ''}`}<button class="btn sm ghost" data-act="pt-delete" data-id="${esc(x.id)}">Delete</button></div></div>
+        <div class="item-actions">${x.status !== 'approved' ? `<button class="btn sm primary" data-act="pt-approve" data-id="${esc(x.id)}">${x.kind === 'photos' ? '✓ Approve & add to Gallery' : '✓ Approve & add to News'}</button><button class="btn sm" data-act="pt-changes" data-id="${esc(x.id)}">Request changes</button>${x.status !== 'rejected' ? `<button class="btn sm danger" data-act="pt-reject" data-id="${esc(x.id)}">Reject</button>` : ''}` : `${x.newsId ? `<a class="btn sm" href="#/admin/news" data-act="edit-news" data-id="${esc(x.newsId)}">Open in News posts</a>` : ''}`}<button class="btn sm ghost" data-act="pt-delete" data-id="${esc(x.id)}">Delete</button></div></div>
     </details>`;
   return top + `${PTA.err ? `<div class="warn">${esc(PTA.err)}</div>` : ''}
     <div class="a-card"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0">Waiting for review (${pend.length})</h3><button class="btn sm" data-act="pt-reload">Refresh</button></div>
       ${PTA.subs === null ? '<p class="muted">Loading…</p>' : pend.map(card).join('') || '<p class="muted">Nothing waiting. 🩵</p>'}</div>
     ${done.length ? `<div class="a-card"><h3>Reviewed (${done.length})</h3>${done.map(card).join('')}</div>` : ''}
     <div class="a-card" style="overflow-x:auto"><h3>Staff access</h3><p class="hint" style="margin:-4px 0 12px">Only these Google accounts can open the portal. Each one can only write for their own team. Emails are stored privately in Firebase — never in your public site files.</p>
-      ${mem.length ? `<table class="rtable"><thead><tr><th>Google email</th><th>Name shown</th><th>Role</th><th>Team</th><th></th></tr></thead><tbody>${mem.map(m => `<tr><td class="mono" style="font-size:13px">${esc(m.email)}</td><td>${esc(m.name)}</td><td>${esc(m.role)}</td><td><span class="swatch" style="--tc:${esc(LG.teamColor(byId(d.teams, m.teamId)))}"></span>${esc(tName(m.teamId))}</td><td class="c-act"><button class="iconbtn del" data-act="pt-rm" data-email="${esc(m.email)}">✕</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">No staff added yet.</p>'}
+      ${mem.length ? `<table class="rtable"><thead><tr><th>Google email</th><th>Name shown</th><th>Role</th><th>Team</th><th></th></tr></thead><tbody>${mem.map(m => `<tr><td class="mono" style="font-size:13px">${esc(m.email)}</td><td>${esc(m.name)}</td><td>${esc(m.role)}</td><td>${m.teamId ? `<span class="swatch" style="--tc:${esc(LG.teamColor(byId(d.teams, m.teamId)))}"></span>${esc(tName(m.teamId))}` : '<span class="chip">📷 Press & media</span>'}</td><td class="c-act"><button class="iconbtn del" data-act="pt-rm" data-email="${esc(m.email)}">✕</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">No staff added yet.</p>'}
       <div class="fgrid" style="margin-top:14px">
         <label class="fld"><span>Their Google email</span><input type="text" id="pt-m-email" placeholder="principal@gmail.com"></label>
         <label class="fld"><span>Name shown on articles</span><input type="text" id="pt-m-name"></label>
         <label class="fld"><span>Role</span><input type="text" id="pt-m-role" list="pt-roles" value="Team principal"></label>
-        <label class="fld"><span>Team</span><select id="pt-m-team">${d.teams.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select></label>
+        <label class="fld"><span>Team</span><select id="pt-m-team">${d.teams.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}<option value="">— None (press / media) —</option></select></label>
       </div><datalist id="pt-roles">${window.Portal.ROLES.map(r => `<option value="${esc(r)}">`).join('')}</datalist>
       <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="pt-add">+ Give access</button></div>
     </div>` + onBox;
@@ -912,7 +936,7 @@ function render(sec) {
   if (!sec) A.section = 'dashboard';
   const d = D();
   if (!unlocked()) return lockHTML();
-  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, seasons: secSeasons }[A.section];
+  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, seasons: secSeasons, gallery: secGallery }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${SECTIONS.map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${l}</a>`).join('')}
@@ -1080,6 +1104,17 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'gal-del': if (confirm('Remove this photo from the gallery?')) { d.gallery.splice(i, 1); commit(); } return;
+    case 'th-add': { const x = d.drivers[i]; (x.history = x.history || []).push({ teamId: x.teamId || '', role: 'Race driver', fromSeason: String(d.league.season), fromRound: 1, toSeason: '', toRound: '' }); A.open['drv-' + x.id] = true; return commit(); }
+    case 'th-del': d.drivers[i].history.splice(Number(b.dataset.k), 1); return commit();
+    case 'th-auto': {
+      const x = d.drivers[i], season = String(d.league.season), stints = [];
+      LG.rounds(d).forEach(r => { const e = [...LG.session(d, r.id, 'race'), ...LG.session(d, r.id, 'sprint')].find(z => z.driverId === x.id && z.teamId); if (!e) return; const last = stints[stints.length - 1]; if (last && last.teamId === e.teamId) last.toRound = r.round; else stints.push({ teamId: e.teamId, role: 'Race driver', fromSeason: season, fromRound: r.round, toSeason: season, toRound: r.round }); });
+      if (!stints.length) return toast('No race results for this driver this season yet', 'err');
+      const lastS = stints[stints.length - 1]; if (lastS.teamId === x.teamId) { lastS.toSeason = ''; lastS.toRound = ''; }
+      x.history = (x.history || []).filter(h => String(h.fromSeason) !== season).concat(stints);
+      A.open['drv-' + x.id] = true; toast(`Added ${stints.length} team spell${stints.length > 1 ? 's' : ''} from this season`); return commit();
+    }
     case 'mu-add': d.music = d.music || { enabled: true, tracks: [] }; (d.music.tracks = d.music.tracks || []).push({ title: '', src: '' }); return commit();
     case 'mu-del': d.music.tracks.splice(i, 1); return commit();
     case 'mu-move': { const t = d.music.tracks, j = i + Number(b.dataset.dir); if (j < 0 || j >= t.length) return; [t[i], t[j]] = [t[j], t[i]]; return commit(); }
@@ -1114,8 +1149,21 @@ document.addEventListener('click', async e => {
           image = await uploadToGitHub(g, blob, 'portal-cover.jpg', 'news');
           LG.ASSET_CACHE[image] = URL.createObjectURL(blob);
         }
+        if (x.kind === 'photos') {
+          const g = ghReady(); if (!g) { b.disabled = false; return; }
+          d.gallery = d.gallery || [];
+          let k = 0;
+          for (const u of x.images || []) {
+            const blob = await (await fetch(u)).blob();
+            const path = await uploadToGitHub(g, blob, `photo-${++k}.jpg`, 'gallery');
+            LG.ASSET_CACHE[path] = URL.createObjectURL(blob);
+            d.gallery.push({ id: uid('ph'), src: path, caption: x.title, credit: `${x.name} · ${x.role}`, roundId: x.roundId || '', teamId: x.teamId || '', date: new Date().toISOString().slice(0, 10) });
+          }
+          await window.Portal.store(d).review(x.id, 'approved', '', '');
+          PTA.subs = null; toast(`${k} photo${k === 1 ? '' : 's'} added to the Gallery — press Publish to make them live`); return commit();
+        }
         const t = byId(d.teams, x.teamId);
-        const n = { id: uid('news'), title: x.title, date: new Date().toISOString().slice(0, 10), author: `${x.name} · ${x.role}${t ? ', ' + t.name : ''}`, tag: x.tag || 'Team news', body: x.body, image, teams: t ? [t.id] : [], pinned: false, hidden: false };
+        const n = { id: uid('news'), title: x.title, date: new Date().toISOString().slice(0, 10), author: `${x.name} · ${x.role}${t ? ', ' + t.name : ''}`, tag: x.tag || (t ? 'Team news' : 'Press'), body: x.body, image, teams: t ? [t.id] : [], pinned: false, hidden: false };
         d.news.push(n);
         await window.Portal.store(d).review(x.id, 'approved', '', n.id);
         PTA.subs = null; toast('Approved and added to News — press Publish to make it live'); return commit();
@@ -1391,6 +1439,8 @@ async function handleUpload(files, o) {
     const pos = ta && lastCursor[o.target] !== undefined ? Math.min(lastCursor[o.target], cur.length) : cur.length;
     const snippet = done.map(x => `\n![${prettyName(x.name)}](${x.path})\n`).join('');
     setPath(d, o.target, cur.slice(0, pos) + snippet + cur.slice(pos));
+  } else if (o.mode === 'gallery') {
+    d.gallery = d.gallery || []; done.forEach(x => d.gallery.unshift({ id: uid('ph'), src: x.path, caption: prettyName(x.name), credit: '', roundId: '', teamId: '', date: new Date().toISOString().slice(0, 10) }));
   } else if (o.mode === 'new-sd') {
     done.forEach(x => { const s = Object.assign(newSD(d), { title: prettyName(x.name), docs: [x.path] }); d.stewards.push(s); A.open['sd-' + s.id] = true; });
   }

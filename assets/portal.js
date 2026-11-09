@@ -8,7 +8,8 @@
 const LG = window.LG;
 const { esc, byId, teamColor, toast } = LG;
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
-const ROLES = ['Team principal', 'Executive officer', 'Chief executive officer', 'Team manager'];
+const ROLES = ['Team principal', 'Executive officer', 'Chief executive officer', 'Team manager', 'Press / Media', 'Photographer', 'Journalist'];
+const isPress = m => m && !m.teamId;
 const STATUS = { pending: ['Waiting for review', 'pt-pending'], changes: ['Changes requested', 'pt-changes'], approved: ['Approved', 'pt-approved'], rejected: ['Not accepted', 'pt-rejected'] };
 
 /* ---------------- store ---------------- */
@@ -39,9 +40,10 @@ function fbStore(conf) {
     async mySubs() { const q = await F.getDocs(F.query(F.collection(db, 'portal_subs'), F.where('uid', '==', s.user.uid))); return q.docs.map(conv); },
     async submit(x) {
       await F.addDoc(F.collection(db, 'portal_subs'), { uid: s.user.uid, email: s.user.email, name: s.member.name, role: s.member.role, teamId: s.member.teamId,
-        title: x.title, tag: x.tag, body: x.body, image: x.image || '', status: 'pending', note: '', newsId: '', createdAt: F.serverTimestamp(), updatedAt: F.serverTimestamp(), reviewedAt: null });
+        title: x.title, tag: x.tag || '', body: x.body || '', image: x.image || '', kind: x.kind || 'article', images: x.images || [], roundId: x.roundId || '',
+        status: 'pending', note: '', newsId: '', createdAt: F.serverTimestamp(), updatedAt: F.serverTimestamp(), reviewedAt: null });
     },
-    async edit(id, x) { await F.updateDoc(F.doc(db, 'portal_subs', id), { title: x.title, tag: x.tag, body: x.body, image: x.image || '', status: 'pending', updatedAt: F.serverTimestamp() }); },
+    async edit(id, x) { await F.updateDoc(F.doc(db, 'portal_subs', id), { title: x.title, tag: x.tag || '', body: x.body || '', image: x.image || '', kind: x.kind || 'article', images: x.images || [], roundId: x.roundId || '', status: 'pending', updatedAt: F.serverTimestamp() }); },
     async withdraw(id) { await F.deleteDoc(F.doc(db, 'portal_subs', id)); },
     async allSubs() { const q = await F.getDocs(F.collection(db, 'portal_subs')); return q.docs.map(conv); },
     async review(id, status, note, newsId) { await F.updateDoc(F.doc(db, 'portal_subs', id), { status, note: note || '', newsId: newsId || '', reviewedAt: F.serverTimestamp() }); },
@@ -71,8 +73,10 @@ const RULES = `
     function validSub(s) {
       return s.title is string && s.title.size() > 0 && s.title.size() <= 140
         && s.tag is string && s.tag.size() <= 40
-        && s.body is string && s.body.size() > 0 && s.body.size() <= 60000
-        && s.image is string && s.image.size() <= 750000;
+        && s.body is string && s.body.size() <= 60000
+        && s.image is string && s.image.size() <= 750000
+        && s.kind in ['article', 'photos'] && s.images is list && s.images.size() <= 4 && s.roundId is string
+        && (s.kind == 'photos' ? s.images.size() > 0 : s.body.size() > 0);
     }
     match /portal_members/{email} {
       allow read: if isAdmin() || (signedIn() && request.auth.token.email_verified == true && myEmail() == email);
@@ -81,14 +85,14 @@ const RULES = `
     match /portal_subs/{id} {
       allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
       allow create: if isMember()
-        && request.resource.data.keys().hasOnly(['uid', 'email', 'name', 'role', 'teamId', 'title', 'tag', 'body', 'image', 'status', 'note', 'newsId', 'createdAt', 'updatedAt', 'reviewedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'name', 'role', 'teamId', 'title', 'tag', 'body', 'image', 'kind', 'images', 'roundId', 'status', 'note', 'newsId', 'createdAt', 'updatedAt', 'reviewedAt'])
         && request.resource.data.uid == request.auth.uid && request.resource.data.email == myEmail()
         && request.resource.data.name == member().name && request.resource.data.role == member().role && request.resource.data.teamId == member().teamId
         && request.resource.data.status == 'pending' && request.resource.data.note == '' && request.resource.data.newsId == '' && request.resource.data.reviewedAt == null
         && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
         && validSub(request.resource.data);
       allow update: if (isMember() && resource.data.uid == request.auth.uid && resource.data.status in ['pending', 'changes']
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'tag', 'body', 'image', 'status', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'tag', 'body', 'image', 'kind', 'images', 'roundId', 'status', 'updatedAt'])
           && request.resource.data.status == 'pending' && request.resource.data.updatedAt == request.time && validSub(request.resource.data))
         || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'note', 'reviewedAt', 'newsId'])
           && request.resource.data.status in ['pending', 'approved', 'rejected', 'changes'] && request.resource.data.note is string && request.resource.data.note.size() <= 2000);
@@ -111,9 +115,21 @@ async function toCover(file) {
   throw new Error('That image is too detailed to attach — try a smaller one.');
 }
 
+async function toPhoto(file) {
+  const bmp = await createImageBitmap(file);
+  for (const [max, q] of [[1600, .8], [1400, .76], [1200, .72], [1000, .68], [800, .62]]) {
+    const sc = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * sc); c.height = Math.round(bmp.height * sc);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const url = c.toDataURL('image/jpeg', q);
+    if (url.length <= 230000) return url;
+  }
+  throw new Error('That photo is too large — try a smaller one.');
+}
+
 /* ---------------- public portal page ---------------- */
 const P = { tab: 'new', editId: '', form: null, subs: null, preview: false };
-const blankForm = () => ({ title: '', tag: '', body: '', image: '' });
+const blankForm = () => ({ kind: 'article', title: '', tag: '', body: '', image: '', images: [], roundId: '' });
 const head = (eyebrow, title, sub) => `<div class="page-head"><div class="eyebrow">${esc(eyebrow)}</div><h1>${title}</h1>${sub ? `<p class="sub">${sub}</p>` : ''}</div>`;
 const emptyBox = (t, sub) => `<div class="empty"><b>${esc(t)}</b>${sub || ''}</div>`;
 const badge = st => { const x = STATUS[st] || STATUS.pending; return `<span class="pt-st ${x[1]}">${x[0]}</span>`; };
@@ -126,13 +142,28 @@ function page(d) {
   if (!s.ready) return `<div class="page pt">${top}<div class="loading">Checking your access…</div></div>`;
   if (!s.user) return `<div class="page pt">${top}<div class="card pt-lock"><div class="pt-lock-ic">🔒</div><h3>Staff only</h3><p class="muted">Sign in with the Google account a league admin registered for your team.</p><button class="btn primary" data-pt="signin">Sign in with Google</button></div></div>`;
   if (!s.member) return `<div class="page pt">${top}<div class="card pt-lock"><div class="pt-lock-ic">🔒</div><h3>This account isn’t registered as team staff</h3><p class="muted">You’re signed in as <b>${esc(s.user.email)}</b>. Ask a league admin to add this email to the team portal, then reload this page.</p><button class="btn" data-pt="signout">Use a different account</button></div></div>`;
-  const m = s.member, t = byId(d.teams, m.teamId);
+  const m = s.member, t = byId(d.teams, m.teamId), press = isPress(m);
   if (P.subs === null) { P.subs = 'loading'; s.mySubs().then(x => { P.subs = x.sort((a, b) => b.updatedAt - a.updatedAt); LG.render(false); }).catch(e => { P.subs = []; toast('Couldn’t load your articles: ' + (e.code || e.message), 'err'); LG.render(false); }); }
   const subs = Array.isArray(P.subs) ? P.subs : [];
   const waiting = subs.filter(x => x.status === 'changes').length;
   if (!P.form) P.form = blankForm();
+  P.form = Object.assign(blankForm(), P.form);
   const f = P.form, editing = P.editId ? subs.find(x => x.id === P.editId) : null;
-  const tabs = `<div class="tabs"><button data-pt-tab="new" class="${P.tab === 'new' ? 'active' : ''}">${editing ? 'Edit article' : 'Write an article'}</button><button data-pt-tab="mine" class="${P.tab === 'mine' ? 'active' : ''}">My articles${subs.length ? ` <span class="muted">${subs.length}</span>` : ''}${waiting ? ' <span class="dot"></span>' : ''}</button></div>`;
+  if (P.tab === 'new' && f.kind === 'photos') P.tab = 'photos';
+  if (P.tab === 'photos' && f.kind !== 'photos') { if (!f.title && !f.body) P.form = Object.assign(blankForm(), { kind: 'photos' }); else P.tab = 'new'; }
+  const tabs = `<div class="tabs"><button data-pt-tab="new" class="${P.tab === 'new' ? 'active' : ''}">${editing && f.kind !== 'photos' ? 'Edit article' : 'Write an article'}</button><button data-pt-tab="photos" class="${P.tab === 'photos' ? 'active' : ''}">${editing && f.kind === 'photos' ? 'Edit photos' : 'Send photos'}</button><button data-pt-tab="mine" class="${P.tab === 'mine' ? 'active' : ''}">My submissions${subs.length ? ` <span class="muted">${subs.length}</span>` : ''}${waiting ? ' <span class="dot"></span>' : ''}</button></div>`;
+  const rs = LG.rounds(d).filter(r => !r.cancelled);
+  const photosForm = `<div class="card pt-form">
+      ${editing && editing.status === 'changes' && editing.note ? `<div class="warn"><b>Admin asked for changes:</b> ${esc(editing.note)}</div>` : ''}
+      <label class="fld"><span>Caption / title</span><input id="pt-title" maxlength="140" value="${esc(f.title)}" placeholder="e.g. Lights out at Suzuka"></label>
+      <label class="fld"><span>Round (optional)</span><select id="pt-round"><option value="">— Not about a specific round —</option>${rs.map(r => `<option value="${esc(r.id)}" ${f.roundId === r.id ? 'selected' : ''}>R${esc(r.round)} · ${esc(r.name)}</option>`).join('')}</select></label>
+      <div class="fld"><span>Photos (up to 4 per submission)</span>
+        <div class="pt-photos">${(f.images || []).map((u, k) => `<div class="pt-ph"><img src="${esc(u)}" alt=""><button class="iconbtn del" data-pt="rmphoto" data-k="${k}" title="Remove">✕</button></div>`).join('')}
+          ${(f.images || []).length < 4 ? `<label class="pt-ph add">＋<span>Add photo</span><input type="file" accept="image/*" id="pt-photos" multiple hidden></label>` : ''}</div></div>
+      <label class="fld"><span>Notes for the admins (optional)</span><textarea id="pt-body" rows="3" placeholder="Who's in the shot, where it was taken…">${esc(f.body)}</textarea></label>
+      <div class="toolbar pt-actions"><button class="btn primary" data-pt="submit">${editing ? 'Resubmit for approval' : 'Send for approval'}</button>${editing ? '<button class="btn ghost" data-pt="cancel">Cancel editing</button>' : '<button class="btn ghost" data-pt="clear">Clear</button>'}</div>
+      <p class="hint">Photos are shrunk to web size automatically. Approved photos appear in the site's <b>Gallery</b>, credited to you.</p>
+    </div>`;
   const writer = `<div class="pt-grid">
     <div class="card pt-form">
       ${editing && editing.status === 'changes' && editing.note ? `<div class="warn"><b>Admin asked for changes:</b> ${esc(editing.note)}</div>` : ''}
@@ -151,13 +182,14 @@ function page(d) {
   </div>`;
   const mine = P.subs === 'loading' ? '<div class="loading">Loading…</div>' : !subs.length ? emptyBox('Nothing submitted yet') : `<div class="pt-list">${subs.map(x => `<div class="pt-item">
       <div class="pt-item-top">${badge(x.status)}<span class="muted mono">${x.updatedAt ? new Date(x.updatedAt).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}</span></div>
-      <h3>${esc(x.title)}</h3>
+      <h3>${x.kind === 'photos' ? '📷 ' : ''}${esc(x.title)}</h3>
+      ${x.kind === 'photos' && (x.images || []).length ? `<div class="pt-thumbs">${x.images.map(u => `<img src="${esc(u)}" alt="">`).join('')}</div>` : ''}
       ${x.note && x.status !== 'pending' ? `<p class="pt-note"><b>Admin:</b> ${esc(x.note)}</p>` : ''}
-      <div class="toolbar">${['pending', 'changes'].includes(x.status) ? `<button class="btn sm" data-pt="edit" data-id="${esc(x.id)}">Edit</button>` : ''}${x.status === 'approved' && x.newsId ? `<a class="btn sm" href="#/news/${esc(x.newsId)}">View in News</a>` : ''}${['pending', 'changes', 'rejected'].includes(x.status) ? `<button class="btn sm danger" data-pt="withdraw" data-id="${esc(x.id)}">${x.status === 'rejected' ? 'Delete' : 'Withdraw'}</button>` : ''}</div>
+      <div class="toolbar">${['pending', 'changes'].includes(x.status) ? `<button class="btn sm" data-pt="edit" data-id="${esc(x.id)}">Edit</button>` : ''}${x.status === 'approved' && x.newsId ? `<a class="btn sm" href="#/news/${esc(x.newsId)}">View in News</a>` : ''}${x.status === 'approved' && x.kind === 'photos' ? '<a class="btn sm" href="#/gallery">View in Gallery</a>' : ''}${['pending', 'changes', 'rejected'].includes(x.status) ? `<button class="btn sm danger" data-pt="withdraw" data-id="${esc(x.id)}">${x.status === 'rejected' ? 'Delete' : 'Withdraw'}</button>` : ''}</div>
     </div>`).join('')}</div>`;
   return `<div class="page pt">
-    <div class="pt-banner" style="--tc:${esc(teamColor(t))}">${t && t.logo ? `<img src="${esc(LG.asset(t.logo))}" alt="" onerror="this.remove()">` : ''}<div><div class="eyebrow">Team portal</div><h1>${esc(t ? t.name : 'Team portal')}</h1><p>Signed in as <b>${esc(m.name)}</b> · ${esc(m.role)} · <button class="linkish" data-pt="signout">sign out</button></p></div></div>
-    ${tabs}${P.tab === 'mine' ? mine : writer}
+    <div class="pt-banner" style="--tc:${press ? 'var(--miku)' : esc(teamColor(t))}">${t && t.logo ? `<img src="${esc(LG.asset(t.logo))}" alt="" onerror="this.remove()">` : press ? '<span class="pt-press-ic">📷</span>' : ''}<div><div class="eyebrow">${press ? 'Press & media' : 'Team portal'}</div><h1>${esc(t ? t.name : press ? 'Press & media desk' : 'Team portal')}</h1><p>Signed in as <b>${esc(m.name)}</b> · ${esc(m.role)} · <button class="linkish" data-pt="signout">sign out</button></p></div></div>
+    ${tabs}${P.tab === 'mine' ? mine : P.tab === 'photos' ? photosForm : writer}
   </div>`;
 }
 
@@ -170,6 +202,7 @@ let tmr = 0;
 document.addEventListener('input', e => {
   if (!e.target.closest || !e.target.closest('.page.pt')) return;
   const id = e.target.id; if (!['pt-title', 'pt-tag', 'pt-body'].includes(id)) return;
+  if (P.tab === 'photos') P.form.kind = 'photos';
   P.form = P.form || blankForm(); P.form[id.slice(3)] = e.target.value; saveDraft();
   clearTimeout(tmr); tmr = setTimeout(() => {
     const prev = document.querySelector('.pt-prev .article'); if (!prev) return;
@@ -178,13 +211,19 @@ document.addEventListener('input', e => {
   }, 450);
 });
 document.addEventListener('change', async e => {
+  if (e.target.id === 'pt-round') { P.form.roundId = e.target.value; P.form.kind = 'photos'; saveDraft(); return; }
+  if (e.target.id === 'pt-photos') {
+    const files = [...e.target.files].slice(0, 4 - (P.form.images || []).length);
+    for (const f of files) { try { P.form.images = [...(P.form.images || []), await toPhoto(f)]; } catch (err) { toast(err.message, 'err'); } }
+    P.form.kind = 'photos'; saveDraft(); LG.render(false); return;
+  }
   if (e.target.id !== 'pt-img') return;
   const f = e.target.files[0]; if (!f) return;
   try { P.form.image = await toCover(f); saveDraft(); LG.render(false); } catch (err) { toast(err.message, 'err'); }
 });
 document.addEventListener('click', async e => {
   const tb = e.target.closest && e.target.closest('[data-pt-tab]');
-  if (tb) { P.tab = tb.dataset.ptTab; if (P.tab === 'mine') P.subs = null; return LG.render(false); }
+  if (tb) { const nt = tb.dataset.ptTab; if (P.editId && nt !== 'mine' && ((nt === 'photos') !== (P.form.kind === 'photos'))) clearDraft(); if (nt === 'new' && P.form.kind === 'photos' && !P.form.title && !(P.form.images || []).length) P.form = blankForm(); P.tab = nt; if (P.tab === 'mine') P.subs = null; return LG.render(false); }
   const b = e.target.closest && e.target.closest('[data-pt]'); if (!b) return;
   const d = LG.S.data, s = store(d); if (!s) return;
   const k = b.dataset.pt;
@@ -192,15 +231,18 @@ document.addEventListener('click', async e => {
     if (k === 'signin') return await s.signIn();
     if (k === 'signout') { await s.signOut(); P.subs = null; return; }
     if (k === 'rmimg') { P.form.image = ''; saveDraft(); return LG.render(false); }
+    if (k === 'rmphoto') { P.form.images.splice(Number(b.dataset.k), 1); saveDraft(); return LG.render(false); }
     if (k === 'clear') { if (confirm('Clear this article?')) { clearDraft(); LG.render(false); } return; }
     if (k === 'cancel') { clearDraft(); P.tab = 'mine'; return LG.render(false); }
-    if (k === 'edit') { const x = P.subs.find(z => z.id === b.dataset.id); P.form = { title: x.title, tag: x.tag || '', body: x.body, image: x.image || '' }; P.editId = x.id; P.tab = 'new'; saveDraft(); return LG.render(false); }
+    if (k === 'clear' && P.tab === 'photos') { clearDraft(); P.form.kind = 'photos'; return LG.render(false); }
+    if (k === 'edit') { const x = P.subs.find(z => z.id === b.dataset.id); P.form = { kind: x.kind || 'article', title: x.title, tag: x.tag || '', body: x.body || '', image: x.image || '', images: x.images || [], roundId: x.roundId || '' }; P.editId = x.id; P.tab = P.form.kind === 'photos' ? 'photos' : 'new'; saveDraft(); return LG.render(false); }
     if (k === 'withdraw') { if (!confirm('Remove this article?')) return; await s.withdraw(b.dataset.id); P.subs = null; toast('Removed'); return LG.render(false); }
     if (k === 'submit') {
-      const f = P.form;
-      if (!f.title.trim() || !f.body.trim()) return toast('Add a headline and some article text first', 'err');
+      const f = P.form, photos = P.tab === 'photos';
+      if (photos ? (!f.title.trim() || !(f.images || []).length) : (!f.title.trim() || !f.body.trim())) return toast(photos ? 'Add a caption and at least one photo' : 'Add a headline and some article text first', 'err');
       b.disabled = true;
-      const x = { title: f.title.trim().slice(0, 140), tag: f.tag.trim().slice(0, 40), body: f.body.slice(0, 60000), image: f.image || '' };
+      const x = photos ? { kind: 'photos', title: f.title.trim().slice(0, 140), tag: 'Photos', body: (f.body || '').slice(0, 2000), image: '', images: f.images.slice(0, 4), roundId: f.roundId || '' }
+        : { kind: 'article', title: f.title.trim().slice(0, 140), tag: f.tag.trim().slice(0, 40), body: f.body.slice(0, 60000), image: f.image || '', images: [], roundId: '' };
       if (P.editId) await s.edit(P.editId, x); else await s.submit(x);
       clearDraft(); P.tab = 'mine'; P.subs = null;
       toast('Sent to the league admins for approval ✓'); return LG.render(false);
@@ -208,5 +250,5 @@ document.addEventListener('click', async e => {
   } catch (err) { b.disabled = false; toast((/permission/i.test(err.code || err.message) ? 'The server refused that — your access may have been removed, or the article was already reviewed. ' : 'Something went wrong: ') + (err.code || err.message), 'err'); }
 });
 
-window.Portal = { page, store, RULES, ROLES, STATUS, badge };
+window.Portal = { page, store, RULES, ROLES, STATUS, badge, isPress };
 })();

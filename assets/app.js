@@ -753,6 +753,7 @@ function pageRound(d, rid, sess) {
     ${cl.length && view === 'detail' ? detailedTable(d, r, sess, cl, isQ) : cl.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th class="hide-sm">No</th><th>Driver</th><th>Team</th>${isQ ? '' : '<th class="hide-sm">Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / Retired'}</th>${isQ ? '' : '<th class="r">Pts</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`
       : empty(r.cancelled ? 'This round was cancelled' : 'No results yet', r.start ? `<p>${esc(sessionName(sess))} scheduled for ${fmtDate(r.start)} · ${fmtTime(r.start)}</p>` : '')}
     ${dotdHTML}
+    ${(d.gallery || []).some(x => x.roundId === rid) ? `<section><div class="section-title"><h2>Photos</h2><a href="#/gallery">Gallery →</a></div>${galleryGrid(d, d.gallery.filter(x => x.roundId === rid))}</section>` : ''}
     ${notes}
     ${sdHTML}
     ${isDone(d, r) && (r.sessions || []).some(x => x && x.start) ? weekendSchedule(d, r) : ''}
@@ -814,6 +815,17 @@ function pageDrivers(d) {
   </div>`;
 }
 
+function teamHistory(d, D) {
+  const pt = (s, r) => `${s ? 'Season ' + esc(s) : ''}${r ? `${s ? ' · ' : ''}R${esc(r)}` : ''}`;
+  const rows = (D.history || []).filter(h => h && (h.teamId || h.team));
+  const key = h => String(h.fromSeason || '').padStart(8, '0') + String(h.fromRound || 0).padStart(4, '0');
+  return `<ol class="th-list">${rows.slice().sort((a, b) => key(b).localeCompare(key(a))).map(h => {
+    const t = byId(d.teams, h.teamId), name = t ? t.name : h.team, cur = !h.toSeason && !h.toRound;
+    return `<li class="${cur ? 'cur' : ''}" style="--tc:${esc(t ? teamColor(t) : (h.color || '#8a9aa0'))}"><span class="th-dot"></span>
+      <div><b>${t ? `<a href="#/team/${esc(t.id)}">${esc(name)}</a>` : esc(name)}</b>${h.role ? ` <span class="chip">${esc(h.role)}</span>` : ''}
+      <div class="th-when mono">${pt(h.fromSeason, h.fromRound) || 'Start'} <span>→</span> ${cur ? '<b class="th-now">Present</b>' : pt(h.toSeason, h.toRound)}</div></div></li>`;
+  }).join('')}</ol>`;
+}
 function pageDriver(d, id) {
   const drv = byId(d.drivers, id);
   const st = computeStandings(d);
@@ -838,7 +850,6 @@ function pageDriver(d, id) {
       <div class="eyebrow">${x.position ? `P${x.position} · ` : ''}${esc(t ? t.name : 'Free agent')}</div>
       <h1>${nameHTML(D.name).replace('class="dname"', 'class="dname"')}</h1>
       <div class="ph-meta">${flag(D.country, 'lg')}${D.number !== undefined && D.number !== '' ? `<span class="mono">#${esc(D.number)}</span>` : ''}${D.active === false ? '<span class="pill-inactive">Inactive</span>' : ''}</div>
-      ${D.bio ? `<div class="bio prose">${md(D.bio)}</div>` : ''}
     </div>
     <div class="stats">
       <div class="stat"><b>${x.position || '—'}</b><span>Position</span></div>
@@ -851,6 +862,10 @@ function pageDriver(d, id) {
       <div class="stat"><b>${x.dnfs}</b><span>DNFs</span></div>
       <div class="stat"><b>${rounds(d).filter(r => (dotdOf(d, r.id) || {}).driverId === id).length}</b><span>Driver of the Day</span></div>
     </div>
+    ${D.bio || (D.history || []).length ? `<div class="grid grid-2 drv-about">
+      ${D.bio ? `<section class="card drv-bio"><div class="card-title"><h3>Biography</h3></div><div class="prose">${md(D.bio)}</div></section>` : ''}
+      ${(D.history || []).filter(h => h && (h.teamId || h.team)).length ? `<section class="card drv-hist" ${D.bio ? '' : 'style="grid-column:1/-1"'}><div class="card-title"><h3>Team history</h3></div>${teamHistory(d, D)}</section>` : ''}
+    </div>` : ''}
     <div class="section-title"><h2>Season results</h2></div>
     ${rows ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Rd</th><th>Grand Prix</th><th class="hide-sm">Team</th><th>Sprint</th><th>Race</th><th class="r">Pts</th></tr></thead><tbody>${rows}</tbody></table></div>` : empty('No results yet')}
     ${adjs.length ? `<section><div class="section-title"><h2>Penalties & adjustments</h2></div><div class="table-wrap"><table class="tbl"><tbody>${adjs.map(a => `<tr><td class="pts" style="text-align:left;width:80px">${a.points > 0 ? '+' : ''}${fmtPts(a.points)}</td><td>${esc(a.reason || '')}</td><td class="muted">${a.roundId && byId(d.calendar, a.roundId) ? 'R' + esc(byId(d.calendar, a.roundId).round) : ''}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
@@ -1156,6 +1171,20 @@ function pageH2H(d, kind, a, b) {
     <div class="h2h-hero">${side(A, tA, cA, sA, 'left')}<div class="h2h-vs">VS</div>${side(B, tB, cB, sB, 'right')}</div>
     <div class="card h2h-stats">${rows}</div>
     ${rr ? `<section><div class="section-title"><h2>Race by race</h2></div><div class="table-wrap"><table class="tbl"><thead><tr><th>Rd</th><th>Grand Prix</th><th class="c">${esc(isD ? A.name.split(' ').pop() : A.name)}</th><th class="c">Pts</th><th class="c">${esc(isD ? B.name.split(' ').pop() : B.name)}</th><th class="c">Pts</th></tr></thead><tbody>${rr}</tbody></table></div></section>` : ''}
+  </div>`;
+}
+
+/* ---------------- gallery ---------------- */
+function galleryGrid(d, list) {
+  return `<div class="gal-grid">${list.map(x => `<figure class="gal-fig"><img class="zoomable" src="${esc(asset(x.src))}" alt="${esc(x.caption || '')}" loading="lazy"><figcaption>${x.caption ? `<b>${esc(x.caption)}</b>` : ''}${x.credit ? `<span>📷 ${esc(x.credit)}</span>` : ''}</figcaption></figure>`).join('')}</div>`;
+}
+function pageGallery(d) {
+  const g = (d.gallery || []).slice();
+  const groups = [];
+  g.forEach(x => { const k = x.roundId || ''; const gr = groups.find(y => y.k === k); if (gr) gr.items.push(x); else groups.push({ k, items: [x] }); });
+  groups.sort((a, b) => { const ra = byId(d.calendar, a.k), rb = byId(d.calendar, b.k); return (rb ? Number(rb.round) : -1) - (ra ? Number(ra.round) : -1); });
+  return `<div class="page">${head('Paddock', 'Gallery', 'Photos from around the league — from our press & media team and the paddock.')}
+    ${g.length ? groups.map(gr => { const r = byId(d.calendar, gr.k); return `<section><div class="section-title"><h2>${r ? `${flag(r.country)} R${esc(r.round)} · ${esc(r.name)}` : 'Around the paddock'}</h2><span class="muted">${gr.items.length} photo${gr.items.length === 1 ? '' : 's'}</span></div>${galleryGrid(d, gr.items)}</section>`; }).join('') : empty('No photos yet')}
   </div>`;
 }
 
@@ -1731,7 +1760,7 @@ const notFound = () => `<div class="page">${empty('Page not found', '<p><a href=
 
 /* ---------------- router & chrome ---------------- */
 const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News']];
-const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['seasons', 'Seasons'], ['griddraft', 'Grid Draft'], ['join', 'Join the league']];
+const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['seasons', 'Seasons'], ['gallery', 'Gallery'], ['griddraft', 'Grid Draft'], ['join', 'Join the league']];
 const ROUTES = [
   [/^$/, d => pageHome(d)],
   [/^schedule$/, d => pageSchedule(d)],
@@ -1751,6 +1780,7 @@ const ROUTES = [
   [/^join$/, d => pageJoin(d)],
   [/^h2h(?:\/(drivers|teams))?(?:\/([^/]+))?(?:\/([^/]+))?$/, (d, m) => pageH2H(d, m[1], m[2], m[3])],
   [/^about$/, d => pageAbout(d)],
+  [/^gallery$/, d => pageGallery(d)],
   [/^seasons(?:\/(view)\/([^/]+))?$/, (d, m) => window.Extras ? window.Extras.pageSeasons(d, m[1], m[2]) : notFound()],
   [/^portal$/, d => window.Portal ? window.Portal.page(d) : notFound()],
   [/^griddraft(?:\/(\w+))?$/, (d, m) => window.GridDraft ? window.GridDraft.page(d, m[1]) : notFound()],
@@ -1809,11 +1839,38 @@ function chrome() {
   const moreOn = MORE.some(([k]) => k === cur);
   const navItems = d.fantasy && d.fantasy.enabled ? [...NAV, ['fantasy', 'Fantasy']] : NAV;
   document.getElementById('nav').innerHTML = navItems.map(link).join('') +
-    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
+    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => (k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)) && (k !== 'gallery' || (d.gallery || []).length)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · Season ${esc(L.season)}<br><span style="font-size:12px">${esc(L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.')}</span></div>
     <div class="links">${ext}<a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}<a href="#/admin">Admin</a></div></div>`;
+}
+
+/* Title Case for UI labels (menus, tabs, buttons, headings). Only capitalises — never lowercases names like FIA or R5. */
+const SMALL = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'of', 'on', 'or', 'per', 'the', 'to', 'vs', 'via', 'with', 'from', 'into', 'than', 'is']);
+function titleCaseText(t, first) {
+  return t.replace(/[A-Za-z][A-Za-z'’]*/g, (w, i) => {
+    const before = t.slice(0, i);
+    const isFirst = first && !/[A-Za-z0-9]/.test(before);
+    const afterColon = /[:—–·]\s*$/.test(before);
+    if (/[A-Z]/.test(w.slice(1)) || /^(e|i)\.?$/.test(w) && t[i + w.length] === '.') return w;
+    if (!isFirst && !afterColon && SMALL.has(w.toLowerCase()) && !/-$/.test(before)) return w;
+    return w[0].toUpperCase() + w.slice(1);
+  });
+}
+const TC_SEL = ['#nav > a', '.more-menu a', '.site-foot .links a', '.side-link', '.tabs > a', '.tabs > button', '.section-title > h2', '.card-title > h3', '.card-title > h2',
+  '.page-head h1', '.a-head h1', '.a-card > h3', '.a-card > h4', '.card > h3', '.btn:not(.gd-play)', '.quick a', '.ft-group > h4', '.staff-h > b', '.dw-role', '.gd-slot-l', '.game-btn b', '.sea-info b'].join(',');
+function applyTitleCase(root) {
+  root.querySelectorAll(TC_SEL).forEach(el => {
+    if (el.closest('[data-no-tc], .article, .prose, .news-card, .rel-card')) return;
+    let first = true;
+    const walk = n => n.childNodes.forEach(c => {
+      if (c.nodeType === 3) { if (c.textContent.trim()) { c.textContent = titleCaseText(c.textContent, first); first = false; } }
+      else if (c.nodeType === 1 && !/^(INPUT|SELECT|TEXTAREA|SVG|svg|SMALL|KBD|CODE)$/.test(c.tagName) && !c.classList.contains('dname') && !c.classList.contains('muted')) walk(c);
+      else if (c.nodeType === 1) first = false;
+    });
+    walk(el);
+  });
 }
 
 function render(resetScroll) {
@@ -1832,6 +1889,7 @@ function render(resetScroll) {
   if (RULE_TARGET && document.getElementById('rule-' + RULE_TARGET)) { const id = RULE_TARGET; RULE_TARGET = null; setTimeout(() => ruleJump(id), 60); }
   tickClocks();
   if (window.Extras) window.Extras.afterRender(path);
+  applyTitleCase(document.getElementById('app')); applyTitleCase(document.querySelector('.topbar')); applyTitleCase(document.getElementById('foot'));
   if (resetScroll) window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
@@ -1884,7 +1942,7 @@ window.addEventListener('hashchange', () => render(true));
 /* expose helpers for the admin console */
 window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
   rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
-  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
+  DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, titleCaseText, applyTitleCase, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 
 load().then(() => render(false));
 })();

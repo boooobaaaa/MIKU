@@ -1630,9 +1630,9 @@ button.gd-card:hover { transform: translateY(-6px) rotate(-.5deg); }
 .pt-banner p { margin: 0; color: var(--text-2); font-size: 14px; }
 .pt-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 .pt-form { display: grid; gap: 14px; }
-.pt-form input, .pt-form textarea { width: 100%; background: color-mix(in srgb, var(--bg) 60%, transparent); border: 1px solid var(--line-strong); border-radius: 10px; color: var(--text); font: 15px var(--f-body); padding: 10px 12px; outline: none; }
+.pt-form input, .pt-form textarea, .pt-form select { width: 100%; background: color-mix(in srgb, var(--bg) 60%, transparent); border: 1px solid var(--line-strong); border-radius: 10px; color: var(--text); font: 15px var(--f-body); padding: 10px 12px; outline: none; }
 .pt-form textarea { resize: vertical; line-height: 1.5; min-height: 260px; }
-.pt-form input:focus, .pt-form textarea:focus { border-color: var(--miku); }
+.pt-form input:focus, .pt-form textarea:focus, .pt-form select:focus { border-color: var(--miku); }
 .pt-cover { position: relative; }
 .pt-cover img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; display: block; border: 1px solid var(--line); }
 .pt-cover .iconbtn { position: absolute; top: 8px; right: 8px; background: var(--card-solid); }
@@ -1709,3 +1709,45 @@ button.gd-card:hover { transform: translateY(-6px) rotate(-.5deg); }
   background: var(--card-solid); color: var(--text); font: 600 13px var(--f-body); box-shadow: var(--shadow); animation: muhint 2.4s ease-in-out infinite; }
 @keyframes muhint { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
 @media (max-width: 760px) { .mu-hint { left: 54px; bottom: 6px; font-size: 12px; } }
+
+/* ---------- driver biography & team history ---------- */
+.drv-about { margin: 18px 0; align-items: start; }
+.drv-about > :only-child { grid-column: 1 / -1; }
+.drv-bio .prose { font-size: 15px; line-height: 1.65; }
+.th-list { list-style: none; margin: 4px 0 0; padding: 0 0 0 4px; position: relative; }
+.th-list::before { content: ""; position: absolute; left: 10px; top: 10px; bottom: 10px; width: 2px; background: var(--line-strong); border-radius: 2px; }
+.th-list li { position: relative; display: grid; grid-template-columns: 22px 1fr; gap: 2px 10px; padding: 9px 0; }
+.th-dot { width: 14px; height: 14px; margin: 3px 0 0; border-radius: 50%; background: var(--tc, var(--miku)); box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--tc, var(--miku)); position: relative; z-index: 1; grid-row: span 2; }
+.th-list li.cur .th-dot { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--tc), 0 0 14px var(--tc); }
+.th-list li a, .th-list li > b { font-weight: 700; color: var(--text); text-decoration: none; }
+.th-list li a:hover { color: var(--miku); }
+.th-when { grid-column: 2; font-size: 12.5px; color: var(--muted); }
+.th-now { color: var(--miku); font-weight: 700; }
+.th-ed table { width: 100%; }
+.th-ed td { padding: 3px 4px; vertical-align: middle; }
+.th-ed input, .th-ed select { width: 100%; min-width: 0; }
+
+/* ---------- gallery & press photos ---------- */
+.gal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; margin-bottom: 26px; }
+.gal-fig { margin: 0; border-radius: 14px; overflow: hidden; background: var(--card); box-shadow: var(--glow); }
+.gal-fig img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; cursor: zoom-in; transition: transform .3s; }
+.gal-fig:hover img { transform: scale(1.03); }
+.gal-fig figcaption { padding: 9px 12px 11px; display: grid; gap: 2px; font-size: 13.5px; }
+.gal-fig figcaption span { color: var(--muted); font-size: 12px; }
+.gal-grid.adm { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.gal-grid.adm img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 10px; cursor: zoom-in; }
+.gal-admin { display: grid; gap: 12px; }
+.gal-item { display: grid; grid-template-columns: 140px 1fr auto; gap: 14px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.gal-item img { width: 140px; aspect-ratio: 4/3; object-fit: cover; border-radius: 10px; cursor: zoom-in; }
+@media (max-width: 640px) { .gal-item { grid-template-columns: 1fr auto; } .gal-item img { width: 100%; grid-column: 1 / -1; } }
+.pt-photos { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.pt-ph { position: relative; width: 150px; aspect-ratio: 4/3; border-radius: 12px; overflow: hidden; background: var(--card); box-shadow: 0 0 0 1px var(--line); }
+.pt-ph img { width: 100%; height: 100%; object-fit: cover; }
+.pt-ph .iconbtn { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.6); color: #fff; }
+.pt-ph.add { display: grid; place-content: center; text-align: center; cursor: pointer; font-size: 26px; color: var(--miku); border: 2px dashed var(--line-strong); box-shadow: none; }
+.pt-ph.add span { font-size: 12.5px; color: var(--muted); }
+.pt-thumbs { display: flex; gap: 6px; margin: 6px 0; }
+.pt-thumbs img { width: 72px; height: 54px; object-fit: cover; border-radius: 8px; }
+.pt-press-ic { font-size: 40px; line-height: 1; }
+.drv-about > section { margin: 0; }
+.pt-form select { appearance: auto; }
