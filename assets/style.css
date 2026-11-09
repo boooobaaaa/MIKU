@@ -1902,3 +1902,108 @@ button.gd-card:hover { transform: translateY(-6px) rotate(-.5deg); }
 .hof-sakura .hof-stats { position: relative; z-index: 3; }
 .hof-sakura .hof-stats div { background: rgba(32, 14, 26, .72); }
 .hof-sakura .hof-chip .sk-icon { width: 15px; height: 15px; vertical-align: -2px; }
+
+/* =========================================================
+   GRID DRAFT — trading cards, packs & sakura burst
+   ========================================================= */
+@property --gd-ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.gd-card { padding: 7px; border-radius: 20px; transform-style: preserve-3d; isolation: isolate;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  --frame: linear-gradient(145deg, #eef2f4, #9aa7ac 22%, #4c565a 46%, #d3dade 66%, #7d898e 88%, #c9d1d4);
+  background: var(--frame); box-shadow: 0 22px 44px -22px #000, 0 0 0 1px rgba(255,255,255,.08); transition: transform .18s ease-out, box-shadow .25s; }
+.gd-card.r-advanced { --frame: linear-gradient(145deg, #c9fff9, #39c5bb 24%, #0f5f5b 48%, #8ff0e6 68%, #1b8079 88%, #b8fbf4); box-shadow: 0 22px 46px -20px rgba(57,197,187,.45); }
+.gd-card.r-elite { --frame: linear-gradient(145deg, #f0e9ff, #a78bfa 24%, #4a2f99 48%, #d6c8ff 68%, #6c4fd1 88%, #ece4ff); box-shadow: 0 22px 46px -18px rgba(167,139,250,.55); }
+.gd-card.r-prime { --frame: linear-gradient(145deg, #fff0f6, #ff8cc0 22%, #b2306e 46%, #ffd3e5 66%, #e0478d 86%, #ffe4ef); box-shadow: 0 22px 50px -16px rgba(255,95,168,.6); }
+.gd-card.r-icon { --frame: none; background: transparent; box-shadow: 0 24px 56px -14px rgba(243,210,122,.65); }
+.gd-card.r-icon::before { content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1;
+  background: conic-gradient(from var(--gd-ang), #fff1b0, #ffc75a, #ff8fc8, #b9a3ff, #6fe6da, #c8ff9a, #fff1b0); animation: gdHolo 4s linear infinite; }
+@keyframes gdHolo { to { --gd-ang: 360deg; } }
+/* thin inner line + rarity gem */
+.gd-card-in { border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.22), inset 0 0 26px rgba(0,0,0,.6);
+  background:
+    repeating-linear-gradient(115deg, transparent 0 14px, color-mix(in srgb, var(--tc) 7%, transparent) 14px 15px),
+    radial-gradient(ellipse at 50% 32%, color-mix(in srgb, var(--tc) 46%, transparent), transparent 70%),
+    linear-gradient(180deg, #17151c, #0b0a0e); }
+.gd-card::after { content: ""; position: absolute; left: 50%; bottom: -2px; width: 13px; height: 13px; margin-left: -6.5px; transform: rotate(45deg); border-radius: 3px;
+  background: linear-gradient(135deg, #fff, var(--rc) 55%); box-shadow: 0 0 0 2px #0b0a0e, 0 0 12px var(--rc); z-index: 3; }
+.gd-info { background: linear-gradient(180deg, transparent, rgba(0,0,0,.78) 28%); }
+.gd-name { text-shadow: 0 2px 8px rgba(0,0,0,.6); }
+/* holo light that follows the mouse */
+.gd-holo { position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit; opacity: 0; transition: opacity .25s;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255,255,255,.22), transparent 45%); }
+button.gd-card:hover .gd-holo { opacity: 1; }
+.gd-card.r-icon .gd-holo, .gd-card.r-prime .gd-holo { opacity: .55; mix-blend-mode: color-dodge;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255,255,255,.25), transparent 40%),
+              linear-gradient(115deg, transparent 20%, rgba(255,143,200,.25) 35%, rgba(111,230,218,.22) 50%, rgba(255,225,140,.25) 65%, transparent 80%); background-size: 100% 100%, 220% 100%; }
+button.gd-card:hover { transform: perspective(900px) translateY(-6px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+.gd-card.sel { transform: perspective(900px) translateY(-10px) scale(1.04) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); box-shadow: 0 0 0 3px #fff, 0 0 44px -2px var(--rc), 0 26px 44px -18px #000; }
+/* card back (seen while it spins) */
+.gd-back { position: absolute; inset: 7px; border-radius: 14px; transform: rotateY(180deg); backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
+  background: radial-gradient(circle at 50% 42%, rgba(255,166,205,.28), transparent 55%), repeating-radial-gradient(circle at 50% 42%, transparent 0 10px, rgba(255,211,227,.06) 10px 11px), linear-gradient(160deg, #2a1424, #12080f); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.2); }
+.gd-back-in { height: 100%; display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; }
+.gd-back b { font: 800 22px/1 var(--f-head); letter-spacing: .14em; color: #ffe4ee; }
+.gd-back span { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #c99cb0; padding: 0 14px; }
+.gd-sakura { width: 60px; height: 60px; }
+.gd-sakura path { fill: #ffd3e3; stroke: #f2a3c3; stroke-width: .8; }
+.gd-sakura circle { fill: #d9547f; }
+/* stop old fills from pinning transforms so hover-tilt works after the animation */
+.gd-pair.deal .gd-card, .gd-card.flip { animation-fill-mode: backwards; }
+
+/* spin in after opening a pack */
+.gd-pair.spin .gd-card { animation: gdSpin 1.05s cubic-bezier(.16,.8,.24,1) backwards; }
+.gd-pair.spin .gd-card:last-child { animation-delay: .16s; }
+@keyframes gdSpin { 0% { opacity: 0; transform: perspective(900px) translateY(70px) scale(.45) rotateY(-1080deg); } 20% { opacity: 1; } 100% { opacity: 1; transform: perspective(900px) rotateY(0deg); } }
+.gd-pair.spin .gd-card.r-icon, .gd-pair.spin .gd-card.r-prime { animation-name: gdSpinBig; }
+@keyframes gdSpinBig { 0% { opacity: 0; transform: perspective(900px) translateY(70px) scale(.45) rotateY(-1080deg); filter: brightness(2.2); } 20% { opacity: 1; } 75% { filter: brightness(1.4); } 100% { opacity: 1; transform: perspective(900px) rotateY(0deg); filter: none; } }
+.gd-actions.hide { visibility: hidden; }
+
+/* the pack */
+.gd-packwrap { display: grid; place-items: center; gap: 12px; padding: 6px 0 10px; perspective: 1000px; }
+.gd-pack { --rc: var(--r-basic); position: relative; width: 250px; aspect-ratio: 5 / 7.8; border: 0; padding: 0; background: none; cursor: pointer; color: inherit;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .18s ease-out; transform-style: preserve-3d; animation: gdFloat 3.2s ease-in-out infinite; }
+.gd-pack.r-icon { --rc: var(--r-icon); } .gd-pack.r-prime { --rc: var(--r-prime); } .gd-pack.r-elite { --rc: var(--r-elite); } .gd-pack.r-advanced { --rc: var(--r-advanced); }
+@keyframes gdFloat { 50% { translate: 0 -8px; } }
+.gd-pack-body { position: absolute; inset: 20px 0; overflow: hidden; border-radius: 4px;
+  background: radial-gradient(ellipse at 50% 38%, rgba(255,166,205,.22), transparent 60%), linear-gradient(160deg, #351a2e, #1a0c17 55%, #0d070b);
+  box-shadow: inset 6px 0 10px -6px rgba(255,255,255,.35), inset -6px 0 10px -6px rgba(255,255,255,.25), 0 30px 60px -26px #000, 0 0 60px -16px var(--rc); }
+.gd-pack-glow { position: absolute; inset: 0; background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--rc) 55%, transparent), transparent 52%); opacity: .55; animation: gdGlow 2.4s ease-in-out infinite; }
+@keyframes gdGlow { 50% { opacity: .9; } }
+.gd-pack .gd-sakura { position: absolute; }
+.gd-pack .gd-sakura.big { width: 112px; height: 112px; left: 50%; top: 36%; margin: -56px 0 0 -56px; filter: drop-shadow(0 0 18px rgba(255,166,205,.7)); animation: gdTurn 18s linear infinite; }
+@keyframes gdTurn { to { rotate: 360deg; } }
+.gd-pack .gd-sakura.s1 { width: 34px; height: 34px; left: 12%; top: 10%; opacity: .7; rotate: 20deg; }
+.gd-pack .gd-sakura.s2 { width: 24px; height: 24px; right: 14%; top: 18%; opacity: .55; rotate: -30deg; }
+.gd-pack .gd-sakura.s3 { width: 40px; height: 40px; right: 8%; top: 56%; opacity: .45; rotate: 50deg; }
+.gd-pack-brand { position: absolute; left: 0; right: 0; bottom: 18px; display: grid; gap: 3px; text-align: center; }
+.gd-pack-brand small { font-size: 9.5px; letter-spacing: .24em; text-transform: uppercase; color: #c99cb0; }
+.gd-pack-brand b { font: 800 28px/1 var(--f-head); letter-spacing: .1em; background: linear-gradient(180deg, #fff, #ffd3e3 50%, #f49cc4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.gd-pack-brand em { font-style: normal; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--rc); font-weight: 700; }
+.gd-pack-crimp { position: absolute; left: 0; right: 0; height: 22px; background: repeating-linear-gradient(90deg, #f3dbe6 0 3px, #b996a8 3px 6px); }
+.gd-pack-crimp.top { top: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); border-radius: 4px 4px 0 0; box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
+.gd-pack-crimp.bottom { bottom: 0; border-radius: 0 0 4px 4px; box-shadow: inset 0 3px 0 rgba(0,0,0,.25); }
+.gd-pack-tear { position: absolute; left: 6px; right: 6px; top: 30px; border-top: 1.5px dashed rgba(255,211,227,.5); z-index: 2; }
+.gd-pack-shine { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.18) 48%, transparent 60%); background-size: 260% 100%; animation: gdshine 3.2s linear infinite; mix-blend-mode: screen; }
+.gd-pack:hover .gd-pack-body { box-shadow: inset 6px 0 10px -6px rgba(255,255,255,.35), inset -6px 0 10px -6px rgba(255,255,255,.25), 0 30px 60px -26px #000, 0 0 80px -10px var(--rc); }
+.gd-pack-hint { margin: 0; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); animation: gdGlow 1.6s ease-in-out infinite; }
+/* opening */
+.gd-pack.opening { animation: gdShake .36s ease-in-out; cursor: default; }
+@keyframes gdShake { 20% { transform: rotate(-3deg) scale(1.03); } 40% { transform: rotate(3deg) scale(1.05); } 60% { transform: rotate(-2deg) scale(1.06); } 80% { transform: rotate(2deg) scale(1.06); } }
+.gd-pack.opening .gd-pack-crimp.top, .gd-pack.opening .gd-pack-tear { animation: gdTear .5s .3s cubic-bezier(.3,.6,.4,1) forwards; }
+@keyframes gdTear { to { transform: translate(-40px, -170px) rotate(-28deg); opacity: 0; } }
+.gd-pack.opening .gd-pack-glow { animation: gdFlash .45s .32s ease-out forwards; }
+@keyframes gdFlash { to { opacity: 1; transform: scale(2.4); } }
+.gd-pack.opening .gd-pack-body, .gd-pack.opening .gd-pack-crimp.bottom { animation: gdPackOut .38s .48s ease-in forwards; }
+@keyframes gdPackOut { to { transform: translateY(60px) scale(.82); opacity: 0; } }
+.gd-pack.opening + .gd-pack-hint { visibility: hidden; }
+/* petal burst */
+.gd-burst { position: fixed; width: 0; height: 0; z-index: 9999; pointer-events: none; }
+.gd-burst i { position: absolute; left: 0; top: 0; width: var(--s); height: calc(var(--s) * .8); border-radius: 80% 0 80% 20%; opacity: 0;
+  background: radial-gradient(ellipse at 30% 30%, #fff4f8, #ffbfd8 55%, #f08cb6); box-shadow: 0 0 6px rgba(255,180,210,.6);
+  animation: gdPetal var(--t) cubic-bezier(.12,.7,.3,1) var(--dl) forwards; }
+@keyframes gdPetal { 0% { opacity: 1; transform: translate(0, 0) rotate(0) scale(.3); } 40% { opacity: 1; transform: translate(var(--dx), var(--dy)) rotate(calc(var(--r) * .5)) scale(1); }
+  100% { opacity: 0; transform: translate(calc(var(--dx) * 1.2), calc(var(--dy) + var(--fall))) rotate(var(--r)) scale(.8); } }
+.gd-burst b { position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%; border: 3px solid #ffd3e3; box-shadow: 0 0 24px #ff9cc8; animation: gdRing .65s ease-out forwards; }
+@keyframes gdRing { to { transform: scale(9); opacity: 0; border-width: 1px; } }
+@media (max-width: 760px) { .gd-pack { width: 210px; } .gd-card { padding: 5px; } .gd-back { inset: 5px; } }
+@media (prefers-reduced-motion: reduce) { .gd-pair.spin .gd-card { animation: gddeal .4s both; } .gd-pack { animation: none; } .gd-card.r-icon::before { animation: none; } }
+.gd-slot .gd-contrib { margin-top: 10px; }

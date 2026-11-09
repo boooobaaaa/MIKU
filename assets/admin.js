@@ -547,6 +547,7 @@ function secTheme(d) {
       ${F.check('Show the ☀ / ☾ toggle in the top bar', 'theme.allowToggle', t.allowToggle !== false)}
       ${F.check('Background glow & dot pattern', 'theme.effects', t.effects !== false)}
       ${F.check('Next-race strip at the very top (your time + track time)', 'theme.topBanner', t.topBanner !== false)}
+      ${F.select('Hall of Fame style', 'theme.hofStyle', t.hofStyle || 'sakura', [['sakura', '🌸 Sakura night (cherry blossoms)'], ['classic', '🏆 Classic gold']])}
       ${F.select('Driver team history style', 'theme.historyStyle', t.historyStyle || 'timeline', [['timeline', 'Timeline (dots & line)'], ['strip', 'Career strip (coloured bar + list)'], ['cards', 'Team cards (logos & round count)']])}
       ${F.image('Logo on the clock widget (your league logo is used if empty — or use a real sponsor of yours)', 'theme.timingLogo', t.timingLogo === 'none' ? '' : t.timingLogo, 'branding', 400, 'clockLogo')}
     </div><p class="hint">A visitor's ☀/☾ choice is remembered in their browser — until you change the default mode, which resets everyone to your new default. <button class="btn xs" data-act="clear-mode">Forget my choice</button></p></div>
@@ -984,7 +985,7 @@ function secHistory(d) {
   }).join('');
   return head('Hall of fame', 'Past champions. "Start a new season" archives automatically; you can also archive now or type in seasons from before this website existed.',
     `<button class="btn" data-act="add-hist">+ Add past season</button><button class="btn primary" data-act="archive-now">♛ Archive season ${esc(d.league.season)} now</button>`) +
-    `<div class="a-card"><div class="fgrid">${F.select('Page style', 'theme.hofStyle', (d.theme || {}).hofStyle || 'sakura', [['sakura', '🌸 Sakura night (cherry blossoms)'], ['classic', '🏆 Classic gold']])}</div></div>
+    `<div class="a-card"><h3>Hall of Fame look</h3><div class="fgrid">${F.select('Page style', 'theme.hofStyle', (d.theme || {}).hofStyle || 'sakura', [['sakura', '🌸 Sakura night (cherry blossoms)'], ['classic', '🏆 Classic gold']])}</div></div>
     <div class="a-card">${items || '<p class="muted">No seasons archived yet.</p>'}</div>
     <p class="hint">"Archive now" saves a snapshot of the current final standings and race winners without clearing anything — handy right after the last race.</p>`;
 }

@@ -829,7 +829,9 @@ function careerStints(d, D) {
     const fs = h.fromSeason || '', fr = Number(h.fromRound) || 1;
     const ts = cur ? curSeason : (h.toSeason || fs), tr = cur ? Math.max(lastNo, fr) : (Number(h.toRound) || fr);
     const a = seasonNum(fs); let b = seasonNum(ts);
-    if (cur && (b === null || a === null || b < a)) b = a;
+    // "now" = this season: count from the round they joined to the latest round raced. Only add whole seasons when the
+    // start season is clearly an earlier season of the same numbering (e.g. Season 1 → league season 2).
+    if (cur && (b === null || a === null || b < a || b - a > 10 || String(fs).trim() === String(curSeason).trim())) b = a;
     let len = 1;
     if (a !== null && b !== null) len = b === a ? Math.max(1, tr - fr + 1) : Math.max(1, (cal - fr + 1) + (b - a - 1) * cal + tr);
     const startKey = (a ?? 0) * 1000 + fr, endKey = cur ? Infinity : (b ?? a ?? 0) * 1000 + tr;

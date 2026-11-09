@@ -376,7 +376,7 @@ function store(d) {
 /* =========================================================
    GAME STATE + UI
    ========================================================= */
-const G = { draft: null, draftFor: '', loading: false, busy: false, sel: null, anim: '', reveal: false, lb: null, lbAt: 0, hist: null, open: '' };
+const G = { draft: null, draftFor: '', loading: false, busy: false, sel: null, anim: '', reveal: false, lb: null, lbAt: 0, hist: null, open: '', pack: false, opening: false };
 function periodInfo(d, s) {
   const c = cfg(d), ms = (Number(c.periodHours) || 10) * 3600000, now = s.now();
   const idx = Math.floor(now / ms);
@@ -398,14 +398,18 @@ async function loadActiveDraft(s) {
   G.loading = false;
 }
 const rarityBadge = r => `<span class="gd-rar r-${r}">${R_LABEL[r] || ''}</span>`;
+const SAKURA_PETAL = 'M0 0C-7.5-5-9-14.5-4.2-20.5L0-17.2L4.2-20.5C9-14.5 7.5-5 0 0Z';
+const sakuraMark = (cls = '') => `<svg class="gd-sakura ${cls}" viewBox="-24 -24 48 48" aria-hidden="true">${[0, 72, 144, 216, 288].map(a => `<path d="${SAKURA_PETAL}" transform="rotate(${a})"/>`).join('')}<circle r="3.4"/></svg>`;
+const cardBack = () => `<div class="gd-back" aria-hidden="true"><div class="gd-back-in">${sakuraMark()}<b>GRID<br>DRAFT</b><span>${esc((LG.S.data.league || {}).name || '')}</span></div></div>`;
+const R_ORDER = { icon: 5, prime: 4, elite: 3, advanced: 2, basic: 1 };
 function cardHTML(x, opts = {}) {
   if (!x) return `<div class="gd-card missing"><div class="gd-card-in"><p class="muted">This card is no longer available.</p></div></div>`;
   const pts = opts.showPts ? `<div class="gd-pts"><b>${fmtPts(x.points)}</b><span>PTS</span>${opts.mult ? `<em>×${opts.mult}</em>` : ''}</div>` : `<div class="gd-pts hidden"><b>???</b><span>PTS</span></div>`;
   const tag = opts.button ? 'button' : 'div';
   const attrs = opts.button ? `data-gd-pick="${esc(x.id)}" ${opts.selected ? 'aria-pressed="true"' : ''}` : '';
   if (x.type === 'driver') {
-    return `<${tag} class="gd-card r-${x.rarity} ${opts.selected ? 'sel' : ''} ${opts.cls || ''}" style="--tc:${esc(x.color)}" ${attrs}>
-      <div class="gd-card-in">
+    return `<${tag} class="gd-card r-${x.rarity} ${opts.selected ? 'sel' : ''} ${opts.cls || ''}" style="--tc:${esc(x.color)}" ${attrs}>${cardBack()}
+      <div class="gd-card-in"><i class="gd-holo"></i>
         <div class="gd-top">${rarityBadge(x.rarity)}<span class="gd-season">Season ${esc(x.seasonNum)} · ${esc(x.season)}</span></div>
         <div class="gd-photo">${x.photo ? `<img src="${esc(LG.asset(x.photo))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
         <div class="gd-info">
@@ -416,8 +420,8 @@ function cardHTML(x, opts = {}) {
         </div>
       </div></${tag}>`;
   }
-  return `<${tag} class="gd-card con r-${x.rarity} ${opts.selected ? 'sel' : ''} ${opts.cls || ''}" style="--tc:${esc(x.color)}" ${attrs}>
-    <div class="gd-card-in">
+  return `<${tag} class="gd-card con r-${x.rarity} ${opts.selected ? 'sel' : ''} ${opts.cls || ''}" style="--tc:${esc(x.color)}" ${attrs}>${cardBack()}
+    <div class="gd-card-in"><i class="gd-holo"></i>
       <div class="gd-top">${rarityBadge(x.rarity)}<span class="gd-season">Constructor</span></div>
       <div class="gd-photo con">${x.logo ? `<img class="gd-logo" src="${esc(LG.asset(x.logo))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${x.car ? `<img class="gd-car" src="${esc(LG.asset(x.car))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
       <div class="gd-info">
@@ -542,13 +546,52 @@ function playPage(d, s, cards) {
     <div class="gd-stage-h"><div class="eyebrow">Stage ${STAGES.indexOf(st) + 1} of 3</div><h1>Choose your ${STAGE_LABEL[st]}${st === 'd1' ? ` <span class="gd-x">×${D1_MULT}</span>` : ''}</h1>
       <p class="muted">${st === 'd1' ? `This driver's points count one and a half times.` : st === 'd2' ? 'Points count once. You can’t pick the same driver twice.' : 'Pick the team whose points complete your score.'} Points stay hidden until the reveal.</p></div>
     ${dr.picks && (dr.picks.d1 || dr.picks.d2) ? `<div class="gd-picked">${['d1', 'd2'].filter(k => dr.picks[k]).map(k => { const x = cards.byId[dr.picks[k]]; return `<span class="gd-mini r-${x ? x.rarity : 'basic'}"><small>${STAGE_LABEL[k]}</small>${x ? esc(x.name) : '—'}</span>`; }).join('')}</div>` : ''}
-    <div class="gd-pair ${anim}">${offers.map(id => cardHTML(cards.byId[id], { button: true, selected: G.sel === id })).join('<div class="gd-or">OR</div>')}</div>
-    <div class="gd-actions">
+    ${G.pack ? packHTML(st, offers.map(id => cards.byId[id]).filter(Boolean)) : `<div class="gd-pair ${anim}">${offers.map(id => cardHTML(cards.byId[id], { button: true, selected: G.sel === id })).join('<div class="gd-or">OR</div>')}</div>`}
+    <div class="gd-actions ${G.pack ? 'hide' : ''}">
       <button class="gd-reroll" data-gd="reroll" ${used || G.busy ? 'disabled' : ''}>${used ? 'REROLL USED' : '<span class="gd-ric">⟳</span> REROLL BOTH OPTIONS · 1 LEFT'}</button>
       <button class="btn primary gd-lock" data-gd="lock" ${!G.sel || G.busy ? 'disabled' : ''}>${G.sel && cards.byId[G.sel] ? `LOCK IN ${esc(cards.byId[G.sel].name.toUpperCase())}` : 'TAP A CARD TO CHOOSE'}</button>
     </div>
   </div>`;
 }
+
+function packHTML(st, list) {
+  const best = list.map(x => x.rarity).sort((a, b) => (R_ORDER[b] || 0) - (R_ORDER[a] || 0))[0] || 'basic';
+  return `<div class="gd-packwrap"><button class="gd-pack r-${best}" data-gd="openpack" aria-label="Open the pack">
+      <span class="gd-pack-crimp top"></span><span class="gd-pack-tear"></span>
+      <span class="gd-pack-body">
+        <span class="gd-pack-glow"></span>
+        ${sakuraMark('big')}${sakuraMark('s1')}${sakuraMark('s2')}${sakuraMark('s3')}
+        <span class="gd-pack-brand"><small>${esc((LG.S.data.league || {}).name || 'Grid Draft')}</small><b>GRID DRAFT</b><em>${st === 'c' ? 'Constructor pack' : STAGE_LABEL[st] + ' pack'} · 2 cards</em></span>
+      </span><span class="gd-pack-crimp bottom"></span><span class="gd-pack-shine"></span></button>
+    <p class="gd-pack-hint">Tap the pack to open it</p></div>`;
+}
+function petalBurst(el, n = 46) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const r = el.getBoundingClientRect(), box = document.createElement('div');
+  box.className = 'gd-burst'; box.style.left = (r.left + r.width / 2) + 'px'; box.style.top = (r.top + r.height * .32) + 'px';
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, dist = 120 + Math.random() * 260, p = document.createElement('i');
+    p.style.cssText = `--dx:${Math.cos(a) * dist}px;--dy:${Math.sin(a) * dist * .8 - 60}px;--fall:${140 + Math.random() * 220}px;--r:${Math.random() * 720 - 360}deg;--s:${8 + Math.random() * 12}px;--t:${1.1 + Math.random() * .9}s;--dl:${Math.random() * .12}s`;
+    box.appendChild(p);
+  }
+  const ring = document.createElement('b'); box.appendChild(ring);
+  document.body.appendChild(box); setTimeout(() => box.remove(), 2400);
+}
+function openPack(btn) {
+  if (G.opening) return; G.opening = true;
+  btn.classList.add('opening');
+  setTimeout(() => petalBurst(btn), 380);
+  setTimeout(() => { G.pack = false; G.opening = false; G.anim = 'spin'; LG.render(false); }, 820);
+}
+/* gentle 3D tilt on hover (desktop) */
+document.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse') return;
+  const c = e.target.closest && e.target.closest('button.gd-card, .gd-pack'); if (!c) return;
+  const r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+  c.style.setProperty('--ry', (x * 14).toFixed(2) + 'deg'); c.style.setProperty('--rx', (-y * 14).toFixed(2) + 'deg');
+  c.style.setProperty('--mx', ((x + .5) * 100).toFixed(1) + '%'); c.style.setProperty('--my', ((y + .5) * 100).toFixed(1) + '%');
+});
+document.addEventListener('pointerout', e => { const c = e.target.closest && e.target.closest('button.gd-card, .gd-pack'); if (c && !c.contains(e.relatedTarget)) { c.style.removeProperty('--rx'); c.style.removeProperty('--ry'); } });
 
 function leaderboardPage(d, s, cards) {
   if (G.lb === null || Date.now() - G.lbAt > 20000) loadLeaderboard(d, s, true).then(() => LG.render(false));
@@ -590,6 +633,7 @@ async function act(kind, el) {
     if (kind === 'signout') { await s.signOut(); G.lb = null; G.hist = null; G.draft = null; G.draftFor = ''; return LG.render(false); }
     if (kind === 'rename') { const n = prompt('New public username (2–24 characters):', s.profile.name || ''); if (n && n.trim().length >= 2) { await s.rename(n.trim().slice(0, 24)); G.lb = null; } return LG.render(false); }
     if (kind === 'resume') { location.hash = '#/griddraft/play'; return; }
+    if (kind === 'openpack') { openPack(el); return; }
     if (kind === 'play') {
       const pi = periodInfo(d, s), left = attemptsLeft(d, s);
       if (left <= 0) return toast('No attempts left — they reset for everyone at the next global reset.', 'err');
@@ -599,7 +643,7 @@ async function act(kind, el) {
       G.busy = true; LG.render(false);
       const used = s.profile.period === pi.key ? (s.profile.attempts || 0) : 0;
       const id = await s.start(pi.key, used + 1, pair);
-      G.draft = await s.getDraft(id); G.draftFor = id; G.sel = null; G.anim = 'deal'; G.busy = false; G.hist = null;
+      G.draft = await s.getDraft(id); G.draftFor = id; G.sel = null; G.anim = 'deal'; G.pack = true; G.busy = false; G.hist = null;
       if (location.hash !== '#/griddraft/play') location.hash = '#/griddraft/play'; else LG.render(false);
       return;
     }
@@ -613,7 +657,7 @@ async function act(kind, el) {
       G.busy = true; G.anim = 'out'; LG.render(false);
       await new Promise(r => setTimeout(r, 260));
       await s.reroll(dr, pair);
-      dr.offers[st] = pair; dr.rerolled[st] = true; G.sel = null; G.busy = false; G.anim = 'deal'; LG.render(false);
+      dr.offers[st] = pair; dr.rerolled[st] = true; G.sel = null; G.busy = false; G.anim = 'deal'; G.pack = true; LG.render(false);
       return;
     }
     if (kind === 'lock') {
@@ -626,7 +670,7 @@ async function act(kind, el) {
       await s.pick(dr, v, next);
       dr.picks[st] = v;
       if (st === 'c') { dr.stage = 'done'; G.reveal = true; G.lb = null; G.hist = null; }
-      else { const nx = st === 'd1' ? 'd2' : 'c'; dr.stage = nx; dr.offers[nx] = next; G.anim = 'deal'; }
+      else { const nx = st === 'd1' ? 'd2' : 'c'; dr.stage = nx; dr.offers[nx] = next; G.anim = 'deal'; G.pack = true; }
       G.sel = null; G.busy = false; LG.render(false);
       if (st === 'c') runCountUp();
     }
