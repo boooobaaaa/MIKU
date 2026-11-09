@@ -3,14 +3,15 @@
     "name": "Mirai Racing Association",
     "season": "2026",
     "tagline": "Where Legends Blossom",
-    "logo": "uploads/branding/2026-11-09-mirai-gdtm.png",
+    "logo": "uploads/branding/2026-11-08-hikari-i8zk.png",
     "rules": "# Sporting regulations\n\n## Race format\n- Races are **50% distance**, dynamic weather, parc fermé on.\n- One-shot qualifying, 18 minutes.\n- Assists: ABS and traction control allowed; no racing line.\n\n## Conduct\n- Racing incidents are reviewed by the stewards after each round. Submit tickets in Discord within **24 hours**.\n- Penalties: warnings → time penalties → championship points deductions.\n- Three no-shows without notice and your seat goes to a reserve driver.\n\n## Reserves\nReserve drivers score points for the **team**, and keep their own points in the drivers' table.",
     "links": {
       "discord": "https://discord.gg/cuY4QGXA39",
       "youtube": "https://www.youtube.com/@MIKUMotorsports",
       "twitch": ""
     },
-    "footer": "Official Motorsport Championship Series"
+    "footer": "Official Motorsport Championship Series",
+    "raceControl": "KIRA"
   },
   "settings": {
     "adminHash": "31e30acfbdece1d98ecf046af66835385049ecc52eba95e49a6f61654f4f5c27"
@@ -1175,7 +1176,7 @@
     "accent": "#f4a6c6",
     "accentSoft": "#ffd1e3",
     "accentDeep": "#b2557f",
-    "highlight": "#c4125f",
+    "highlight": "#5fd3c4",
     "bgDark": "#0d0a0c",
     "bgLight": "#fbf4f7",
     "defaultMode": "dark",
@@ -1193,11 +1194,11 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T04:40:33.357Z"
+    "updated": "2026-11-09T04:50:03.625Z"
   },
   "rulebook": {},
   "fantasy": {
-    "enabled": true,
+    "enabled": false,
     "budget": 100,
     "captainMult": 2,
     "pole": 1,
@@ -1282,19 +1283,19 @@
     "teamTitle": "League Management",
     "founded": "2026",
     "platform": "Roblox F1 26",
-    "title": "About MMA",
+    "title": "About MRA",
     "tagline": "",
-    "body": "Mirai Motorsports Association is a Roblox F1 League created to offer a realistic and properly organized competitive atmosphere for drivers, ranging from all experience levels. The association was founded by creative and experienced minds with the goal of making this community one of best functional leagues.\n\n",
+    "body": "Mirai Racing Association is a Roblox F1 League created to offer a realistic and properly organized competitive atmosphere for drivers, ranging from all experience levels. The association was founded by creative and experienced minds with the goal of making this community one of best functional leagues.\n\n",
     "team": [
       {
-        "name": "seo",
+        "name": "Seojun Park",
         "role": "League Coordinator",
         "country": "US",
         "photo": "uploads/about/2026-11-07-seostaff-a4b0.png"
       },
       {
-        "role": "President of the KIRA",
-        "name": "rox",
+        "role": "President of KIRA",
+        "name": "Roxanne Zenin",
         "country": "GB",
         "photo": "uploads/about/2026-11-07-roxadm2-zyu2.png"
       }
@@ -1308,7 +1309,7 @@
   },
   "seo": {
     "title": "Mirai Racing Association",
-    "description": "Official Website for the Mirai Racing Association"
+    "description": "Official Website for the the Mirai  Racing Association"
   },
   "gridDraft": {
     "enabled": true,
@@ -1345,7 +1346,5 @@
     "autoplay": true,
     "loop": true,
     "label": "Now "
-  },
-  "portalOn": true,
-  "gallery": []
+  }
 }
