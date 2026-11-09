@@ -1192,7 +1192,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T00:27:43.846Z"
+    "updated": "2026-11-09T00:28:52.729Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1330,5 +1330,18 @@
     "smoothing": 0.05,
     "minProb": 0.5,
     "maxProb": 25
+  },
+  "music": {
+    "enabled": false,
+    "tracks": [
+      {
+        "title": "Mirai Background",
+        "src": "uploads/music/2026-11-09-league-theme-song-usesuno-com-y7yz.mp3"
+      }
+    ],
+    "volume": 35,
+    "shuffle": false,
+    "autoplay": true,
+    "label": "Now playing"
   }
 }
