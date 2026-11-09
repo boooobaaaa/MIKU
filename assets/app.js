@@ -1786,7 +1786,15 @@ function raceBar() {
 }
 setInterval(() => { if (S.data) raceBar(); }, 60000);
 
+function ensureSearchFab() {
+  if (document.getElementById('search-fab')) return;
+  const b = document.createElement('button');
+  b.id = 'search-fab'; b.className = 'search-fab'; b.setAttribute('aria-label', 'Search the site'); b.title = 'Search (press /)';
+  b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.6-4.6"/></svg>';
+  document.body.appendChild(b);
+}
 function chrome() {
+  ensureSearchFab();
   const d = S.data, L = d.league;
   applyTheme(d);
   document.title = (L.name || 'F1 League') + (L.season ? ` · ${L.season}` : '');

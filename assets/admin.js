@@ -464,11 +464,13 @@ const THEMES = {
   'Mono': { accent: '#e8e8e8', accentSoft: '#bdbdbd', accentDeep: '#5b5b5b', highlight: '#39c5bb', bgDark: '#09090a', bgLight: '#f5f5f5' }
 };
 function musicCard(d) {
-  const m = d.music = Object.assign({ enabled: false, tracks: [], volume: 35, shuffle: false, autoplay: true, label: 'Now playing' }, d.music || {});
+  const m = d.music = Object.assign({ enabled: false, tracks: [], volume: 35, shuffle: false, autoplay: true, loop: true, label: 'Now playing' }, d.music || {});
+  const badLink = u => /youtu\.?be|spotify\.com|soundcloud\.com|drive\.google|docs\.google|dropbox\.com\/(?!.*dl=1)|cdn\.discordapp|media\.discordapp|apple\.com/i.test(u || '');
   return `<div class="a-card"><h3>♪ Background music</h3>
     <div class="fgrid">
       ${F.check('Play background music on the site', 'music.enabled', m.enabled)}
       ${F.check('Start automatically (on the visitor’s first click/tap)', 'music.autoplay', m.autoplay !== false)}
+      ${F.check('Loop forever (one track repeats; several tracks repeat as a playlist)', 'music.loop', m.loop !== false)}
       ${F.check('Shuffle the playlist', 'music.shuffle', m.shuffle)}
       ${F.num('Starting volume (0–100)', 'music.volume', m.volume, 'min="0" max="100" data-reload')}
       ${F.text('Player heading', 'music.label', m.label || 'Now playing')}
@@ -478,9 +480,10 @@ function musicCard(d) {
         <input type="text" data-path="music.tracks.${k}.src" data-reload value="${esc(t.src || '')}" placeholder="Upload an MP3, or paste a direct link to one">
         <button class="btn sm" data-act="upload" data-mode="set" data-target="music.tracks.${k}.src" data-folder="music" data-accept="audio/*">⬆ Upload</button>
         ${t.src ? `<audio controls preload="none" src="${esc(LG.asset(t.src))}"></audio>` : ''}
-        <button class="iconbtn" data-act="mu-move" data-i="${k}" data-dir="-1" title="Move up">↑</button><button class="iconbtn del" data-act="mu-del" data-i="${k}" title="Remove">✕</button></div>`).join('') || '<p class="muted">No tracks yet.</p>'}</div>
+        <button class="iconbtn" data-act="mu-move" data-i="${k}" data-dir="-1" title="Move up">↑</button><button class="iconbtn del" data-act="mu-del" data-i="${k}" title="Remove">✕</button>
+        ${badLink(t.src) ? '<p class="warn mu-warn">This link won’t play for visitors — it’s a page or a link that expires (YouTube, Spotify, Google Drive, Discord…), not an audio file. Download the MP3 and use <b>⬆ Upload</b> instead.</p>' : ''}</div>`).join('') || '<p class="muted">No tracks yet.</p>'}</div>
     <div class="toolbar" style="margin-top:10px"><button class="btn sm" data-act="mu-add">+ Add track</button></div>
-    <p class="hint">Visitors get a small ♪ button (bottom-left) to pause, skip, change the volume or mute — their choice is remembered on their device. Browsers don't allow sound until a visitor clicks or taps, so music starts on their first interaction. Use MP3s under 10 MB, and only music you have the rights to use (royalty-free or your own).</p>
+    <p class="hint"><b>Press Publish after adding tracks</b> — until then the music only plays in your browser. Visitors get a small ♪ button (bottom-left) to pause, skip, change the volume or mute — their choice is remembered on their device. Browsers don't allow sound until a visitor clicks or taps, so music starts on their first interaction. Use MP3s under 10 MB, and only music you have the rights to use (royalty-free or your own).</p>
   </div>`;
 }
 function secTheme(d) {

@@ -26,13 +26,13 @@ const ICON = {
   mute: '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 9v6h4l5 5V4L8 9zm12.6 3 2.7-2.7-1.4-1.4-2.7 2.7-2.7-2.7-1.4 1.4 2.7 2.7-2.7 2.7 1.4 1.4 2.7-2.7 2.7 2.7 1.4-1.4z"/></svg>'
 };
 function musicSync(d) {
-  const c = Object.assign({ enabled: false, tracks: [], volume: 35, shuffle: false, autoplay: true }, d.music || {});
+  const c = Object.assign({ enabled: false, tracks: [], volume: 35, shuffle: false, autoplay: true, loop: true }, d.music || {});
   const tracks = (c.tracks || []).filter(t => t && t.src);
   M.cfg = c;
   if (!c.enabled || !tracks.length) { if (M.audio) M.audio.pause(); if (M.el) M.el.hidden = true; return; }
   if (!M.audio) {
     M.audio = new Audio(); M.audio.preload = 'none';
-    M.audio.addEventListener('ended', () => step(1, true));
+    M.audio.addEventListener('ended', () => { if (M.cfg.loop === false && M.idx >= M.tracks.length - 1) { M.idx = 0; load(); ui(); return; } step(1, true); });
     M.audio.addEventListener('play', ui); M.audio.addEventListener('pause', ui);
     M.audio.addEventListener('error', () => { if (M.tracks.length > 1 && !M.audio.paused) step(1, true); ui(); });
     M.el = document.createElement('div'); M.el.id = 'music'; M.el.className = 'music';
@@ -49,6 +49,7 @@ function musicSync(d) {
     M.idx = 0; const wasPlaying = !M.audio.paused; load(); if (wasPlaying) play();
     else autostart();
   }
+  M.audio.loop = M.cfg.loop !== false && M.tracks.length === 1;
   applyVol(); ui();
 }
 function load() { const t = M.tracks[M.idx]; if (!t) return; const src = LG.asset(t.src); if (M.audio.src !== new URL(src, location.href).href) M.audio.src = src; }
@@ -59,14 +60,17 @@ function autostart() {
   if (M.cfg.autoplay === false || p.off || p.muted) return;
   play().then(okd => {
     if (okd || M.waiting) return;
-    // browsers block sound until the visitor interacts — start on their first click/tap/key
+    // Browsers block sound until the visitor interacts. Phones only count a finished tap (click/touchend),
+    // so keep listening on every interaction until playback actually starts.
     M.waiting = true;
+    const EVENTS = ['click', 'touchend', 'pointerup', 'keydown'];
+    const stop = () => { EVENTS.forEach(t => document.removeEventListener(t, go, true)); M.waiting = false; };
     const go = e => {
-      if (M.el && M.el.contains(e.target)) return;
-      ['pointerdown', 'keydown'].forEach(t => document.removeEventListener(t, go, true));
-      M.waiting = false; const q = prefs(); if (!q.off && !q.muted && M.audio.paused) play();
+      if (M.el && M.el.contains(e.target)) { stop(); return; }
+      const q = prefs(); if (q.off || q.muted || !M.audio.paused) { stop(); return; }
+      play().then(started => { if (started) stop(); });
     };
-    ['pointerdown', 'keydown'].forEach(t => document.addEventListener(t, go, true));
+    EVENTS.forEach(t => document.addEventListener(t, go, true));
   });
 }
 function step(dir, auto) {

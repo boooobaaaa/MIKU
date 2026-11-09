@@ -1703,3 +1703,5 @@ button.gd-card:hover { transform: translateY(-6px) rotate(-.5deg); }
   .season-banner { top: 60px; font-size: 13px; }
   .sea-card { flex-wrap: wrap; gap: 10px; } .sea-yr { font-size: 22px; min-width: 0; }
 }
+.mu-warn { grid-column: 1 / -1; margin: 0; font-size: 13px; }
+.search-fab { z-index: 91; }
