@@ -3,7 +3,7 @@
     "name": "Mirai Racing Association",
     "season": "2026",
     "tagline": "Where Legends Blossom",
-    "logo": "uploads/branding/2026-11-08-hikari-i8zk.png",
+    "logo": "uploads/branding/2026-11-09-mirai-gdtm.png",
     "rules": "# Sporting regulations\n\n## Race format\n- Races are **50% distance**, dynamic weather, parc fermé on.\n- One-shot qualifying, 18 minutes.\n- Assists: ABS and traction control allowed; no racing line.\n\n## Conduct\n- Racing incidents are reviewed by the stewards after each round. Submit tickets in Discord within **24 hours**.\n- Penalties: warnings → time penalties → championship points deductions.\n- Three no-shows without notice and your seat goes to a reserve driver.\n\n## Reserves\nReserve drivers score points for the **team**, and keep their own points in the drivers' table.",
     "links": {
       "discord": "https://discord.gg/cuY4QGXA39",
@@ -1193,7 +1193,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T04:03:12.448Z"
+    "updated": "2026-11-09T04:08:22.147Z"
   },
   "rulebook": {},
   "fantasy": {
