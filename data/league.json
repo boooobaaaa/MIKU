@@ -1175,7 +1175,7 @@
     "accent": "#f4a6c6",
     "accentSoft": "#ffd1e3",
     "accentDeep": "#b2557f",
-    "highlight": "#5fd3c4",
+    "highlight": "#c4125f",
     "bgDark": "#0d0a0c",
     "bgLight": "#fbf4f7",
     "defaultMode": "dark",
@@ -1193,7 +1193,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T04:08:22.147Z"
+    "updated": "2026-11-09T04:08:50.965Z"
   },
   "rulebook": {},
   "fantasy": {
