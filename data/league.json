@@ -54,7 +54,7 @@
       "principal": "Steve Nielsen",
       "car": "A526",
       "engine": "Mercedes",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752836933095434/alpine.png?ex=6aed531b&is=6aec019b&hm=352e415c1f0a5074b566845d716cb25136bb94278830d154df7cabced90c26cf&",
+      "logo": "uploads/teams/2026-11-09-alpine-20kp.png",
       "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/alpine/2026alpinecarright.webp"
     },
     {
@@ -65,7 +65,7 @@
       "principal": "Adrian Newey",
       "car": "AMR26",
       "engine": "Honda",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752837306515486/am.png?ex=6aed531b&is=6aec019b&hm=b13a552e7c69b46dd083f7c1d8e2297138f73d45f5d2d3b6e4b60129d64ea244&",
+      "logo": "uploads/teams/2026-11-09-aston-2sx9.png",
       "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/astonmartin/2026astonmartincarright.webp"
     },
     {
@@ -76,7 +76,7 @@
       "principal": "Mattia Binotto",
       "car": "R26",
       "engine": "Audi",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752837700526080/audi.png?ex=6aed531b&is=6aec019b&hm=0e6d50c68bbcd306f795d2cd60b6804fec266902318903c47b171499e2a73168&",
+      "logo": "uploads/teams/2026-11-09-audi-5jfq.png",
       "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/audi/2026audicarright.webp"
     },
     {
@@ -87,7 +87,7 @@
       "principal": "Marcin Budkowski",
       "car": "MAC-26",
       "engine": "Ferrari",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752838187196527/cadillac.png?ex=6aed531c&is=6aec019c&hm=bfc91f4429579fed424b981aabb27c4ab51706cadbf32762685b63cd463c4a44&",
+      "logo": "uploads/teams/2026-11-09-cadillac-qo2q.png",
       "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/cadillac/2026cadillaccarright.webp"
     },
     {
@@ -98,7 +98,7 @@
       "principal": "Ayao Komatsu",
       "car": "VF-26",
       "engine": "Ferrari",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752839097225336/haas.png?ex=6aed531c&is=6aec019c&hm=721a608c9c559e83807e814afd318d0cf55018c2363bc909aa3dd8392a20b1ce&",
+      "logo": "uploads/teams/2026-11-09-haas-bgz1.png",
       "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/haasf1team/2026haasf1teamcarright.webp"
     },
     {
@@ -109,7 +109,7 @@
       "principal": "Andrea Stella",
       "engine": "Mercedes",
       "car": "MCL40",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752849444704326/mclaren.png?ex=6aed531e&is=6aec019e&hm=b26ecb63cf8fabf9ecb71b9b9bc3277b65d5ba35bcb044985df498e7fd2b9c8f&",
+      "logo": "uploads/teams/2026-11-09-mclaren-dgf5.png",
       "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/mclaren/2026mclarencarright.webp"
     },
     {
@@ -121,7 +121,7 @@
       "car": "W17",
       "engine": "Mercedes",
       "bio": "",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752849914597416/merc.png?ex=6aed531e&is=6aec019e&hm=ecf29fd80aa328c44acd6ae1edfc658d0b638659f8a0035593805f6ea1080085&",
+      "logo": "uploads/teams/2026-11-09-merc-ahhr.png",
       "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/mercedes/2026mercedescarright.webp"
     },
     {
@@ -132,7 +132,7 @@
       "principal": "Frédéric Vasseur",
       "engine": "Ferrari",
       "car": "SF-26",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752838728257606/ferrari.png?ex=6aed531c&is=6aec019c&hm=b0583cf750c6743040bf1555910a209d3770ef24bc3c19ed181992b4a946d5d1&",
+      "logo": "uploads/teams/2026-11-09-ferrari-m9to.png",
       "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/ferrari/2026ferraricarright.webp"
     },
     {
@@ -143,7 +143,7 @@
       "principal": "Laurent Mekies",
       "engine": "Red Bull Ford",
       "car": "RB22",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752850497347675/rbr.png?ex=6aed531e&is=6aec019e&hm=12231a577145bd2f09b509ac76674dcf37dd208120419adca3b4aa0238b1b45f&",
+      "logo": "uploads/teams/2026-11-09-rbr-btbh.png",
       "staff": {
         "exec": {
           "title": "Executive Officer",
@@ -189,7 +189,7 @@
       "principal": "Alan Permane",
       "engine": "Red Bull Ford",
       "car": "VCARB 03",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752850983878656/vcarb.png?ex=6aed531f&is=6aec019f&hm=0b8a3d2adc85d18b59c1e1cbe2fabd65a85cccddba40452be4a360ac0b365223&",
+      "logo": "uploads/teams/2026-11-09-vcarb-pt47.png",
       "staff": {
         "exec": {
           "title": "Executive Officer",
@@ -220,7 +220,7 @@
       "engine": "Mercedes",
       "base": "Grove, United Kingdom",
       "principal": "James Vowles",
-      "logo": "https://cdn.discordapp.com/attachments/1213166349577224353/1567752851533471854/williams.png?ex=6aed531f&is=6aec019f&hm=e39be770539f68c9a22f3adb43ea5d55671df76b5e12f59c5e370a310e8139f2&",
+      "logo": "uploads/teams/2026-11-09-williams-u91e.png",
       "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/williams/2026williamscarright.webp"
     }
   ],
@@ -1250,7 +1250,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T05:31:57.872Z"
+    "updated": "2026-11-09T05:37:10.410Z"
   },
   "rulebook": {},
   "fantasy": {
