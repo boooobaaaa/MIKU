@@ -13,7 +13,7 @@
     "footer": "Official Motorsport Championship Series"
   },
   "settings": {
-    "adminHash": ""
+    "adminHash": "31e30acfbdece1d98ecf046af66835385049ecc52eba95e49a6f61654f4f5c27"
   },
   "scoring": {
     "race": [
@@ -1193,7 +1193,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T02:43:20.260Z"
+    "updated": "2026-11-09T04:03:12.448Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1308,7 +1308,7 @@
   },
   "seo": {
     "title": "Mirai Racing Association",
-    "description": "Official Website for the Hikari Motorsports Association"
+    "description": "Official Website for the Mirai Racing Association"
   },
   "gridDraft": {
     "enabled": true,
