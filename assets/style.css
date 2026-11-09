@@ -1654,3 +1654,52 @@ button.gd-card:hover { transform: translateY(-6px) rotate(-.5deg); }
 .pt-review { max-width: 760px; margin: 0; padding: 6px 0 4px; }
 .pt-review h2 { font-size: 24px; }
 @media (max-width: 980px) { .pt-grid { grid-template-columns: 1fr; } .pt-prev { position: static; max-height: none; } }
+
+/* ---------------- music player ---------------- */
+.music { position: fixed; left: 22px; bottom: 22px; z-index: 90; }
+.music[hidden] { display: none; }
+.mu-fab { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line-strong); cursor: pointer; display: grid; place-items: center; color: var(--text);
+  background: var(--card-solid); box-shadow: var(--shadow); transition: transform .2s, border-color .2s; font-size: 22px; }
+.mu-fab:hover { transform: scale(1.06); border-color: var(--miku); }
+.mu-fab.on { border-color: var(--miku); box-shadow: 0 0 0 3px color-mix(in srgb, var(--miku) 18%, transparent), var(--shadow); }
+.mu-fab.muted { color: var(--muted); }
+.mu-note { color: var(--accent-text); line-height: 1; }
+.mu-eq { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
+.mu-eq i { width: 3px; background: var(--miku); border-radius: 2px; animation: mueq 1s ease-in-out infinite; }
+.mu-eq i:nth-child(2) { animation-delay: -.3s; } .mu-eq i:nth-child(3) { animation-delay: -.6s; } .mu-eq i:nth-child(4) { animation-delay: -.15s; }
+@keyframes mueq { 0%, 100% { height: 4px; } 50% { height: 18px; } }
+.mu-panel { position: absolute; left: 0; bottom: 62px; width: 270px; padding: 14px 16px; border-radius: 18px; background: var(--card-solid); border: 1px solid var(--line-strong); box-shadow: var(--shadow); animation: rise .18s ease; }
+.mu-panel[hidden] { display: none; }
+.mu-h { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.mu-lbl { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent-text); font-weight: 700; }
+.mu-t { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mu-ctl { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px; }
+.mu-ctl button, .mu-vol button { background: none; border: 1px solid var(--line); color: var(--text); width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
+.mu-ctl .mu-play { width: 46px; height: 46px; background: var(--miku); color: var(--on-accent); border: 0; }
+.mu-ctl button:hover, .mu-vol button:hover { border-color: var(--miku); }
+.mu-vol { display: flex; align-items: center; gap: 10px; }
+.mu-vol input { flex: 1; accent-color: var(--miku); }
+.mu-note-s { font-size: 11.5px; color: var(--muted); margin: 8px 0 0; }
+.mu-trow { display: grid; grid-template-columns: 22px 1fr 1.6fr auto auto auto auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+.mu-trow input { padding: 8px 10px !important; }
+.mu-trow audio { height: 32px; max-width: 220px; }
+/* ---------------- seasons ---------------- */
+.season-banner { position: sticky; top: 66px; z-index: 45; display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 9px 16px; font-size: 14px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 22%, var(--card-solid)), color-mix(in srgb, var(--miku) 18%, var(--card-solid))); border-bottom: 1px solid var(--line-strong); }
+.season-banner[hidden] { display: none; }
+.season-banner select { background: var(--card-solid); color: var(--text); border: 1px solid var(--line-strong); border-radius: 8px; padding: 4px 8px; font: inherit; }
+.sea-list { display: grid; gap: 12px; max-width: 820px; }
+.sea-card { display: flex; align-items: center; gap: 18px; padding: 16px 20px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+.sea-card.cur { border-color: var(--miku); background: linear-gradient(120deg, color-mix(in srgb, var(--miku) 12%, var(--card-solid)), var(--card)); }
+.sea-yr { font: 800 28px var(--f-head); min-width: 90px; color: var(--accent-text); }
+.sea-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sea-info small { font-size: 13px; }
+.sea-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.sea-row b { min-width: 70px; } .sea-row .muted { flex: 1; font-size: 13.5px; }
+@media (max-width: 760px) {
+  .music { left: 16px; bottom: 16px; } .mu-fab { width: 46px; height: 46px; }
+  .mu-panel { width: min(270px, calc(100vw - 32px)); }
+  .mu-trow { grid-template-columns: 1fr auto auto; } .mu-trow > span { display: none; } .mu-trow input { grid-column: 1 / -1; } .mu-trow audio { grid-column: 1 / -1; max-width: 100%; }
+  .season-banner { top: 60px; font-size: 13px; }
+  .sea-card { flex-wrap: wrap; gap: 10px; } .sea-yr { font-size: 22px; min-width: 0; }
+}

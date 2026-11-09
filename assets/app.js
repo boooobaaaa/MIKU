@@ -1183,7 +1183,7 @@ function pageAbout(d) {
 function searchIndex(d) {
   const items = [];
   const add = (type, title, sub, href, hay, img) => items.push({ type, title, sub, href, hay: (title + ' ' + (hay || '') + ' ' + (sub || '')).toLowerCase(), img });
-  [['Home', '#/'], ['Calendar', '#/schedule'], ['Results', '#/results'], ['Standings', '#/standings'], ['Constructors standings', '#/standings/teams'], ['Points progression', '#/standings/progress'], ['Drivers', '#/drivers'], ['Teams', '#/teams'], ['News', '#/news'], ['Rules', '#/rules'], [rcName(d), '#/fia'], ['Fantasy league', '#/fantasy'], ['Grid Draft', '#/griddraft'], ['Hall of fame', '#/history'], ['Head to head', '#/h2h'], ['About', '#/about'], ['Join the league', '#/join']]
+  [['Home', '#/'], ['Calendar', '#/schedule'], ['Results', '#/results'], ['Standings', '#/standings'], ['Constructors standings', '#/standings/teams'], ['Points progression', '#/standings/progress'], ['Drivers', '#/drivers'], ['Teams', '#/teams'], ['News', '#/news'], ['Rules', '#/rules'], [rcName(d), '#/fia'], ['Fantasy league', '#/fantasy'], ['Grid Draft', '#/griddraft'], ['Hall of fame', '#/history'], ['Seasons archive', '#/seasons'], ['Head to head', '#/h2h'], ['About', '#/about'], ['Join the league', '#/join']]
     .forEach(([t, h]) => add('Pages', t, '', h, ''));
   d.drivers.forEach(x => { const t = byId(d.teams, x.teamId); add('Drivers', x.name, `${hasVal(x.number) ? '#' + x.number + ' · ' : ''}${t ? t.name : 'Free agent'}`, '#/driver/' + x.id, `${x.number} ${x.gamertag || ''} ${x.country || ''}`, { drv: x, t }); });
   d.teams.forEach(t => {
@@ -1429,7 +1429,7 @@ function champCard(d, h, current) {
     <div class="hof-label">${current ? 'Leading constructor' : "Constructors' Champion"}</div>
     <div class="hof-tname"><span class="swatch" style="--tc:${esc(h.teamColor || '#e6b84f')}"></span>${esc(h.teamChampion || '—')}${hasVal(h.teamPoints) ? `<span class="hof-pts">${fmtPts(h.teamPoints)} pts</span>` : ''}</div>
     ${h.notes ? `<div class="hof-notes prose">${md(h.notes)}</div>` : ''}
-    ${current ? '<a class="hof-link" href="#/standings">Live standings →</a>' : h.standings ? `<a class="hof-link" href="#/history/${esc(h.id)}">Final standings →</a>` : ''}
+    ${current ? '<a class="hof-link" href="#/standings">Live standings →</a>' : (() => { const full = (S.data.seasons || []).find(x => x && x.file && String(x.label) === String(h.season)); return full ? `<a class="hof-link" href="#/seasons/view/${esc(full.id)}">Explore the full season →</a>` : h.standings ? `<a class="hof-link" href="#/history/${esc(h.id)}">Final standings →</a>` : ''; })()}
   </article>`;
 }
 function pageHistory(d) {
@@ -1731,7 +1731,7 @@ const notFound = () => `<div class="page">${empty('Page not found', '<p><a href=
 
 /* ---------------- router & chrome ---------------- */
 const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News']];
-const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['griddraft', 'Grid Draft'], ['join', 'Join the league']];
+const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['seasons', 'Seasons'], ['griddraft', 'Grid Draft'], ['join', 'Join the league']];
 const ROUTES = [
   [/^$/, d => pageHome(d)],
   [/^schedule$/, d => pageSchedule(d)],
@@ -1751,6 +1751,7 @@ const ROUTES = [
   [/^join$/, d => pageJoin(d)],
   [/^h2h(?:\/(drivers|teams))?(?:\/([^/]+))?(?:\/([^/]+))?$/, (d, m) => pageH2H(d, m[1], m[2], m[3])],
   [/^about$/, d => pageAbout(d)],
+  [/^seasons(?:\/(view)\/([^/]+))?$/, (d, m) => window.Extras ? window.Extras.pageSeasons(d, m[1], m[2]) : notFound()],
   [/^portal$/, d => window.Portal ? window.Portal.page(d) : notFound()],
   [/^griddraft(?:\/(\w+))?$/, (d, m) => window.GridDraft ? window.GridDraft.page(d, m[1]) : notFound()],
   [/^fantasy(?:\/(\w+))?$/, (d, m) => window.Fantasy ? window.Fantasy.page(d, m[1]) : notFound()],
@@ -1811,7 +1812,9 @@ function render(resetScroll) {
   if (!S.data) return;
   const path = decodeURIComponent(location.hash.replace(/^#\/?/, '')).replace(/\/$/, '');
   let html = null;
-  for (const [re, fn] of ROUTES) { const m = path.match(re); if (m) { html = fn(S.data, m); break; } }
+  const X = window.Extras;
+  const data = S.archive && X && !X.LIVE_ROUTES.test(path) ? S.archive.data : S.data;
+  for (const [re, fn] of ROUTES) { const m = path.match(re); if (m) { html = fn(data, m); break; } }
   chrome();
   document.getElementById('app').innerHTML = html ?? notFound();
   document.getElementById('nav').classList.remove('open');
@@ -1820,6 +1823,7 @@ function render(resetScroll) {
   if (document.getElementById('prog')) mountProgress();
   if (RULE_TARGET && document.getElementById('rule-' + RULE_TARGET)) { const id = RULE_TARGET; RULE_TARGET = null; setTimeout(() => ruleJump(id), 60); }
   tickClocks();
+  if (window.Extras) window.Extras.afterRender(path);
   if (resetScroll) window.scrollTo({ top: 0, behavior: 'instant' });
 }
 

@@ -13,7 +13,7 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'FIA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -448,8 +448,8 @@ function secPublish(d) {
       <button class="btn sm" data-act="download">⬇ Download league.json</button>
       <label class="btn sm">⬆ Import league.json<input type="file" accept=".json,application/json" data-ctl="import" hidden></label>
     </div><p class="hint">Download a backup before big changes. Importing replaces your draft (nothing goes live until you publish).</p></div>
-    <div class="a-card"><h3>New season</h3><p class="hint" style="margin:-6px 0 12px">Saves the final standings to the Hall of fame, downloads a backup, then clears all results, penalties, FIA reports and the calendar. Drivers, teams, scoring, news and rules are kept.</p>
-      <button class="btn sm danger" data-act="new-season">Start a new season</button></div>`;
+    <div class="a-card"><h3>New season</h3><p class="hint" style="margin:-6px 0 12px">Archive this season and start the next one from <b>Seasons</b>.</p>
+      <a class="btn sm" href="#/admin/seasons">Go to Seasons →</a></div>`;
 }
 
 /* ---------------- theme ---------------- */
@@ -463,11 +463,32 @@ const THEMES = {
   'Forest': { accent: '#5fd08a', accentSoft: '#b5ecc8', accentDeep: '#1f7a47', highlight: '#f7b84b', bgDark: '#060a08', bgLight: '#f3f8f4' },
   'Mono': { accent: '#e8e8e8', accentSoft: '#bdbdbd', accentDeep: '#5b5b5b', highlight: '#39c5bb', bgDark: '#09090a', bgLight: '#f5f5f5' }
 };
+function musicCard(d) {
+  const m = d.music = Object.assign({ enabled: false, tracks: [], volume: 35, shuffle: false, autoplay: true, label: 'Now playing' }, d.music || {});
+  return `<div class="a-card"><h3>♪ Background music</h3>
+    <div class="fgrid">
+      ${F.check('Play background music on the site', 'music.enabled', m.enabled)}
+      ${F.check('Start automatically (on the visitor’s first click/tap)', 'music.autoplay', m.autoplay !== false)}
+      ${F.check('Shuffle the playlist', 'music.shuffle', m.shuffle)}
+      ${F.num('Starting volume (0–100)', 'music.volume', m.volume, 'min="0" max="100" data-reload')}
+      ${F.text('Player heading', 'music.label', m.label || 'Now playing')}
+    </div>
+    <div class="mu-tracks">${m.tracks.map((t, k) => `<div class="mu-trow"><span class="mono muted">${k + 1}</span>
+        <input type="text" data-path="music.tracks.${k}.title" value="${esc(t.title || '')}" placeholder="Track title">
+        <input type="text" data-path="music.tracks.${k}.src" data-reload value="${esc(t.src || '')}" placeholder="Upload an MP3, or paste a direct link to one">
+        <button class="btn sm" data-act="upload" data-mode="set" data-target="music.tracks.${k}.src" data-folder="music" data-accept="audio/*">⬆ Upload</button>
+        ${t.src ? `<audio controls preload="none" src="${esc(LG.asset(t.src))}"></audio>` : ''}
+        <button class="iconbtn" data-act="mu-move" data-i="${k}" data-dir="-1" title="Move up">↑</button><button class="iconbtn del" data-act="mu-del" data-i="${k}" title="Remove">✕</button></div>`).join('') || '<p class="muted">No tracks yet.</p>'}</div>
+    <div class="toolbar" style="margin-top:10px"><button class="btn sm" data-act="mu-add">+ Add track</button></div>
+    <p class="hint">Visitors get a small ♪ button (bottom-left) to pause, skip, change the volume or mute — their choice is remembered on their device. Browsers don't allow sound until a visitor clicks or taps, so music starts on their first interaction. Use MP3s under 10 MB, and only music you have the rights to use (royalty-free or your own).</p>
+  </div>`;
+}
 function secTheme(d) {
   const t = d.theme;
   const sw = (k, p) => `<button class="theme-swatch" data-act="theme-preset" data-k="${esc(k)}" style="--a:${p.accent};--b:${p.bgDark};--c:${p.highlight};--l:${p.bgLight}"><span class="ts-prev"><i></i><i></i><i></i></span>${esc(k)}</button>`;
   return head('Look & theme', 'Recolour the whole site. Changes preview instantly here and on the public pages in this browser — publish to make them live for everyone.', '<button class="btn" data-act="theme-reset">Reset to Miku classic</button>') + `
     ${LG.S.isDraft ? '<div class="warn">These changes are only showing <b>in your browser</b> right now. Press <b>Publish</b> to apply them for everyone.</div>' : '<div class="ok-note">The look you see here is what every visitor sees.</div>'}
+    ${musicCard(d)}
     <div class="a-card"><h3>Presets</h3><div class="theme-presets">${Object.entries(THEMES).map(([k, p]) => sw(k, p)).join('')}</div></div>
     <div class="a-card"><h3>Colours</h3><div class="fgrid">
       ${F.color('Main accent (buttons, points, active tabs)', 'theme.accent', t.accent)}
@@ -540,6 +561,79 @@ async function postToDiscord(x, d) {
     if (!r.ok) throw new Error(r.status + ' ' + (await r.text()).slice(0, 120));
     return true;
   } catch (err) { toast('Discord refused it: ' + err.message, 'err'); return false; }
+}
+
+/* ---------------- seasons ---------------- */
+const seaSlug = s => 'season-' + (String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'x');
+function secSeasons(d) {
+  const list = (d.seasons || []).slice().sort((a, b) => String(b.label).localeCompare(String(a.label), undefined, { numeric: true }));
+  const done = LG.rounds(d).filter(r => LG.isDone(d, r)).length, total = d.calendar.filter(r => !r.cancelled).length;
+  const saved = list.find(x => String(x.label) === String(d.league.season));
+  const n = parseInt(d.league.season, 10), nextGuess = !isNaN(n) && String(n) === String(d.league.season).trim() ? String(n + 1) : '';
+  return head('Seasons', 'Every archived season keeps its full calendar, results, standings, drivers, teams and FIA decisions. Visitors browse them from <b>More → Seasons</b>.', '<a class="btn" href="#/seasons">View Seasons page</a>') + `
+    <div class="a-card"><h3>Current season · ${esc(d.league.season)}</h3>
+      <p class="muted" style="margin:-4px 0 14px">${done}/${total} rounds completed${saved ? ` · a copy was saved ${saved.savedAt ? LG.fmtDate(saved.savedAt) : ''}` : ''}</p>
+      <div class="toolbar"><button class="btn sm" data-act="sea-save">💾 Save a full copy now</button></div>
+      <p class="hint">Saves the season as it stands (doesn't clear anything). Handy after the final race, or as a checkpoint. Saving again replaces the earlier copy.</p>
+    </div>
+    <div class="a-card"><h3>Start a new season</h3>
+      <ol class="steps"><li>Saves a full copy of Season ${esc(d.league.season)} and adds its champions to the Hall of fame.</li><li>Downloads a backup file to your computer.</li><li>Clears results, penalties, FIA decisions and the calendar. Drivers, teams, scoring, news, rules and fantasy settings are kept.</li></ol>
+      <div class="fgrid"><label class="fld"><span>New season label</span><input type="text" id="sea-next" value="${esc(nextGuess)}" placeholder="e.g. 2027 or Season 3"></label></div>
+      <div class="toolbar" style="margin-top:10px"><button class="btn sm danger" data-act="sea-new">Archive ${esc(d.league.season)} & start the new season</button></div>
+      <p class="hint">Needs your GitHub connection (Publish & backup) to save the archive file. Nothing goes live until you press Publish.</p>
+    </div>
+    <div class="a-card"><h3>Archived seasons (${list.length})</h3>
+      ${list.length ? list.map(s => `<div class="sea-row"><b class="mono">${esc(s.label)}</b><span class="muted">${s.champion ? '🏆 ' + esc(s.champion) + ' · ' : ''}${s.rounds || 0} rounds · saved ${s.savedAt ? LG.fmtDate(s.savedAt) : ''}</span><a class="btn xs" href="#/seasons/view/${esc(s.id)}">View</a><button class="btn xs danger" data-act="sea-rm" data-id="${esc(s.id)}">Remove</button></div>`).join('') : '<p class="muted">None yet.</p>'}
+      <div class="toolbar" style="margin-top:14px"><label class="btn sm">⬆ Add a past season from a backup file<input type="file" accept=".json,application/json" data-ctl="sea-import" hidden></label></div>
+      <p class="hint">Got an old <code>league-….json</code> backup (from "Download" or an earlier "Start a new season")? Import it here to make that season browsable.</p>
+    </div>`;
+}
+async function putRepoFile(g, path, text, message) {
+  const api = `https://api.github.com/repos/${encodeURIComponent(g.c.owner)}/${encodeURIComponent(g.c.repo)}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
+  let sha; const cur = await fetch(`${api}?ref=${encodeURIComponent(g.c.branch)}&t=${Date.now()}`, { headers: g.headers, cache: 'no-store' });
+  if (cur.ok) sha = (await cur.json()).sha; else if (cur.status !== 404) throw new Error((await cur.json().catch(() => ({}))).message || cur.status);
+  const body = { message, content: b64(text), branch: g.c.branch }; if (sha) body.sha = sha;
+  const put = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, g.headers), body: JSON.stringify(body) });
+  if (!put.ok) throw new Error((await put.json().catch(() => ({}))).message || put.status);
+}
+function archivePayload(src) {
+  const a = clone(src);
+  delete a.settings; delete a.gridDraft; delete a.seo; delete a.music; delete a.seasons;
+  if (a.fantasy) a.fantasy = { enabled: false };
+  a.meta = Object.assign({}, a.meta, { archived: new Date().toISOString() });
+  return a;
+}
+async function saveArchive(d, src) {
+  const g = ghReady(); if (!g) return null;
+  const label = String(src.league.season || 'Season'), id = seaSlug(label), file = `data/seasons/${id.replace(/^season-/, '')}.json`;
+  await putRepoFile(g, file, JSON.stringify(archivePayload(src)) + '\n', `Archive season ${label}`);
+  const st = LG.computeStandings(LG.normalize(clone(src)));
+  const champ = st.drivers[0] ? (LG.byId(src.drivers, st.drivers[0].id) || {}).name : '';
+  const entry = { id, label, file, savedAt: new Date().toISOString(), rounds: (src.calendar || []).filter(r => !r.cancelled).length, champion: champ || '' };
+  d.seasons = (d.seasons || []).filter(x => x.id !== id); d.seasons.push(entry);
+  return entry;
+}
+async function seasonArchive(d, startNew, btn) {
+  let next = '';
+  if (startNew) {
+    next = (document.getElementById('sea-next').value || '').trim();
+    if (!next) return toast('Type the new season label first', 'err');
+    if (String(next) === String(d.league.season)) return toast('The new season needs a different label', 'err');
+    if (!confirm(`Archive Season ${d.league.season} and start ${next}?\n\nA backup downloads first. Results, penalties, FIA decisions and the calendar will be cleared (nothing goes live until you publish).`)) return;
+  }
+  if (!ghReady()) return;
+  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving…';
+  try {
+    if (startNew) download(d, `league-${String(d.league.season).replace(/[^\w-]+/g, '_')}-backup.json`);
+    const e = await saveArchive(d, d);
+    if (startNew) {
+      if (!d.history.some(h => String(h.season) === String(d.league.season))) d.history.push(LG.snapshotSeason(d));
+      d.results = {}; d.adjustments = []; d.stewards = []; d.calendar = [];
+      d.league.season = next;
+      toast(`Season ${e.label} archived — Season ${next} is ready. Set up the calendar, then Publish.`);
+    } else toast(`Saved a full copy of Season ${e.label} — Publish to show it on the Seasons page`);
+    commit();
+  } catch (err) { btn.disabled = false; btn.textContent = old; toast('Couldn’t save the season: ' + err.message, 'err'); }
 }
 
 /* ---------------- team portal admin ---------------- */
@@ -815,7 +909,7 @@ function render(sec) {
   if (!sec) A.section = 'dashboard';
   const d = D();
   if (!unlocked()) return lockHTML();
-  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal }[A.section];
+  const fn = { dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, seasons: secSeasons }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${SECTIONS.map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${l}</a>`).join('')}
@@ -854,6 +948,17 @@ document.addEventListener('change', e => {
   if (!inAdmin(el)) return;
   if (el.dataset.ctl === 'round') { A.roundId = el.value; return rerender(); }
   if (el.dataset.ctl === 'import') return importFile(el.files[0]);
+  if (el.dataset.ctl === 'sea-import') {
+    const f = el.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = async () => {
+      let src; try { src = LG.normalize(JSON.parse(fr.result)); } catch (x) { return toast('That isn\'t a league backup file', 'err'); }
+      if (String(src.league.season) === String(D().league.season) && !confirm(`That file is labelled Season ${src.league.season}, the same as your current season. Import it as an archive anyway?`)) return;
+      try { const e = await saveArchive(D(), src); if (!e) return; const h = D().history; if (!h.some(x => String(x.season) === String(e.label))) h.push(Object.assign(LG.snapshotSeason(src), { season: e.label })); toast(`Season ${e.label} added — Publish to show it`); commit(); }
+      catch (x) { toast('Couldn\'t import: ' + x.message, 'err'); }
+    };
+    fr.readAsText(f); return;
+  }
   if (el.dataset.ctl === 'rb-file') { const f = el.files[0]; if (!f) return; const fr = new FileReader(); fr.onload = () => importRulebook(/\.html?$/i.test(f.name) ? LG.htmlToMd(String(fr.result)) : String(fr.result)); fr.readAsText(f); return; }
   if (el.dataset.tagpath) { const cur = getPath(D(), el.dataset.tagpath) || []; const v = el.value; setPath(D(), el.dataset.tagpath, el.checked ? [...new Set([...cur, v])] : cur.filter(x => x !== v)); LG.saveDraft(); return rerender(); }
   if (el.dataset.adddoc !== undefined) { const v = el.value.trim(); if (v) { const x = D().stewards[Number(el.dataset.adddoc)]; (x.docs = x.docs || []).push(v); commit(); } return; }
@@ -972,6 +1077,12 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'mu-add': d.music = d.music || { enabled: true, tracks: [] }; (d.music.tracks = d.music.tracks || []).push({ title: '', src: '' }); return commit();
+    case 'mu-del': d.music.tracks.splice(i, 1); return commit();
+    case 'mu-move': { const t = d.music.tracks, j = i + Number(b.dataset.dir); if (j < 0 || j >= t.length) return; [t[i], t[j]] = [t[j], t[i]]; return commit(); }
+    case 'sea-save': return seasonArchive(d, false, b);
+    case 'sea-new': return seasonArchive(d, true, b);
+    case 'sea-rm': if (confirm('Remove this season from the Seasons list? (The saved file stays in your GitHub repo.)')) { d.seasons = (d.seasons || []).filter(x => x.id !== b.dataset.id); commit(); } return;
     case 'pt-signin': { try { await window.Portal.store(d).signIn(); } catch (x) { toast('Sign-in failed: ' + (x.code || x.message), 'err'); } return; }
     case 'pt-reload': PTA.subs = null; PTA.members = null; return rerender();
     case 'pt-add': {
