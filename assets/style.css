@@ -2002,8 +2002,6 @@ button.gd-card:hover { transform: perspective(900px) translateY(-6px) rotateX(va
   animation: gdPetal var(--t) cubic-bezier(.12,.7,.3,1) var(--dl) forwards; }
 @keyframes gdPetal { 0% { opacity: 1; transform: translate(0, 0) rotate(0) scale(.3); } 40% { opacity: 1; transform: translate(var(--dx), var(--dy)) rotate(calc(var(--r) * .5)) scale(1); }
   100% { opacity: 0; transform: translate(calc(var(--dx) * 1.2), calc(var(--dy) + var(--fall))) rotate(var(--r)) scale(.8); } }
-.gd-burst b { position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%; border: 3px solid #ffd3e3; box-shadow: 0 0 24px #ff9cc8; animation: gdRing .65s ease-out forwards; }
-@keyframes gdRing { to { transform: scale(9); opacity: 0; border-width: 1px; } }
 @media (max-width: 760px) { .gd-pack { width: 210px; } .gd-card { padding: 5px; } .gd-back { inset: 5px; } }
 @media (prefers-reduced-motion: reduce) { .gd-pair.spin .gd-card { animation: gddeal .4s both; } .gd-pack { animation: none; } .gd-card.r-icon::before { animation: none; } }
 .gd-slot .gd-contrib { margin-top: 10px; }

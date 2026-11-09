@@ -574,7 +574,6 @@ function petalBurst(el, n = 46) {
     p.style.cssText = `--dx:${Math.cos(a) * dist}px;--dy:${Math.sin(a) * dist * .8 - 60}px;--fall:${140 + Math.random() * 220}px;--r:${Math.random() * 720 - 360}deg;--s:${8 + Math.random() * 12}px;--t:${1.1 + Math.random() * .9}s;--dl:${Math.random() * .12}s`;
     box.appendChild(p);
   }
-  const ring = document.createElement('b'); box.appendChild(ring);
   document.body.appendChild(box); setTimeout(() => box.remove(), 2400);
 }
 function openPack(btn) {
