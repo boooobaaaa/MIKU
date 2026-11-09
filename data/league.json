@@ -1192,7 +1192,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T00:29:58.987Z"
+    "updated": "2026-11-09T00:44:29.578Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1339,9 +1339,10 @@
         "src": "uploads/music/2026-11-09-league-theme-song-usesuno-com-y7yz.mp3"
       }
     ],
-    "volume": 6,
+    "volume": 25,
     "shuffle": false,
     "autoplay": true,
+    "loop": true,
     "label": "Now "
   }
 }
