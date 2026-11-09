@@ -1237,7 +1237,8 @@
     "defaultMode": "dark",
     "allowToggle": true,
     "effects": true,
-    "timingLogo": "uploads/branding/2026-11-09-mirai-kjis.png"
+    "timingLogo": "uploads/branding/2026-11-09-mirai-kjis.png",
+    "historyStyle": "cards"
   },
   "signups": {
     "open": true,
@@ -1249,7 +1250,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T05:21:35.006Z"
+    "updated": "2026-11-09T05:31:57.872Z"
   },
   "rulebook": {},
   "fantasy": {
