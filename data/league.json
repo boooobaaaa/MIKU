@@ -10,7 +10,9 @@
       "youtube": "https://www.youtube.com/@MIKUMotorsports",
       "twitch": ""
     },
-    "footer": "Official Motorsport Championship Series"
+    "footer": "Official Motorsport Championship Series",
+    "raceControl": "KIRA",
+    "rcKira": true
   },
   "settings": {
     "adminHash": "31e30acfbdece1d98ecf046af66835385049ecc52eba95e49a6f61654f4f5c27"
@@ -364,7 +366,42 @@
       "gamertag": "Fabelynx",
       "photo": "uploads/drivers/2026-11-05-roxrender-pe4n.png",
       "headshot": "uploads/drivers/2026-11-05-roxrender-vc5k.png",
-      "fantasyValue": 14.5
+      "fantasyValue": 14.5,
+      "bio": "Roxanne Zenin joined the grid as a Reserve Driver for Aston Martin Aramco Formula One Team and made her debut in Round 1 at Monza, driving in place of Cevapi. After a shaky start to her career, most notably her Round 1 DNF, she clawed her way straight from the bottom to the top of the grid, continuing to take home more trophies as the season went on. From Aston Martin, she made her debut at McLaren Mastercard Formula One Team in Round 2 at Singapore and took home her first Sprint Win and Grand Prix Win in the rain. Following her performance, she was signed by Scuderia Ferrari HP for a brief period before being transferred and signed to her current home: Oracle Red Bull Racing, where she now settled into the team and support system.",
+      "history": [
+        {
+          "teamId": "crimson",
+          "role": "Reserve Driver",
+          "fromSeason": "1",
+          "fromRound": 1,
+          "toSeason": "1",
+          "toRound": 1
+        },
+        {
+          "teamId": "team-raoctb",
+          "role": "Race Driver",
+          "fromSeason": "1",
+          "fromRound": 2,
+          "toSeason": "1",
+          "toRound": 2
+        },
+        {
+          "teamId": "team-tmnl09",
+          "role": "Race Driver",
+          "fromSeason": "1",
+          "fromRound": 3,
+          "toSeason": "1",
+          "toRound": 3
+        },
+        {
+          "teamId": "team-3ws3tm",
+          "role": "Race Driver",
+          "fromSeason": "1",
+          "fromRound": 3,
+          "toSeason": "now",
+          "toRound": ""
+        }
+      ]
     },
     {
       "id": "drv-48oaev",
@@ -1212,7 +1249,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T05:08:40.848Z"
+    "updated": "2026-11-09T05:21:35.006Z"
   },
   "rulebook": {},
   "fantasy": {
