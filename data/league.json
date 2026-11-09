@@ -1193,7 +1193,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-09T04:08:50.965Z"
+    "updated": "2026-11-09T04:09:36.825Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1345,5 +1345,6 @@
     "autoplay": true,
     "loop": true,
     "label": "Now "
-  }
+  },
+  "portalOn": true
 }
