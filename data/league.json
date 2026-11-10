@@ -1250,7 +1250,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-10T16:07:44.480Z"
+    "updated": "2026-11-10T16:20:42.759Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1366,14 +1366,14 @@
         "country": "GR"
       },
       {
-        "name": "Cassandra",
-        "role": "Public Relations Manager",
-        "country": "US"
-      },
-      {
         "name": "thomas",
         "role": "Head of Communications",
         "country": "CN"
+      },
+      {
+        "name": "Cassandra",
+        "role": "Public Relations Manager",
+        "country": "US"
       }
     ],
     "image": "uploads/about/2026-11-10-hikaribanner-gxw9.png"
