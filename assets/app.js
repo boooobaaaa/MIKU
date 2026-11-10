@@ -800,7 +800,8 @@ function pageStandings(d, view) {
 
 function pageDrivers(d) {
   const st = computeStandings(d);
-  const active = d.drivers.filter(x => x.active !== false).sort((a, b) => ((st.D[a.id] || {}).position || 999) - ((st.D[b.id] || {}).position || 999));
+  const custom = (d.theme || {}).listOrder === 'custom';
+  const active = d.drivers.filter(x => x.active !== false); if (!custom) active.sort((a, b) => ((st.D[a.id] || {}).position || 999) - ((st.D[b.id] || {}).position || 999));
   const former = d.drivers.filter(x => x.active === false);
   const card = drv => {
     const s = st.D[drv.id] || { points: 0 }, t = driverTeam(d, drv, s);
@@ -909,7 +910,7 @@ function pageDriver(d, id) {
 
 function pageTeams(d) {
   const st = computeStandings(d);
-  const list = [...d.teams].sort((a, b) => ((st.T[a.id] || {}).position || 999) - ((st.T[b.id] || {}).position || 999));
+  const list = [...d.teams]; if ((d.theme || {}).listOrder !== 'custom') list.sort((a, b) => ((st.T[a.id] || {}).position || 999) - ((st.T[b.id] || {}).position || 999));
   const cards = list.map(t => {
     const s = st.T[t.id] || { points: 0 };
     const drs = d.drivers.filter(x => x.teamId === t.id && x.active !== false);
@@ -1223,6 +1224,61 @@ function pageGallery(d) {
 }
 
 /* ---------------- about ---------------- */
+/* ---------- league staff: big profile slides ---------- */
+const SS = { i: 0 };
+function staffShow(d, people, title) {
+  const n = people.length; if (SS.i >= n) SS.i = 0;
+  const slide = (x, k) => {
+    const ini = String(x.name || '').split(/\s+/).map(z => z[0] || '').join('').slice(0, 2).toUpperCase();
+    return `<article class="ss-slide" data-ss-i="${k}" aria-roledescription="slide" aria-label="${k + 1} of ${n}">
+      <div class="ss-photo">${x.photo ? `<img src="${esc(asset(x.photo))}" alt="${esc(x.name)}" loading="lazy" onerror="this.remove()">` : ''}<span class="ss-ini">${esc(ini)}</span></div>
+      <div class="ss-info"><div class="ss-no mono">${String(k + 1).padStart(2, '0')}</div>
+        <div class="ss-role">${esc(x.role || 'Staff')}</div>
+        <h3 class="ss-name">${nameHTML(x.name)}</h3>
+        <div class="ss-meta">${flag(x.country)}${x.handle ? `<span class="mono">${esc(x.handle)}</span>` : ''}</div>
+        ${x.bio ? `<div class="ss-bio prose">${md(x.bio)}</div>` : ''}</div></article>`;
+  };
+  return `<section class="staff-show-wrap"><div class="section-title"><h2>${esc(title)}</h2>${n > 1 ? `<span class="ss-count mono"><b>${String(SS.i + 1).padStart(2, '0')}</b> / ${String(n).padStart(2, '0')}</span>` : ''}</div>
+    <div class="staff-show ${n === 1 ? 'single' : ''}" data-ss tabindex="0" aria-roledescription="carousel">
+      <div class="ss-track">${people.map(slide).join('')}</div>
+      ${n > 1 ? `<button class="ss-nav prev" data-ss-go="-1" aria-label="Previous">‹</button><button class="ss-nav next" data-ss-go="1" aria-label="Next">›</button>` : ''}
+    </div>
+    ${n > 1 ? `<div class="ss-dots">${people.map((x, k) => `<button data-ss-to="${k}" aria-label="${esc(x.name)}" title="${esc(x.name)}"></button>`).join('')}</div>` : ''}</section>`;
+}
+function ssApply(root) {
+  const box = root || document.querySelector('[data-ss]'); if (!box) return;
+  const slides = [...box.querySelectorAll('.ss-slide')], n = slides.length; if (!n) return;
+  SS.i = ((SS.i % n) + n) % n;
+  slides.forEach((el, k) => {
+    let off = k - SS.i;
+    if (n > 2) { if (off > n / 2) off -= n; if (off < -n / 2) off += n; }
+    el.className = 'ss-slide ' + (off === 0 ? 'is-cur' : off === -1 ? 'is-prev' : off === 1 ? 'is-next' : off < 0 ? 'is-far-l' : 'is-far-r');
+    el.setAttribute('aria-hidden', off === 0 ? 'false' : 'true');
+  });
+  const wrap = box.closest('.staff-show-wrap');
+  if (wrap) {
+    const c = wrap.querySelector('.ss-count b'); if (c) c.textContent = String(SS.i + 1).padStart(2, '0');
+    wrap.querySelectorAll('.ss-dots button').forEach((b, k) => b.classList.toggle('on', k === SS.i));
+  }
+}
+const ssGo = dir => { SS.i += dir; ssApply(); };
+document.addEventListener('click', e => {
+  if (!e.target.closest) return;
+  const g = e.target.closest('[data-ss-go]'); if (g) { ssGo(Number(g.dataset.ssGo)); return; }
+  const t = e.target.closest('[data-ss-to]'); if (t) { SS.i = Number(t.dataset.ssTo); ssApply(); return; }
+  const s = e.target.closest('.ss-slide.is-prev, .ss-slide.is-next'); if (s) { ssGo(s.classList.contains('is-prev') ? -1 : 1); }
+});
+document.addEventListener('keydown', e => {
+  if (!document.querySelector('[data-ss]') || /INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) return;
+  if (e.key === 'ArrowLeft') ssGo(-1); else if (e.key === 'ArrowRight') ssGo(1);
+});
+let ssTouch = null;
+document.addEventListener('touchstart', e => { if (e.target.closest && e.target.closest('[data-ss]')) ssTouch = [e.touches[0].clientX, e.touches[0].clientY]; }, { passive: true });
+document.addEventListener('touchend', e => {
+  if (!ssTouch) return; const dx = e.changedTouches[0].clientX - ssTouch[0], dy = e.changedTouches[0].clientY - ssTouch[1]; ssTouch = null;
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) ssGo(dx < 0 ? 1 : -1);
+}, { passive: true });
+
 function pageAbout(d) {
   const a = d.about || {};
   const people = (a.team || []).filter(x => x && x.name);
@@ -1238,7 +1294,7 @@ function pageAbout(d) {
         ${d.league.links && Object.values(d.league.links).some(Boolean) ? `<div class="card"><h3>Find us</h3><div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap">${[['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => d.league.links[k]).map(([k, l]) => `<a class="btn sm" href="${esc(d.league.links[k])}" target="_blank" rel="noopener">${l}</a>`).join('')}</div></div>` : ''}
       </aside>
     </div>
-    ${people.length ? `<section><div class="section-title"><h2>${esc(a.teamTitle || 'League staff')}</h2></div><div class="st-grid">${people.map(x => staffCard(d, x, x.role || 'Staff', { color: x.color || 'var(--miku)' })).join('')}</div></section>` : ''}
+    ${people.length ? ((a.staffStyle || 'carousel') === 'carousel' ? staffShow(d, people, a.teamTitle || 'League staff') : `<section><div class="section-title"><h2>${esc(a.teamTitle || 'League staff')}</h2></div><div class="st-grid">${people.map(x => staffCard(d, x, x.role || 'Staff', { color: x.color || 'var(--miku)' })).join('')}</div></section>`) : ''}
   </div>`;
 }
 
@@ -1925,6 +1981,11 @@ function titleCaseText(t, first) {
 }
 const TC_SEL = ['#nav > a', '.more-menu a', '.site-foot .links a', '.side-link', '.tabs > a', '.tabs > button', '.section-title > h2', '.card-title > h3', '.card-title > h2',
   '.page-head h1', '.a-head h1', '.a-card > h3', '.a-card > h4', '.card > h3', '.btn:not(.gd-play)', '.quick a', '.ft-group > h4', '.staff-h > b', '.dw-role', '.gd-slot-l', '.game-btn b', '.sea-info b'].join(',');
+function setFavicon(d) {
+  const src = d && d.league && (d.league.favicon || d.league.logo); if (!src) return;
+  const href = asset(src), link = document.querySelector('link[rel="icon"]');
+  if (link && link.dataset.src !== src) { link.href = href; link.dataset.src = src; }
+}
 function applyTitleCase(root) {
   root.querySelectorAll(TC_SEL).forEach(el => {
     if (el.closest('[data-no-tc], .article, .prose, .news-card, .rel-card')) return;
@@ -1954,6 +2015,8 @@ function render(resetScroll) {
   if (RULE_TARGET && document.getElementById('rule-' + RULE_TARGET)) { const id = RULE_TARGET; RULE_TARGET = null; setTimeout(() => ruleJump(id), 60); }
   tickClocks();
   if (window.Extras) window.Extras.afterRender(path);
+  ssApply();
+  setFavicon(S.data);
   applyTitleCase(document.getElementById('app')); applyTitleCase(document.querySelector('.topbar')); applyTitleCase(document.getElementById('foot'));
   if (resetScroll) window.scrollTo({ top: 0, behavior: 'instant' });
 }

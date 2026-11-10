@@ -25,7 +25,8 @@ const IMG_SPECS = {
   headshot: { w: 400, h: 400, fmt: 'square JPG or PNG', note: 'face centred and filling most of the frame — shown in circles, so the corners get trimmed', round: true, fit: 'cover' },
   cover: { w: 1600, h: 900, fmt: '16:9 JPG or PNG', note: 'cards crop the edges a little, so keep the subject near the middle', fit: 'cover' },
   og: { w: 1200, h: 630, fmt: 'JPG or PNG', note: 'the standard size for link previews on Discord and social apps', fit: 'cover' },
-  clockLogo: { w: 256, h: 256, fmt: 'square PNG, transparent background', note: 'shown small next to the clocks' }
+  clockLogo: { w: 256, h: 256, fmt: 'square PNG, transparent background', note: 'shown small next to the clocks' },
+  favicon: { w: 256, h: 256, fmt: 'square PNG (transparent is fine)', note: 'shown tiny in the browser tab, so keep it simple and bold — a symbol or 1–2 letters reads best. Leave empty to use the league logo' }
 };
 const TZ_OPTS = [['', 'Auto (from country code)'], ['Asia/Bahrain', 'Bahrain'], ['Asia/Riyadh', 'Saudi Arabia'], ['Australia/Melbourne', 'Melbourne'], ['Asia/Tokyo', 'Japan'], ['Asia/Shanghai', 'China'],
   ['America/New_York', 'Miami / US East'], ['America/Chicago', 'Austin / US Central'], ['America/Los_Angeles', 'Las Vegas / US West'], ['America/Toronto', 'Montréal / Canada'], ['America/Mexico_City', 'Mexico City'],
@@ -137,6 +138,7 @@ function secLeague(d) {
       ${F.text('Tagline (home page)', 'league.tagline', L.tagline, 'wide')}
       ${F.text('Footer text (small line at the bottom of every page)', 'league.footer', L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.', 'wide data-reload')}
       ${F.image('League logo', 'league.logo', L.logo, 'branding', 600, 'logo')}
+      ${F.image('Browser tab icon (favicon)', 'league.favicon', L.favicon, 'branding', 256, 'favicon')}
     </div></div>
     <div class="a-card"><h3>Link preview (Discord, iMessage, X…)</h3>
       <p class="hint" style="margin:-4px 0 12px">What shows when someone pastes your site's link. Saved into your site's page file when you <b>Publish</b>.</p>
@@ -180,7 +182,7 @@ function secDrivers(d) {
   const items = d.drivers.map((x, i) => {
     const t = byId(d.teams, x.teamId), key = 'drv-' + x.id, p = `drivers.${i}`;
     return `<details class="item" data-key="${key}" ${A.open[key] ? 'open' : ''}>
-      <summary><span class="swatch" style="--tc:${esc(LG.teamColor(t))}"></span><b class="mono" style="width:34px">${esc(x.number ?? '')}</b>${LG.nameHTML(x.name)} ${LG.flag(x.country)} <span class="muted" style="font-size:13px">${esc(t ? t.name : 'No team')} · ${fmtPts((st.D[x.id] || {}).points || 0)} pts</span>${x.active === false ? '<span class="pill-inactive">inactive</span>' : ''}</summary>
+      <summary>${mvBtns('drivers', i, d.drivers.length)}<span class="swatch" style="--tc:${esc(LG.teamColor(t))}"></span><b class="mono" style="width:34px">${esc(x.number ?? '')}</b>${LG.nameHTML(x.name)} ${LG.flag(x.country)} <span class="muted" style="font-size:13px">${esc(t ? t.name : 'No team')} · ${fmtPts((st.D[x.id] || {}).points || 0)} pts</span>${x.active === false ? '<span class="pill-inactive">inactive</span>' : ''}</summary>
       <div class="body"><div class="fgrid">
         ${F.text('Full name', p + '.name', x.name, 'data-reload')}
         ${F.num('Car number', p + '.number', x.number, 'data-reload')}
@@ -217,7 +219,7 @@ function secTeams(d) {
     const key = 'team-' + t.id, p = `teams.${i}`;
     const drs = d.drivers.filter(x => x.teamId === t.id && x.active !== false).map(x => x.name).join(', ');
     return `<details class="item" data-key="${key}" ${A.open[key] ? 'open' : ''}>
-      <summary><span class="swatch" style="--tc:${esc(LG.teamColor(t))}"></span><b>${esc(t.name)}</b><span class="muted" style="font-size:13px">${esc(drs || 'No drivers')}</span></summary>
+      <summary>${mvBtns('teams', i, d.teams.length)}<span class="swatch" style="--tc:${esc(LG.teamColor(t))}"></span><b>${esc(t.name)}</b><span class="muted" style="font-size:13px">${esc(drs || 'No drivers')}</span></summary>
       <div class="body"><div class="fgrid">
         ${F.text('Team name', p + '.name', t.name, 'data-reload')}
         ${F.color('Team colour', p + '.color', t.color)}
@@ -254,16 +256,17 @@ function personRow(d, path, x, kind, del) {
         ${kind === 'eng' ? F.select('Works with', path + '.driverId', x.driverId, drvOpts) : ''}
         ${F.text('Photo link (or use ⬆ Photo)', path + '.photo', x.photo || '', 'data-reload')}`}
     </div>
-    ${del ? `<button class="iconbtn del" data-act="del-person" data-list="${del.list}" data-k="${del.k}" title="Remove">✕</button>` : ''}
+    ${del ? `<div class="prow-act">${del.len > 1 ? mvBtns(del.list, del.k, del.len) : ''}<button class="iconbtn del" data-act="del-person" data-list="${del.list}" data-k="${del.k}" title="Remove">✕</button></div>` : ''}
   </div>`;
 }
+const mvBtns = (list, k, len) => `<span class="mv-btns"><button class="iconbtn mv" data-act="reorder" data-list="${list}" data-k="${k}" data-dir="-1" title="Move up" ${k === 0 ? 'disabled' : ''}>↑</button><button class="iconbtn mv" data-act="reorder" data-list="${list}" data-k="${k}" data-dir="1" title="Move down" ${k >= len - 1 ? 'disabled' : ''}>↓</button></span>`;
 const STAFF_LISTS = { race: ['Race engineers', 4, 'eng'], perf: ['Performance engineers', 4, 'eng'], reserves: ['Reserve drivers', 2, 'reserve'], academy: ['Academy driver', 1, 'academy'] };
 function staffEditor(d, t, p) {
   const st = t.staff || {};
   const list = key => {
     const [label, max, kind] = STAFF_LISTS[key], arr = st[key] || [], lp = `${p}.staff.${key}`;
     return `<div class="staff-block"><div class="staff-h"><b>${label}</b><span class="muted">${arr.length}/${max}</span>${arr.length < max ? `<button class="btn xs" data-act="add-person" data-list="${lp}">+ Add</button>` : ''}</div>
-      ${arr.map((x, k) => personRow(d, `${lp}.${k}`, x, kind, { list: lp, k })).join('') || '<p class="hint" style="margin:0 0 6px">None yet.</p>'}</div>`;
+      ${arr.map((x, k) => personRow(d, `${lp}.${k}`, x, kind, { list: lp, k, len: arr.length })).join('') || '<p class="hint" style="margin:0 0 6px">None yet.</p>'}</div>`;
   };
   return `<div class="staff-ed"><h4>Team personnel</h4><p class="hint" style="margin:-4px 0 12px">Shown as a "full team" section on the team page. Leave anything empty to hide it.</p>
     <div class="staff-block"><div class="staff-h"><b>Executive / team manager</b><span class="muted">title is up to you</span></div>${personRow(d, `${p}.staff.exec`, st.exec, 'exec')}</div>
@@ -547,6 +550,7 @@ function secTheme(d) {
       ${F.check('Show the ☀ / ☾ toggle in the top bar', 'theme.allowToggle', t.allowToggle !== false)}
       ${F.check('Background glow & dot pattern', 'theme.effects', t.effects !== false)}
       ${F.check('Next-race strip at the very top (your time + track time)', 'theme.topBanner', t.topBanner !== false)}
+      ${F.select('Drivers & Teams page order', 'theme.listOrder', t.listOrder || 'standings', [['standings', 'Championship position'], ['custom', 'My order (set with ↑ ↓ in Drivers / Constructors)']])}
       ${F.select('Hall of Fame style', 'theme.hofStyle', t.hofStyle || 'sakura', [['sakura', '🌸 Sakura night (cherry blossoms)'], ['classic', '🏆 Classic gold']])}
       ${F.select('Driver team history style', 'theme.historyStyle', t.historyStyle || 'timeline', [['timeline', 'Timeline (dots & line)'], ['strip', 'Career strip (coloured bar + list)'], ['cards', 'Team cards (logos & round count)']])}
       ${F.image('Logo on the clock widget (your league logo is used if empty — or use a real sponsor of yours)', 'theme.timingLogo', t.timingLogo === 'none' ? '' : t.timingLogo, 'branding', 400, 'clockLogo')}
@@ -664,7 +668,7 @@ function secGallery(d) {
     <div class="a-card"><div class="toolbar"><button class="btn sm primary" data-act="upload" data-mode="gallery" data-folder="gallery" data-max="1920" data-multiple="1">⬆ Add photos</button><span class="hint" style="margin:0">Up to 1920 px wide · JPG or PNG</span></div></div>
     <div class="a-card">${g.length ? `<div class="gal-admin">${g.map((x, k) => `<div class="gal-item"><img class="zoomable" src="${esc(LG.asset(x.src))}" alt="">
         <div class="fgrid">${F.text('Caption', `gallery.${k}.caption`, x.caption || '')}${F.text('Credit', `gallery.${k}.credit`, x.credit || '')}${F.select('Round', `gallery.${k}.roundId`, x.roundId || '', [['', '— none —'], ...rs.map(r => [r.id, 'R' + r.round + ' ' + r.name])])}</div>
-        <button class="iconbtn del" data-act="gal-del" data-i="${k}" title="Remove from gallery">✕</button></div>`).join('')}</div>` : '<p class="muted">No photos yet.</p>'}</div>`;
+        <div class="prow-act">${mvBtns('gallery', k, g.length)}<button class="iconbtn del" data-act="gal-del" data-i="${k}" title="Remove from gallery">✕</button></div></div>`).join('')}</div>` : '<p class="muted">No photos yet.</p>'}</div>`;
 }
 
 /* ---------------- seasons ---------------- */
@@ -1194,6 +1198,12 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'reorder': {
+      e.preventDefault();
+      const arr = getPath(d, b.dataset.list), k = Number(b.dataset.k), j = k + Number(b.dataset.dir);
+      if (!Array.isArray(arr) || j < 0 || j >= arr.length) return;
+      [arr[k], arr[j]] = [arr[j], arr[k]]; return commit();
+    }
     case 'ac-reload': ACT.members = null; return rerender();
     case 'ac-cancel': ACT.edit = null; return rerender();
     case 'ac-edit': { const m = (ACT.members || []).find(x => x.email === b.dataset.email); ACT.edit = m ? { email: m.email, name: m.name, sections: m.sections || [] } : null; return rerender(); }
@@ -1366,11 +1376,12 @@ function secAbout(d) {
       ${F.area('Our story — # headings, **bold**, - lists, [links](https://…), photos', 'about.body', a.body || '', 'tall')}
       <div class="wide toolbar"><button class="btn sm" data-act="upload" data-mode="insert" data-target="about.body" data-folder="about" data-max="1920" data-multiple="1">🖼 Insert photo(s) at cursor</button></div>
     </div></div>
-    <div class="a-card"><h3>League staff</h3><div class="fgrid">${F.text('Section title', 'about.teamTitle', a.teamTitle || '', 'placeholder="League staff"')}</div>
+    <div class="a-card"><h3>League staff</h3><div class="fgrid">${F.text('Section title', 'about.teamTitle', a.teamTitle || '', 'placeholder="League staff"')}${F.select('Layout', 'about.staffStyle', a.staffStyle || 'carousel', [['carousel', 'Big profile slides (arrows)'], ['grid', 'Compact cards grid']])}</div>
+      <p class="hint">Use ↑ ↓ to set the order people appear in — the first person is shown first.</p>
       <div style="margin-top:12px">${team.map((x, k) => `<div class="prow">
         <div class="prow-pic"><span class="thumb-frame round">${x.photo ? `<img src="${esc(LG.asset(x.photo))}" alt="" style="object-fit:cover" onerror="this.remove()">` : ''}</span><button class="btn xs" data-act="upload" data-mode="set" data-target="about.team.${k}.photo" data-folder="about" data-max="600" data-spec="headshot">⬆ Photo</button></div>
-        <div class="prow-fields">${F.text('Name', `about.team.${k}.name`, x.name || '', 'data-reload')}${F.text('Role', `about.team.${k}.role`, x.role || '', 'placeholder="League director"')}${F.text('Country code', `about.team.${k}.country`, x.country || '', 'maxlength="2"')}${F.text('Photo link', `about.team.${k}.photo`, x.photo || '', 'data-reload')}</div>
-        <button class="iconbtn del" data-act="del-person" data-list="about.team" data-k="${k}" title="Remove">✕</button></div>`).join('')}
+        <div class="prow-fields">${F.text('Name', `about.team.${k}.name`, x.name || '', 'data-reload')}${F.text('Role', `about.team.${k}.role`, x.role || '', 'placeholder="League director"')}${F.text('Country code', `about.team.${k}.country`, x.country || '', 'maxlength="2"')}${F.text('Photo link', `about.team.${k}.photo`, x.photo || '', 'data-reload')}${F.area('Short bio (shown on the big profile slides)', `about.team.${k}.bio`, x.bio || '')}${F.text('Discord / handle (optional)', `about.team.${k}.handle`, x.handle || '')}</div>
+        <div class="prow-act">${mvBtns('about.team', k, team.length)}<button class="iconbtn del" data-act="del-person" data-list="about.team" data-k="${k}" title="Remove">✕</button></div></div>`).join('')}
       <button class="btn sm" data-act="add-person" data-list="about.team">+ Add staff member</button></div></div>`;
 }
 
@@ -1631,6 +1642,12 @@ async function updateIndexMeta(g, d) {
   else next = html.replace(/<title>[\s\S]*?<\/title>/, '').replace(/\s*<meta name="description"[^>]*>/, '').replace(/\s*<meta name="theme-color"[^>]*>/, '').replace(/(<meta name="viewport"[^>]*>)/, `$1\n  ${block}`);
   const dm = ['light', 'dark', 'system'].includes((d.theme || {}).defaultMode) ? d.theme.defaultMode : 'dark';
   next = next.replace(/<html([^>]*)>/, (m0, at) => `<html${at.replace(/\s*data-default-mode="[^"]*"/, '')} data-default-mode="${dm}">`);
+  const fav = (d.league && (d.league.favicon || d.league.logo)) || '';
+  if (fav && !/^data:/.test(fav)) {
+    const href = esc(fav) + '?v=' + (fav.length + (d.league.favicon || '').split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 99991, 7));
+    const tag = `<link rel="icon" href="${href}"><link rel="apple-touch-icon" href="${esc(fav)}">`;
+    next = next.replace(/\s*<link rel="apple-touch-icon"[^>]*>/g, '').replace(/<link rel="icon"[^>]*>/, tag);
+  }
   if (next === html) return false;
   const put = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, g.headers), body: JSON.stringify({ message: 'Update site look & link preview', content: b64(next), branch: g.c.branch, sha: j.sha }) });
   if (!put.ok) throw new Error((await put.json().catch(() => ({}))).message || put.status);

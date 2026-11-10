@@ -2005,3 +2005,72 @@ button.gd-card:hover { transform: perspective(900px) translateY(-6px) rotateX(va
 @media (max-width: 760px) { .gd-pack { width: 210px; } .gd-card { padding: 5px; } .gd-back { inset: 5px; } }
 @media (prefers-reduced-motion: reduce) { .gd-pair.spin .gd-card { animation: gddeal .4s both; } .gd-pack { animation: none; } .gd-card.r-icon::before { animation: none; } }
 .gd-slot .gd-contrib { margin-top: 10px; }
+
+/* =========================================================
+   ABOUT — league staff profile slides
+   ========================================================= */
+.staff-show-wrap .section-title { align-items: baseline; }
+.ss-count { color: var(--muted); font-size: 14px; letter-spacing: .08em; }
+.ss-count b { color: var(--miku); font-size: 20px; }
+.staff-show { position: relative; height: clamp(420px, 40vw, 500px); outline: none; margin: 0 -4px; }
+.ss-track { position: absolute; inset: 0; }
+.ss-slide { position: absolute; top: 0; bottom: 0; left: 16%; width: 68%; display: grid; grid-template-columns: 42% 1fr; border-radius: 26px; overflow: hidden;
+  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--pink, #e12885) 14%, transparent), transparent 55%), var(--card-solid, var(--card));
+  border: 1px solid var(--line-strong); box-shadow: 0 30px 60px -34px rgba(0,0,0,.7);
+  transition: transform .62s cubic-bezier(.22,.8,.22,1), opacity .62s, filter .62s; will-change: transform; }
+.ss-slide.is-cur { z-index: 3; transform: none; opacity: 1; }
+.ss-slide.is-prev, .ss-slide.is-next { z-index: 2; opacity: .5; filter: saturate(.55) brightness(.75); cursor: pointer; }
+.ss-slide.is-prev { transform: translateX(-87%) scale(.84); }
+.ss-slide.is-next { transform: translateX(87%) scale(.84); }
+.ss-slide.is-prev:hover, .ss-slide.is-next:hover { opacity: .72; filter: saturate(.8) brightness(.9); }
+.ss-slide.is-far-l, .ss-slide.is-far-r { z-index: 1; opacity: 0; pointer-events: none; }
+.ss-slide.is-far-l { transform: translateX(-150%) scale(.7); }
+.ss-slide.is-far-r { transform: translateX(150%) scale(.7); }
+.ss-slide.is-prev .ss-info, .ss-slide.is-next .ss-info { pointer-events: none; }
+.ss-photo { position: relative; overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--miku) 40%, transparent), transparent 65%), linear-gradient(160deg, color-mix(in srgb, var(--miku) 28%, #0d1114), color-mix(in srgb, var(--pink, #e12885) 22%, #0b0a0e)); }
+.ss-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; transition: transform 6s ease-out; }
+.ss-slide.is-cur .ss-photo img { transform: scale(1.04); }
+.ss-photo::after { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(90deg, transparent 70%, var(--card-solid, var(--card))); pointer-events: none; }
+.ss-ini { position: absolute; inset: 0; display: grid; place-items: center; font: 800 clamp(64px, 8vw, 110px) var(--f-head); color: rgba(255,255,255,.85); letter-spacing: .04em; }
+.ss-info { position: relative; padding: clamp(24px, 3.4vw, 44px); display: flex; flex-direction: column; justify-content: center; gap: 8px; min-width: 0; }
+.ss-no { position: absolute; top: 18px; right: 24px; font-size: 56px; font-weight: 800; line-height: 1; color: transparent; -webkit-text-stroke: 1.5px color-mix(in srgb, var(--miku) 45%, transparent); opacity: .7; }
+.ss-role { font: 700 12px var(--f-head); letter-spacing: .22em; text-transform: uppercase; color: var(--miku); display: flex; align-items: center; gap: 10px; }
+.ss-role::before { content: ""; width: 26px; height: 2px; background: var(--miku); }
+.ss-name { margin: 0; font-family: var(--f-head); font-size: clamp(28px, 3.4vw, 44px); line-height: 1.05; }
+.ss-name .fn { display: block; font-size: .5em; font-weight: 500; color: var(--muted); letter-spacing: .02em; }
+.ss-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; min-height: 20px; }
+.ss-bio { margin-top: 8px; font-size: 15px; line-height: 1.6; color: var(--text); display: -webkit-box; -webkit-line-clamp: 7; -webkit-box-orient: vertical; overflow: hidden; }
+.ss-bio p { margin: 0 0 .6em; }
+.ss-nav { position: absolute; top: 50%; z-index: 5; width: 52px; height: 52px; margin-top: -26px; border-radius: 50%; border: 1px solid var(--line-strong); cursor: pointer;
+  background: color-mix(in srgb, var(--card-solid, var(--card)) 78%, transparent); backdrop-filter: blur(8px); color: var(--text); font-size: 30px; line-height: 1; display: grid; place-items: center; padding-bottom: 4px;
+  box-shadow: 0 10px 30px -12px rgba(0,0,0,.6); transition: transform .2s, background .2s, color .2s; }
+.ss-nav:hover { background: var(--miku); color: #061012; transform: scale(1.08); }
+.ss-nav.prev { left: calc(16% - 26px); }
+.ss-nav.next { right: calc(16% - 26px); }
+.ss-dots { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+.ss-dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 99px; background: var(--line-strong); cursor: pointer; transition: width .3s, background .3s; }
+.ss-dots button.on { width: 28px; background: var(--miku); }
+.staff-show.single .ss-slide { left: 8%; width: 84%; }
+@media (max-width: 760px) {
+  .staff-show { height: 600px; }
+  .ss-slide { left: 9%; width: 82%; grid-template-columns: 1fr; grid-template-rows: 300px 1fr; }
+  .ss-photo::after { background: linear-gradient(180deg, transparent 65%, var(--card-solid, var(--card))); }
+  .ss-slide.is-prev { transform: translateX(-92%) scale(.88); }
+  .ss-slide.is-next { transform: translateX(92%) scale(.88); }
+  .ss-info { justify-content: flex-start; padding: 18px 20px 22px; }
+  .ss-no { font-size: 40px; top: -6px; right: 16px; }
+  .ss-bio { -webkit-line-clamp: 5; font-size: 14px; }
+  .ss-nav { width: 40px; height: 40px; margin-top: -20px; top: 150px; font-size: 24px; }
+  .ss-nav.prev { left: calc(9% - 14px); } .ss-nav.next { right: calc(9% - 14px); }
+  .staff-show.single .ss-slide { left: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .ss-slide { transition: none; } }
+
+/* admin reorder buttons */
+.mv-btns { display: inline-flex; gap: 2px; margin-right: 6px; }
+.iconbtn.mv { width: 26px; height: 26px; font-size: 13px; }
+.iconbtn.mv:disabled { opacity: .25; cursor: default; }
+.prow-act { display: flex; align-items: center; gap: 4px; align-self: flex-start; }
+.staff-show { overflow: hidden; border-radius: 26px; margin: 0; }
+.ss-slide.is-prev .ss-info, .ss-slide.is-next .ss-info { opacity: .6; }
