@@ -1250,7 +1250,7 @@
     "showBuilder": true
   },
   "meta": {
-    "updated": "2026-11-10T16:02:29.209Z"
+    "updated": "2026-11-10T16:07:44.480Z"
   },
   "rulebook": {},
   "fantasy": {
@@ -1354,6 +1354,26 @@
         "name": "rox",
         "country": "GB",
         "photo": "uploads/about/2026-11-07-roxadm2-zyu2.png"
+      },
+      {
+        "name": "Jones",
+        "role": "Regulations & Compliance Director",
+        "country": "US"
+      },
+      {
+        "name": "petroom",
+        "role": "Talent & Development Director",
+        "country": "GR"
+      },
+      {
+        "name": "Cassandra",
+        "role": "Public Relations Manager",
+        "country": "US"
+      },
+      {
+        "name": "thomas",
+        "role": "Head of Communications",
+        "country": "CN"
       }
     ],
     "image": "uploads/about/2026-11-10-hikaribanner-gxw9.png"
