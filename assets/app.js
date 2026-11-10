@@ -177,12 +177,44 @@ function md(src) {
 }
 
 /* ---------------- rulebook: parse markdown into chapters & points ---------------- */
-const NUM_RE = /^(?:(chapter|part|section|article|art\.?|rule)\s+)?((?:\d+|[IVXLC]+)(?:\.\d+)*)[.)]?(?:\s*[-–—:.]\s*|\s+|$)(.*)$/i;
+const NUM_RE = /^(?:(chapter|part|section|article|art\.?|rule|appendix)\s+)?((?:[A-Z]{0,2}\d+|[IVXLC]+)(?:\.\d+)*)[.)]?(?:\s*[-–—:.]\s*|\s+|$)(.*)$/i;
 function splitNum(title) {
   const m = String(title || '').match(NUM_RE);
-  return m && (m[3] || m[1]) ? { num: m[2], title: m[3].trim() } : { num: '', title: String(title || '').trim() };
+  return m && (m[3] || m[1]) ? { num: (/^appendix$/i.test(m[1] || '') ? 'App. ' : '') + m[2], title: m[3].trim() } : { num: '', title: String(title || '').trim() };
+}
+/* Google Docs "Download → Markdown" clean-up: heading anchors {#…}, the linked contents list,
+   backslash escapes, and regulation tables (| **A1.1.1** | text |) turned into numbered points. */
+const RULE_NO = /^[A-Z]{0,2}\d+(?:\.\d+)+\.?$/;
+function cleanDocsMd(src) {
+  const cells = row => { const t = row.trim().replace(/^\|/, '').replace(/\|$/, ''); return t.split(/(?<!\\)\|/).map(c => c.trim()); };
+  const strip = c => c.replace(/\*\*|__/g, '').replace(/\s+/g, ' ').trim();
+  const lines = String(src || '').replace(/ /g, ' ').split(/\r?\n/)
+    .map(l => l.replace(/\s*\{#[^}\n]*\}\s*$/, '').replace(/\t+/g, '  ').replace(/\\([-.()[\]#*_+!=~>])/g, '$1'))
+    .filter(l => !/^\s*\[[^\]]*\]\(#[^)]*\)\s*$/.test(l) && !/^\s*\**contents:?\**\s*$/i.test(l));
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*\|/.test(lines[i])) { out.push(lines[i]); continue; }
+    let j = i; const block = [];
+    while (j < lines.length && /^\s*\|/.test(lines[j])) block.push(lines[j++]);
+    const rows = block.filter(r => !/^:?-{2,}/.test(r.trim().replace(/^\|\s*/, ''))).map(cells);
+    const isReg = rows.some(r => RULE_NO.test(strip(r[0] || '')) || /^[A-Z]{0,2}\d+(\.\d+)+\s+\S/.test(strip(r[0] || '')));
+    const oneCol = rows.every(r => r.filter(Boolean).length <= 1);
+    if (!isReg && !oneCol) { out.push(...block); i = j - 1; continue; }
+    rows.forEach(r => {
+      const a = strip(r[0] || ''), rest = r.slice(1).filter(Boolean).join(' ').trim();
+      if (!a && !rest) return;
+      const sm = a.match(/^([A-Z]{0,2}\d+(?:\.\d+)+)\.?\s+(\S.*)$/);
+      if (sm && !rest) out.push('', `## ${sm[1]} ${sm[2]}`, '');
+      else if (RULE_NO.test(a)) out.push('', `**${a.replace(/\.$/, '')}** ${rest}`.trim(), '');
+      else if (oneCol) out.push('', (r.find(Boolean) || '').trim(), '');
+      else out.push('', [r[0], rest].filter(Boolean).join(' — '), '');
+    });
+    i = j - 1;
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 function parseRulebook(src, opts = {}) {
+  if (/\{#[^}]+\}|^\s*\|\s*\**[A-Z]{0,2}\d+(\.\d+)+/m.test(src || '')) src = cleanDocsMd(src);
   let lines = String(src || '').replace(/ /g, ' ').split(/\r?\n/);
   let heads = lines.map((l, i) => { const m = l.match(/^(#{1,6})\s+(.*)/); return m ? { i, lv: m[1].length, text: m[2].replace(/\*\*|__/g, '').trim() } : null; }).filter(Boolean);
   if (!heads.length) {
@@ -221,7 +253,7 @@ function parseRulebook(src, opts = {}) {
   while (intro.length && !intro[0].trim()) intro.shift();
   if (!res.title && intro.length) { const f = intro[0].trim().replace(/^\*\*(.*)\*\*$/, '$1'); if (f.length < 90 && !/[.:]$/.test(f) && !/^[-*|>!]/.test(f)) { res.title = f; intro.shift(); } }
   res.intro = intro.join('\n').trim();
-  const auto = opts.autoNumber !== false;
+  const auto = opts.autoNumber !== false && !res.chapters.some(c => c.num);
   res.chapters.forEach((c, ci) => {
     c.id = 'c' + (ci + 1);
     if (!c.num && auto) c.num = String(ci + 1);
@@ -1028,7 +1060,7 @@ function pageRules(d, chId, secId) {
   const ci = Math.max(0, chs.findIndex(c => c.id === chId));
   const c = chs[ci];
   RULE_TARGET = secId || null;
-  const lbl = c2 => `${c2.num ? `<span class="rb-n">${esc(c2.num)}</span>` : ''}<span class="rb-t">${esc(c2.title || c2.raw || 'Chapter')}</span>`;
+  const lbl = c2 => `${c2.num ? `<span class="rb-n">${esc(c2.num)}</span>` : ''}<span class="rbk-t">${esc(c2.title || c2.raw || 'Chapter')}</span>`;
   const side = `<aside class="rb-side">
     <div class="rb-search"><input type="search" id="rb-q" placeholder="Search the rules…" autocomplete="off"></div>
     <nav class="rb-chapters">${chs.map(x => `<a href="#/rules/${x.id}" class="rb-ch ${x.id === c.id ? 'active' : ''}">${lbl(x)}</a>

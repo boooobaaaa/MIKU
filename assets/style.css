@@ -2074,3 +2074,6 @@ button.gd-card:hover { transform: perspective(900px) translateY(-6px) rotateX(va
 .prow-act { display: flex; align-items: center; gap: 4px; align-self: flex-start; }
 .staff-show { overflow: hidden; border-radius: 26px; margin: 0; }
 .ss-slide.is-prev .ss-info, .ss-slide.is-next .ss-info { opacity: .6; }
+
+.rb-ch { text-align: left; width: 100%; }
+.rbk-t { flex: 1; min-width: 0; }
