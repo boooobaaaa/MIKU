@@ -59,12 +59,22 @@ function fbStore(conf) {
     async setKey(x) { await F.setDoc(F.doc(db, 'site_secrets', 'github'), { token: x.token, owner: x.owner, repo: x.repo, branch: x.branch, path: x.path, by: x.by || '', at: F.serverTimestamp() }); },
     async clearKey() { await F.deleteDoc(F.doc(db, 'site_secrets', 'github')); },
     async log(action, detail, name) { await F.addDoc(F.collection(db, 'site_log'), { email: s.user.email, name: String(name || '').slice(0, 80), action: String(action).slice(0, 60), detail: String(detail || '').slice(0, 500), at: F.serverTimestamp() }); },
-    async logs() { const q = await F.getDocs(F.query(F.collection(db, 'site_log'), F.orderBy('at', 'desc'), F.limit(40))); return q.docs.map(x => Object.assign({ id: x.id }, x.data(), { at: ts(x.data().at) })); }
+    async logs() { const q = await F.getDocs(F.query(F.collection(db, 'site_log'), F.orderBy('at', 'desc'), F.limit(40))); return q.docs.map(x => Object.assign({ id: x.id }, x.data(), { at: ts(x.data().at) })); },
+    /* applications */
+    async appHook() { const x = await F.getDoc(F.doc(db, 'app_config', 'discord')); return x.exists() ? x.data() : null; },
+    async setAppHook(x) { await F.setDoc(F.doc(db, 'app_config', 'discord'), { url: x.url || '', decisions: x.decisions !== false, ping: x.ping || '' }); },
+    async myApps() { const q = await F.getDocs(F.query(F.collection(db, 'applications'), F.where('uid', '==', s.user.uid))); return q.docs.map(conv); },
+    async submitApp(id, x) { await F.setDoc(F.doc(db, 'applications', id), { uid: s.user.uid, email: s.user.email, formId: x.formId, formTitle: x.formTitle, applicant: x.applicant, answers: x.answers, status: 'pending', note: '', reviewer: '', createdAt: F.serverTimestamp(), updatedAt: F.serverTimestamp(), reviewedAt: null }); },
+    async editApp(id, x) { await F.updateDoc(F.doc(db, 'applications', id), { applicant: x.applicant, answers: x.answers, updatedAt: F.serverTimestamp() }); },
+    async withdrawApp(id) { await F.deleteDoc(F.doc(db, 'applications', id)); },
+    async allApps() { const q = await F.getDocs(F.collection(db, 'applications')); return q.docs.map(conv); },
+    async reviewApp(id, status, note, reviewer) { await F.updateDoc(F.doc(db, 'applications', id), { status, note: note || '', reviewer: reviewer || '', reviewedAt: F.serverTimestamp() }); },
+    async deleteApp(id) { await F.deleteDoc(F.doc(db, 'applications', id)); }
   });
   return s;
 }
 let STORE = null, KEY = '';
-function hook(s) { if (s && !s.__hooked) { s.__hooked = true; s.on(() => { P.subs = null; if (/^#\/(portal|admin)/.test(location.hash)) LG.render(false); }); } return s; }
+function hook(s) { if (s && !s.__hooked) { s.__hooked = true; s.on(() => { P.subs = null; if (/^#\/(portal|admin|apply)/.test(location.hash)) LG.render(false); }); } return s; }
 function store(d) {
   if (window.PT_TEST_STORE) return hook(window.PT_TEST_STORE);
   const conf = d.gridDraft && d.gridDraft.firebase && d.gridDraft.firebase.apiKey ? d.gridDraft.firebase : null;
@@ -131,6 +141,37 @@ const RULES = `
         && request.resource.data.detail is string && request.resource.data.detail.size() <= 500;
       allow update: if false;
       allow delete: if isAdmin();
+    }
+
+    // ---------------- Applications (public forms) ----------------
+    function canReviewApps() { return isAdmin() || (isCoAdmin() && ('*' in coSections() || 'applications' in coSections())); }
+    function validApp(a) {
+      return a.formId is string && a.formId.size() > 0 && a.formId.size() <= 40
+        && a.formTitle is string && a.formTitle.size() <= 140
+        && a.applicant is string && a.applicant.size() > 0 && a.applicant.size() <= 80
+        && a.answers is map && a.answers.size() <= 40;
+    }
+    match /app_config/{id} {
+      allow read: if signedIn() && request.auth.token.email_verified == true;
+      allow write: if isAdmin();
+    }
+    match /applications/{id} {
+      allow read: if canReviewApps() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn() && request.auth.token.email_verified == true
+        && id == request.resource.data.formId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'formId', 'formTitle', 'applicant', 'answers', 'status', 'note', 'reviewer', 'createdAt', 'updatedAt', 'reviewedAt'])
+        && request.resource.data.uid == request.auth.uid && request.resource.data.email == myEmail()
+        && request.resource.data.status == 'pending' && request.resource.data.note == '' && request.resource.data.reviewer == ''
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time && request.resource.data.reviewedAt == null
+        && validApp(request.resource.data);
+      allow update: if (signedIn() && resource.data.uid == request.auth.uid && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['applicant', 'answers', 'updatedAt'])
+          && request.resource.data.updatedAt == request.time && validApp(request.resource.data))
+        || (canReviewApps() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'note', 'reviewer', 'reviewedAt'])
+          && request.resource.data.status in ['pending', 'accepted', 'waitlist', 'denied']
+          && request.resource.data.note is string && request.resource.data.note.size() <= 2000
+          && request.resource.data.reviewer is string && request.resource.data.reviewer.size() <= 80);
+      allow delete: if canReviewApps() || (signedIn() && resource.data.uid == request.auth.uid && resource.data.status in ['pending', 'denied']);
     }
 `;
 

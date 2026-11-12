@@ -2077,3 +2077,62 @@ button.gd-card:hover { transform: perspective(900px) translateY(-6px) rotateX(va
 
 .rb-ch { text-align: left; width: 100%; }
 .rbk-t { flex: 1; min-width: 0; }
+
+/* =========================================================
+   APPLICATIONS
+   ========================================================= */
+.ap-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; white-space: nowrap; letter-spacing: .02em; }
+.ap-pending { background: color-mix(in srgb, #f3d27a 18%, transparent); color: #e9c25a; box-shadow: inset 0 0 0 1px color-mix(in srgb, #f3d27a 40%, transparent); }
+.ap-accepted { background: color-mix(in srgb, #2ecc71 16%, transparent); color: #3ddc84; box-shadow: inset 0 0 0 1px color-mix(in srgb, #2ecc71 40%, transparent); }
+.ap-waitlist { background: color-mix(in srgb, var(--miku) 15%, transparent); color: var(--miku); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--miku) 40%, transparent); }
+.ap-denied { background: color-mix(in srgb, #e12885 14%, transparent); color: #f06aa8; box-shadow: inset 0 0 0 1px color-mix(in srgb, #e12885 40%, transparent); }
+:root[data-theme="light"] .ap-pending { color: #9a7412; } :root[data-theme="light"] .ap-accepted { color: #13804a; }
+.ap-who { font-size: 13px; color: var(--muted); margin: -6px 0 14px; } .ap-who a { color: var(--miku); }
+.ap-signin { display: flex; align-items: center; gap: 16px; justify-content: space-between; flex-wrap: wrap; }
+.ap-signin h3 { margin: 0 0 4px; }
+.ap-list { display: grid; gap: 12px; }
+.ap-card { display: flex; align-items: center; gap: 16px; justify-content: space-between; text-decoration: none; color: inherit; transition: transform .2s, border-color .2s; }
+.ap-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--miku) 50%, var(--line)); }
+.ap-card h3 { margin: 0 0 4px; } .ap-card p { margin: 0 0 6px; }
+.ap-card-r { flex: none; }
+.ap-form .fgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ap-form textarea, .ap-form input, .ap-form select { width: 100%; }
+.ap-req { color: var(--pink, #e12885); }
+.ap-help { display: block; color: var(--muted); font-size: 12px; margin: -2px 0 4px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.ap-multi { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.ap-multi legend { width: 100%; padding: 0; margin-bottom: 6px; font-size: 12.5px; color: var(--text-2); }
+.ap-check { display: inline-flex; gap: 7px; align-items: center; font-size: 14px; cursor: pointer; }
+.ap-check input { width: auto; }
+.ap-status { margin-bottom: 14px; }
+.ap-status-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.ap-status-h h3 { margin: 2px 0 0; }
+.ap-steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0; margin: 16px 0 4px; counter-reset: s; }
+.ap-steps li { position: relative; padding-top: 18px; font-size: 12.5px; color: var(--muted); }
+.ap-steps li span { position: absolute; top: 0; left: 0; right: 0; height: 6px; border-radius: 99px; background: var(--line-strong); }
+.ap-steps li.done span { background: var(--miku); }
+.ap-steps li.done { color: var(--text-2); }
+.ap-steps li.now { color: var(--text); font-weight: 700; }
+.ap-steps li.now span { background: linear-gradient(90deg, var(--miku), color-mix(in srgb, var(--miku) 30%, transparent)); animation: apPulse 1.8s ease-in-out infinite; }
+@keyframes apPulse { 50% { opacity: .55; } }
+.st-accepted .ap-steps li:last-child span { background: #2ecc71; }
+.st-denied .ap-steps li:last-child span { background: #e12885; }
+.st-waitlist .ap-steps li:last-child span { background: var(--miku); }
+.ap-note { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--miku) 8%, transparent); border-left: 3px solid var(--miku); }
+.st-accepted .ap-note { border-color: #2ecc71; } .st-denied .ap-note { border-color: #e12885; }
+.ap-note b { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.ap-note .prose p { margin: 4px 0 0; }
+.ap-answers { display: grid; grid-template-columns: minmax(140px, 240px) 1fr; gap: 8px 16px; margin: 4px 0 12px; }
+.ap-answers dt { color: var(--muted); font-size: 13px; }
+.ap-answers dd { margin: 0; white-space: pre-wrap; }
+.ap-q { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+@media (max-width: 700px) { .ap-form .fgrid { grid-template-columns: 1fr; } .ap-answers { grid-template-columns: 1fr; } .ap-answers dd { margin-bottom: 6px; } .ap-card { flex-direction: column; align-items: flex-start; } }
+.ap-form .fgrid { display: grid; gap: 16px 18px; align-items: start; }
+.ap-form .fld { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.ap-form .fld > span { font-size: 13px; color: var(--text-2); font-weight: 600; }
+.ap-form .fld.wide, .ap-form fieldset.wide { grid-column: 1 / -1; }
+.ap-form input:not([type=checkbox]), .ap-form textarea, .ap-form select { width: 100%; background: color-mix(in srgb, var(--bg) 60%, transparent); border: 1px solid var(--line-strong); border-radius: 10px; color: var(--text); font: 15px var(--f-body); padding: 10px 12px; outline: none; }
+.ap-form input:focus, .ap-form textarea:focus, .ap-form select:focus { border-color: var(--miku); }
+.ap-form textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
+.ap-form .ap-help { margin: -4px 0 0; }
+.ap-check input { accent-color: var(--miku); width: 17px; height: 17px; }
+.page-head + .ap-who { margin-top: 4px; }

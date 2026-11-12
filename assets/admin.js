@@ -13,7 +13,7 @@ const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'KIRA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'KIRA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['applications', 'Applications', '✍'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -613,6 +613,79 @@ async function postToDiscord(x, d) {
   } catch (err) { toast('Discord refused it: ' + err.message, 'err'); return false; }
 }
 
+/* ---------------- applications ---------------- */
+const APA = { list: null, loading: false, err: '', filter: 'pending', hook: undefined, form: '' };
+window.addEventListener('hashchange', () => { if (/^#\/admin\/applications/.test(location.hash) && !APA.loading) { APA.list = null; APA.hook = undefined; setTimeout(rerender, 0); } });
+function secApplications(d) {
+  const Apps = window.Apps, s = teamStore();
+  const top = head('Applications', 'Build application forms people fill in on the site. New applications are posted to your Discord channel; you accept, waitlist or deny them here and the applicant sees the result on the site (More → Applications → My applications).', `<a class="btn" href="#/apply">View public page</a>`);
+  const forms = d.applications.forms;
+  const qRow = (fi, q, k, n) => {
+    const p = `applications.forms.${fi}.questions.${k}`;
+    return `<div class="ap-q">
+      <div class="fgrid">${F.text('Question', `${p}.label`, q.label || '')}${F.select('Type', `${p}.type`, q.type || 'short', Apps.Q_TYPES)}
+        ${F.text('Help text (optional)', `${p}.help`, q.help || '')}
+        ${['choice', 'multi'].includes(q.type) ? `<label class="fld wide"><span>Options — one per line</span><textarea data-path="${p}.options" data-lines rows="${Math.max(3, (q.options || []).length + 1)}">${esc((q.options || []).join('\n'))}</textarea></label>` : ''}
+        ${F.check('Required', `${p}.required`, !!q.required)}</div>
+      <div class="prow-act">${mvBtns(`applications.forms.${fi}.questions`, k, n)}<button class="iconbtn del" data-act="apq-del" data-i="${fi}" data-k="${k}" title="Remove question">✕</button></div></div>`;
+  };
+  const formsHTML = forms.map((f, fi) => {
+    const key = 'apf-' + f.id;
+    return `<details class="item" data-key="${key}" ${A.open[key] ? 'open' : ''}>
+      <summary>${mvBtns('applications.forms', fi, forms.length)}<b>${esc(f.title || 'Untitled form')}</b><span class="chip ${f.open ? 'on' : ''}">${f.open ? '● Open' : 'Closed'}</span><span class="muted" style="font-size:13px">${(f.questions || []).length} questions</span></summary>
+      <div class="body">
+        <div class="fgrid">${F.text('Form title', `applications.forms.${fi}.title`, f.title || '')}${F.check('Open — people can apply', `applications.forms.${fi}.open`, !!f.open)}</div>
+        <div class="fgrid">${F.area('Description (shown above the form)', `applications.forms.${fi}.description`, f.description || '')}</div>
+        <p class="hint">Everyone is always asked for their <b>name / nickname</b> first. Link to this form: <code>#/apply/${esc(f.id)}</code></p>
+        <h4 style="margin:14px 0 6px">Questions</h4>
+        ${(f.questions || []).map((q, k) => qRow(fi, q, k, f.questions.length)).join('') || '<p class="muted">No questions yet.</p>'}
+        <div class="toolbar" style="margin-top:10px"><button class="btn sm" data-act="apq-add" data-i="${fi}">+ Add question</button><button class="btn sm danger" data-act="apf-del" data-i="${fi}" style="margin-left:auto">Delete form</button></div>
+      </div></details>`;
+  }).join('');
+  const builder = `<div class="a-card"><h3>Forms</h3>${formsHTML || '<p class="muted">No forms yet — start from a template.</p>'}
+    <div class="toolbar" style="margin-top:12px"><span class="hint" style="margin:0">New form:</span>${Object.entries(Apps.TEMPLATES).map(([k, t]) => `<button class="btn sm" data-act="apf-add" data-tpl="${k}">+ ${esc(t.title)}</button>`).join('')}<button class="btn sm ghost" data-act="apf-add" data-tpl="blank">+ Blank form</button></div>
+    <p class="hint">Forms are part of your site — <b>Publish</b> after changing them. The answers people send are stored privately in Firebase, never in your public site files.</p></div>`;
+  if (!s) return top + `<div class="warn">Applications use the same Firebase project as Grid Draft. Finish the setup in <a href="#/admin/griddraft">Grid Draft</a> first (steps 1–7), then re-copy the rules.</div>` + builder;
+  if (!s.ready) return top + '<p class="muted">Connecting…</p>' + builder;
+  if (!s.user) return top + `<div class="a-card"><p>Sign in with your admin Google account to review applications.</p><button class="btn primary" data-team="signin">Sign in with Google</button></div>` + builder;
+  const owner = ownerEmails().includes(s.user.email);
+  if (!owner && !(s.siteAdmin && allowed('applications'))) return top + `<div class="warn">Signed in as ${esc(s.user.email)}, which can't review applications. Add it as an owner email (Grid Draft ①) or to the Admin team with Applications access.</div>` + builder;
+  if (APA.list === null && !APA.loading) {
+    APA.loading = true;
+    Promise.all([s.allApps(), APA.hook === undefined ? s.appHook().catch(() => null) : Promise.resolve(APA.hook)])
+      .then(([l, h]) => { APA.list = l.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); APA.hook = h || null; APA.err = ''; })
+      .catch(e => { APA.list = []; APA.err = (e.code || e.message) + (/permission/.test(e.code || e.message) ? ' — re-copy the security rules from Grid Draft ③ into Firebase (they now include applications).' : ''); })
+      .finally(() => { APA.loading = false; rerender(); });
+  }
+  const all = APA.list || [], counts = { pending: 0, accepted: 0, waitlist: 0, denied: 0 };
+  all.forEach(a => { counts[a.status] = (counts[a.status] || 0) + 1; });
+  const shown = all.filter(a => (APA.filter === 'all' || a.status === APA.filter) && (!APA.form || a.formId === APA.form));
+  const fmt = t => t ? new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+  const review = `<div class="a-card" style="overflow-x:auto"><div class="card-title" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><h3 style="margin:0">Review</h3>
+      <div class="tabs" style="margin:0">${[['pending', 'Waiting'], ['accepted', 'Accepted'], ['waitlist', 'Waitlist'], ['denied', 'Denied'], ['all', 'All']].map(([k, l]) => `<button data-act="ap-filter" data-f="${k}" class="${APA.filter === k ? 'active' : ''}">${l}${k !== 'all' && counts[k] ? ` <span class="muted">${counts[k]}</span>` : ''}</button>`).join('')}</div>
+      ${forms.length > 1 ? `<select id="ap-form-filter"><option value="">All forms</option>${forms.map(f => `<option value="${esc(f.id)}" ${APA.form === f.id ? 'selected' : ''}>${esc(f.title)}</option>`).join('')}</select>` : ''}
+      <button class="btn sm" data-act="ap-reload" style="margin-left:auto">Refresh</button></div>
+    ${APA.err ? `<div class="warn">${esc(APA.err)}</div>` : ''}
+    ${APA.list === null ? '<p class="muted">Loading…</p>' : shown.length ? shown.map(a => {
+      const f = forms.find(x => x.id === a.formId), key = 'apa-' + a.id;
+      const qs = f ? f.questions : Object.keys(a.answers || {}).map(id => ({ id, label: id }));
+      return `<details class="item" data-key="${key}" ${A.open[key] ? 'open' : ''}><summary>${Apps.badge(a.status)}<b>${esc(a.applicant)}</b><span class="muted" style="font-size:13px">${esc(a.formTitle || '')} · ${esc(fmt(a.createdAt))}</span></summary>
+        <div class="body"><dl class="ap-answers">${qs.map(q => `<dt>${esc(q.label)}</dt><dd>${esc(Apps.answerText(d, q, (a.answers || {})[q.id]) || '—')}</dd>`).join('')}</dl>
+          <p class="hint">Google account: <span class="mono">${esc(a.email || '')}</span>${a.reviewer ? ` · last decision by ${esc(a.reviewer)} ${esc(fmt(a.reviewedAt))}` : ''}</p>
+          <label class="fld wide"><span>Message to the applicant (they'll see it on the site${APA.hook && APA.hook.decisions !== false ? ' and it\'s posted to Discord' : ''})</span><textarea id="ap-note-${esc(a.id)}" rows="3" placeholder="e.g. Welcome aboard! You'll drive for … from Round 6.">${esc(a.note || '')}</textarea></label>
+          <div class="toolbar" style="margin-top:8px"><button class="btn sm primary" data-act="ap-review" data-id="${esc(a.id)}" data-st="accepted">✓ Accept</button><button class="btn sm" data-act="ap-review" data-id="${esc(a.id)}" data-st="waitlist">🕓 Waitlist</button><button class="btn sm danger" data-act="ap-review" data-id="${esc(a.id)}" data-st="denied">✕ Deny</button>${a.status !== 'pending' ? `<button class="btn sm ghost" data-act="ap-review" data-id="${esc(a.id)}" data-st="pending">Back to review</button>` : ''}<button class="btn sm ghost" data-act="ap-delete" data-id="${esc(a.id)}" style="margin-left:auto">Delete</button></div></div></details>`;
+    }).join('') : `<p class="muted">${APA.filter === 'pending' ? 'Nothing waiting for review. 🎉' : 'Nothing here.'}</p>`}</div>`;
+  const h = APA.hook || {};
+  const discord = owner ? `<div class="a-card"><h3>Discord channel</h3>
+      ${h.url ? '<div class="ok-note">Connected — new applications are posted to your channel.</div>' : '<div class="warn">Not connected yet — applications still work, they just won\'t be posted to Discord.</div>'}
+      <div class="fgrid"><label class="fld wide"><span>Webhook for your applications channel</span><input type="password" id="ap-hook" placeholder="${h.url ? '•••••• saved — paste a new one to replace it' : 'https://discord.com/api/webhooks/…'}" autocomplete="off"></label>
+        <label class="fld"><span>Ping with each new application (optional)</span><input id="ap-ping" value="${esc(h.ping || '')}" placeholder="e.g. <@&123456789> for a role"></label>
+        <label class="chk"><input type="checkbox" id="ap-decisions" ${h.decisions !== false ? 'checked' : ''}><span>Also post decisions (accepted / waitlisted / denied)</span></label></div>
+      <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="ap-hook-save">Save</button>${h.url ? '<button class="btn sm" data-act="ap-hook-test">Send test message</button><button class="btn sm danger" data-act="ap-hook-clear">Disconnect</button>' : ''}</div>
+      <p class="hint">Discord → your applications channel → ⚙ Edit channel → Integrations → Webhooks → New webhook → Copy URL. It's stored in Firebase (not your public files). Signed-in applicants' browsers use it to post their application, so use a dedicated channel — if it's ever spammed, delete the webhook in Discord and paste a new one. To find a role ID for pings: Discord settings → Advanced → Developer Mode, then right-click the role → Copy ID.</p></div>` : '';
+  return top + review + discord + builder;
+}
+
 /* ---------------- admin team ---------------- */
 const ACT = { members: null, logs: null, key: undefined, err: '', loading: false, edit: null };
 window.addEventListener('hashchange', () => { if (/^#\/admin\/access/.test(location.hash) && !ACT.loading) { ACT.members = null; setTimeout(rerender, 0); } });
@@ -1028,7 +1101,7 @@ function render(sec) {
   if (!unlocked()) return lockHTML();
   loadTeamKey();
   const me = team(), lim = limited();
-  const fn = !allowed(A.section) ? noAccess : { access: secAccess, dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, seasons: secSeasons, gallery: secGallery }[A.section];
+  const fn = !allowed(A.section) ? noAccess : { access: secAccess, dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, applications: secApplications, seasons: secSeasons, gallery: secGallery }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${me ? `<div class="side-who"><b>${esc(me.name)}</b><span>${me.owner ? 'Owner' : lim ? 'Admin team' : 'Admin team · passcode'} · <a href="javascript:void 0" data-team="signout">sign out</a></span></div>` : ''}
@@ -1050,6 +1123,7 @@ function setPath(obj, path, val) {
 function readVal(el) {
   if (el.type === 'checkbox') return el.checked;
   if (el.hasAttribute('data-num')) return el.value === '' ? '' : Number(el.value);
+  if (el.hasAttribute('data-lines')) return el.value.split('\n').map(x => x.trim()).filter(Boolean);
   if (el.hasAttribute('data-dt')) return el.value ? new Date(el.value).toISOString() : '';
   if (el.hasAttribute('data-list')) return el.value.split(/[,\s]+/).filter(Boolean).map(Number).filter(n => !isNaN(n));
   if (el.dataset.path.endsWith('.country')) return el.value.trim().toUpperCase();
@@ -1198,6 +1272,44 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'apf-add': { const f = b.dataset.tpl === 'blank' ? { id: window.Apps.uidOf('form'), title: 'New application', description: '', open: false, questions: [{ id: window.Apps.uidOf('q'), label: 'Discord username', type: 'short', required: true, options: [], help: '' }] } : window.Apps.fromTemplate(b.dataset.tpl); d.applications.forms.push(f); A.open['apf-' + f.id] = true; toast('Form added — tick "Open" when it\'s ready, then Publish'); return commit(); }
+    case 'apf-del': if (confirm('Delete this form? Applications already sent stay in Firebase.')) { d.applications.forms.splice(i, 1); commit(); } return;
+    case 'apq-add': d.applications.forms[i].questions.push({ id: window.Apps.uidOf('q'), label: 'New question', type: 'short', required: false, options: [], help: '' }); return commit();
+    case 'apq-del': d.applications.forms[i].questions.splice(Number(b.dataset.k), 1); return commit();
+    case 'ap-filter': APA.filter = b.dataset.f; return rerender();
+    case 'ap-reload': APA.list = null; APA.hook = undefined; return rerender();
+    case 'ap-review': {
+      const s = teamStore(), a = (APA.list || []).find(x => x.id === b.dataset.id); if (!a) return;
+      const note = (document.getElementById('ap-note-' + a.id) || {}).value || '', st = b.dataset.st, me = team(), who = me ? me.name : '';
+      b.disabled = true;
+      try {
+        await s.reviewApp(a.id, st, note.trim(), who);
+        if (st !== 'pending') window.Apps.notifyDecision(s, d, a, st, note.trim(), who);
+        Object.assign(a, { status: st, note: note.trim(), reviewer: who, reviewedAt: Date.now() });
+        toast({ accepted: 'Accepted ✓', waitlist: 'Waitlisted', denied: 'Denied', pending: 'Moved back to review' }[st] + ' — the applicant will see it on the site');
+        if (me) me.s.log('Application ' + st, `${a.applicant} · ${a.formTitle || ''}`, who).catch(() => { });
+      } catch (x) { toast('Could not save: ' + (x.code || x.message), 'err'); }
+      b.disabled = false; return rerender();
+    }
+    case 'ap-delete': {
+      if (!confirm('Delete this application permanently? The applicant will no longer see it.')) return;
+      try { await teamStore().deleteApp(b.dataset.id); APA.list = (APA.list || []).filter(x => x.id !== b.dataset.id); toast('Deleted'); } catch (x) { toast('Could not delete: ' + (x.code || x.message), 'err'); }
+      return rerender();
+    }
+    case 'ap-hook-save': case 'ap-hook-clear': {
+      const s = teamStore(), cur = APA.hook || {};
+      let url = b.dataset.act === 'ap-hook-clear' ? '' : document.getElementById('ap-hook').value.trim() || cur.url || '';
+      if (url && !/^https:\/\/(?:\w+\.)?discord(?:app)?\.com\/api\/webhooks\//.test(url)) return toast('That doesn\'t look like a Discord webhook link', 'err');
+      if (b.dataset.act === 'ap-hook-clear' && !confirm('Disconnect Discord? New applications will no longer be posted.')) return;
+      const x = { url, ping: b.dataset.act === 'ap-hook-clear' ? '' : document.getElementById('ap-ping').value.trim(), decisions: b.dataset.act === 'ap-hook-clear' ? true : document.getElementById('ap-decisions').checked };
+      try { await s.setAppHook(x); APA.hook = x; toast(url ? 'Discord settings saved' : 'Discord disconnected'); } catch (e2) { toast('Could not save: ' + (e2.code || e2.message) + (/permission/.test(e2.code || e2.message) ? ' — re-copy the rules from Grid Draft ③' : ''), 'err'); }
+      return rerender();
+    }
+    case 'ap-hook-test': {
+      const h = APA.hook; if (!h || !h.url) return;
+      try { const r = await fetch(h.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: (d.league.name || 'League').slice(0, 60) + ' Applications', content: '✅ Test message — applications from the website will be posted here.' }) }); toast(r.ok ? 'Test message sent — check Discord' : 'Discord refused it (' + r.status + ')', r.ok ? '' : 'err'); } catch (x) { toast('Could not reach Discord', 'err'); }
+      return;
+    }
     case 'reorder': {
       e.preventDefault();
       const arr = getPath(d, b.dataset.list), k = Number(b.dataset.k), j = k + Number(b.dataset.dir);
@@ -1716,6 +1828,7 @@ document.addEventListener('click', async e => {
   rerender();
 });
 document.addEventListener('change', e => {
+  if (e.target.id === 'ap-form-filter') { APA.form = e.target.value; return rerender(); }
   if (e.target.id === 'ac-all') document.querySelectorAll('.ac-sec').forEach(x => { x.disabled = e.target.checked; if (e.target.checked) x.checked = true; });
 });
 

@@ -56,6 +56,7 @@ function normalize(x) {
   const d = Object.assign(base, x || {});
   d.league = Object.assign(emptyLeague().league, d.league || {});
   d.league.links = d.league.links || {};
+  d.applications = Object.assign({ forms: [] }, d.applications || {}); if (!Array.isArray(d.applications.forms)) d.applications.forms = [];
   d.settings = Object.assign({ adminHash: '' }, d.settings || {});
   if (!d.league.rcKira) { if (!d.league.raceControl || /^\s*fia\s*$/i.test(d.league.raceControl)) d.league.raceControl = 'KIRA'; d.league.rcKira = true; }
   (d.drivers || []).forEach(x => (x.history || []).forEach(h => { const m = h && HIST_ROLES.find(r => r.toLowerCase() === String(h.role || '').trim().toLowerCase().replace('principle', 'principal')); if (m) h.role = m; }));
@@ -1732,7 +1733,8 @@ function pageJoin(d) {
   const total = seats.reduce((a, b) => a + b.n, 0);
   const taken = d.drivers.filter(x => x.active !== false && x.number !== '' && x.number != null).map(x => Number(x.number)).sort((a, b) => a - b);
   const discord = d.league.links && d.league.links.discord;
-  const applyBtn = s.formUrl ? `<a class="btn primary" href="${esc(s.formUrl)}" target="_blank" rel="noopener">Apply now →</a>` : discord ? `<a class="btn primary" href="${esc(discord)}" target="_blank" rel="noopener">Apply on Discord →</a>` : '';
+  const appForm = ((d.applications || {}).forms || []).find(f => f.open);
+  const applyBtn = appForm ? `<a class="btn primary" href="#/apply/${esc(appForm.id)}">Apply now →</a>` : s.formUrl ? `<a class="btn primary" href="${esc(s.formUrl)}" target="_blank" rel="noopener">Apply now →</a>` : discord ? `<a class="btn primary" href="${esc(discord)}" target="_blank" rel="noopener">Apply on Discord →</a>` : '';
   return `<div class="page">${head('Season ' + d.league.season, esc(s.title || 'Join the grid'), '')}
     <div class="card" style="margin-bottom:20px"><div class="join-status"><span class="badge ${s.open ? 'next' : 'cancel'}" style="${s.open ? '' : 'text-decoration:none'}">${s.open ? 'Sign-ups open' : 'Sign-ups closed'}</span>${s.open && total ? `<span class="muted">${total} seat${total > 1 ? 's' : ''} available</span>` : ''}<span style="margin-left:auto">${s.open ? applyBtn : ''}</span></div>
       ${s.intro ? `<div class="prose" style="margin-top:16px">${md(s.intro)}</div>` : `<p class="muted" style="margin:14px 0 0">${s.open ? 'We\'re looking for drivers! Read the requirements and send in an application.' : 'Sign-ups are closed right now — keep an eye on the news page or Discord for the next window.'}</p>`}
@@ -1912,7 +1914,7 @@ const notFound = () => `<div class="page">${empty('Page not found', '<p><a href=
 
 /* ---------------- router & chrome ---------------- */
 const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News']];
-const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['seasons', 'Seasons'], ['gallery', 'Gallery'], ['griddraft', 'Grid Draft'], ['join', 'Join the league']];
+const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['seasons', 'Seasons'], ['gallery', 'Gallery'], ['griddraft', 'Grid Draft'], ['apply', 'Applications'], ['join', 'Join the league']];
 const ROUTES = [
   [/^$/, d => pageHome(d)],
   [/^schedule$/, d => pageSchedule(d)],
@@ -1935,6 +1937,7 @@ const ROUTES = [
   [/^gallery$/, d => pageGallery(d)],
   [/^seasons(?:\/(view)\/([^/]+))?$/, (d, m) => window.Extras ? window.Extras.pageSeasons(d, m[1], m[2]) : notFound()],
   [/^portal$/, d => window.Portal ? window.Portal.page(d) : notFound()],
+  [/^apply(?:\/([^/]+))?$/, (d, m) => window.Apps ? window.Apps.page(d, m[1]) : notFound()],
   [/^griddraft(?:\/(\w+))?$/, (d, m) => window.GridDraft ? window.GridDraft.page(d, m[1]) : notFound()],
   [/^fantasy(?:\/(\w+))?$/, (d, m) => window.Fantasy ? window.Fantasy.page(d, m[1]) : notFound()],
   [/^search(?:\/(.*))?$/, (d, m) => pageSearch(d, m[1] || '')],
@@ -1991,11 +1994,11 @@ function chrome() {
   const moreOn = MORE.some(([k]) => k === cur);
   const navItems = d.fantasy && d.fantasy.enabled ? [...NAV, ['fantasy', 'Fantasy']] : NAV;
   document.getElementById('nav').innerHTML = navItems.map(link).join('') +
-    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => (k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)) && (k !== 'gallery' || (d.gallery || []).length)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
+    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => (k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)) && (k !== 'gallery' || (d.gallery || []).length) && (k !== 'apply' || ((d.applications || {}).forms || []).length)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · Season ${esc(L.season)}<br><span style="font-size:12px">${esc(L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.')}</span></div>
-    <div class="links">${ext}<a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}<a href="#/admin">Admin</a></div></div>`;
+    <div class="links">${ext}<a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a><a href="#/about">About</a><a href="#/join">Join</a>${((d.applications || {}).forms || []).length ? '<a href="#/apply">Applications</a>' : ''}<a href="#/rules">Rules</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}<a href="#/admin">Admin</a></div></div>`;
 }
 
 /* Title Case for UI labels (menus, tabs, buttons, headings). Only capitalises — never lowercases names like FIA or R5. */
