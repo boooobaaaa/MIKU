@@ -141,7 +141,7 @@ function page(d, sub) {
       ${f.description ? `<div class="card prose" style="margin:14px 0 16px">${LG.md(f.description)}</div>` : ''}
       <form class="card ap-form" data-ap-form="${esc(f.id)}" novalidate>
         <div class="fgrid">
-          <label class="fld"><span>Your name / nickname <b class="ap-req">*</b></span><small class="ap-help">Shown to the admins and in Discord</small><input name="__applicant" value="${esc(dr.__applicant || '')}" maxlength="80" required></label>
+          <label class="fld"><span>${esc(f.nameLabel || 'Your name / nickname')} <b class="ap-req">*</b></span><small class="ap-help">${esc(f.nameLabel ? (f.nameHelp || '') : (f.nameHelp || 'Shown to the admins and in Discord'))}</small><input name="__applicant" value="${esc(dr.__applicant || '')}" maxlength="80" required></label>
           ${f.questions.map(q => field(d, q, dr[q.id])).join('')}
         </div>
         <div class="toolbar" style="margin-top:16px"><button class="btn primary" ${P.busy ? 'disabled' : ''}>${ex ? 'Update my application' : 'Submit application'}</button><span class="hint" style="margin:0">Your answers are saved on this device as you type.</span></div>
@@ -211,7 +211,7 @@ document.addEventListener('submit', async e => {
   const d = LG.S.data, s = window.Portal.store(d), f = forms(d).find(x => x.id === form.dataset.apForm);
   if (!s || !s.user || !f || P.busy) return;
   const c = collect(form, f);
-  const missing = [!c.applicant && 'your name', ...f.questions.filter(q => q.required && (c.answers[q.id] === '' || (Array.isArray(c.answers[q.id]) && !c.answers[q.id].length))).map(q => `“${q.label}”`)].filter(Boolean);
+  const missing = [!c.applicant && `“${f.nameLabel || 'your name'}”`, ...f.questions.filter(q => q.required && (c.answers[q.id] === '' || (Array.isArray(c.answers[q.id]) && !c.answers[q.id].length))).map(q => `“${q.label}”`)].filter(Boolean);
   if (missing.length) return toast('Please fill in ' + missing.slice(0, 3).join(', ') + (missing.length > 3 ? '…' : ''), 'err');
   const id = f.id + '_' + s.user.uid, ex = (P.mine || []).find(a => a.id === id);
   P.busy = true; LG.render(false);

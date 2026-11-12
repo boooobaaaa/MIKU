@@ -636,7 +636,8 @@ function secApplications(d) {
       <div class="body">
         <div class="fgrid">${F.text('Form title', `applications.forms.${fi}.title`, f.title || '')}${F.check('Open — people can apply', `applications.forms.${fi}.open`, !!f.open)}</div>
         <div class="fgrid">${F.area('Description (shown above the form)', `applications.forms.${fi}.description`, f.description || '')}</div>
-        <p class="hint">Everyone is always asked for their <b>name / nickname</b> first. Link to this form: <code>#/apply/${esc(f.id)}</code></p>
+        <div class="fgrid">${F.text('First question (always asked — used as the applicant\'s name in review & Discord)', `applications.forms.${fi}.nameLabel`, f.nameLabel || '', 'placeholder="Your name / nickname"')}${F.text('Its help text (optional)', `applications.forms.${fi}.nameHelp`, f.nameHelp || '', 'placeholder="Shown to the admins and in Discord"')}</div>
+        <p class="hint">Link to this form: <code>#/apply/${esc(f.id)}</code></p>
         <h4 style="margin:14px 0 6px">Questions</h4>
         ${(f.questions || []).map((q, k) => qRow(fi, q, k, f.questions.length)).join('') || '<p class="muted">No questions yet.</p>'}
         <div class="toolbar" style="margin-top:10px"><button class="btn sm" data-act="apq-add" data-i="${fi}">+ Add question</button><button class="btn sm danger" data-act="apf-del" data-i="${fi}" style="margin-left:auto">Delete form</button></div>
