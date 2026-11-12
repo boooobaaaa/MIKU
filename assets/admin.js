@@ -703,6 +703,7 @@ function secApplications(d) {
       ${h.url ? '<div class="ok-note">Connected — new applications are posted to your channel.</div>' : '<div class="warn">Not connected yet — applications still work, they just won\'t be posted to Discord.</div>'}
       <div class="fgrid"><label class="fld wide"><span>Webhook for your applications channel</span><input type="password" id="ap-hook" placeholder="${h.url ? '•••••• saved — paste a new one to replace it' : 'https://discord.com/api/webhooks/…'}" autocomplete="off"></label>
         <label class="fld"><span>Ping with each new application (optional)</span><input id="ap-ping" value="${esc(h.ping || '')}" placeholder="e.g. <@&123456789> for a role"></label>
+        ${F.select('Post layout', 'applications.discordStyle', d.applications.discordStyle || 'columns', [['columns', 'Two columns (card)'], ['container', 'Container (one column)']])}${F.color('Side bar colour', 'applications.discordColor', d.applications.discordColor || '#f6cde5')}
         <label class="chk"><input type="checkbox" id="ap-decisions" ${h.decisions !== false ? 'checked' : ''}><span>Also post updates (contracts sent &amp; signed, accepted / waitlisted / denied)</span></label></div>
       <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="ap-hook-save">Save</button>${h.url ? '<button class="btn sm" data-act="ap-hook-test">Send test message</button><button class="btn sm danger" data-act="ap-hook-clear">Disconnect</button>' : ''}</div>
       <p class="hint">Discord → your applications channel → ⚙ Edit channel → Integrations → Webhooks → New webhook → Copy URL. It's stored in Firebase (not your public files). Signed-in applicants' browsers use it to post their application, so use a dedicated channel — if it's ever spammed, delete the webhook in Discord and paste a new one. To find a role ID for pings: Discord settings → Advanced → Developer Mode, then right-click the role → Copy ID.</p></div>` : '';
@@ -1128,12 +1129,17 @@ function render(sec) {
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${me ? `<div class="side-who"><b>${esc(me.name)}</b><span>${me.owner ? 'Owner' : lim ? 'Admin team' : 'Admin team · passcode'} · <a href="javascript:void 0" data-team="signout">sign out</a></span></div>` : ''}
-      ${SECTIONS.filter(([k]) => allowed(k)).map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${k === 'stewards' ? esc(LG.rcName(d)) : l}</a>`).join('')}
+      ${sortedSections(d).filter(([k]) => allowed(k)).map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${k === 'stewards' ? esc(LG.rcName(d)) : l}</a>`).join('')}
       <div class="status-pill ${LG.S.isDraft ? 'draft' : 'clean'}">${LG.S.isDraft ? '● Unpublished changes' : '✓ All changes live'}${LG.S.isDraft ? '<button class="btn sm primary" data-act="publish">Publish</button>' : ''}</div>
     </aside>
     <section class="admin-main">${fn(d)}</section></div>`;
 }
 function noAccess() { return head('No access', 'The league owner hasn\'t given you access to this part of the console. Ask them to add it under <b>Admin team</b>.'); }
+function sortedSections(d) {
+  const lbl = ([k, l]) => (k === 'stewards' ? LG.rcName(d) : l).toLowerCase();
+  const first = SECTIONS.filter(x => x[0] === 'dashboard'), last = SECTIONS.filter(x => x[0] === 'publish');
+  return [...first, ...SECTIONS.filter(x => !['dashboard', 'publish'].includes(x[0])).sort((a, b) => lbl(a).localeCompare(lbl(b))), ...last];
+}
 const rerender = () => LG.render(false);
 const commit = () => { LG.saveDraft(); rerender(); };
 
@@ -1312,7 +1318,7 @@ document.addEventListener('click', async e => {
         Object.assign(a, { status: st, note: note.trim(), reviewer: who, reviewedAt: Date.now() }, clear ? { signature: '', contract: '', signedAt: 0 } : {});
         toast({ accepted: 'Accepted ✓', waitlist: 'Waitlisted', denied: 'Denied', pending: 'Moved back to review', offer: 'Contract sent 📜' }[st] + ' — the applicant will see it on the site');
         if (me) me.s.log('Application ' + st, `${a.applicant} · ${a.formTitle || ''}`, who).catch(() => { });
-      } catch (x) { toast('Could not save: ' + (x.code || x.message), 'err'); }
+      } catch (x) { toast('Could not save: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — Firebase still has the old rules. Copy the rules from Grid Draft ③ again and Publish them in Firebase (Firestore Database → Rules).' : ''), 'err'); }
       b.disabled = false; return rerender();
     }
     case 'ap-delete': {

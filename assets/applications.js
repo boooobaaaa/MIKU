@@ -95,42 +95,62 @@ async function discordPost(s, d, payload) {
     const send = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({}, name, body)) });
     const v2url = cfg.url + (cfg.url.includes('?') ? '&' : '?') + 'with_components=true';
     let r = await send(v2url, p.v2);
-    if (!r.ok && p.v2.components.length > 1) r = await send(v2url, Object.assign({}, p.v2, { components: [p.v2.components[0]] }));
+    if (!r.ok && p.v2.components && (p.v2.embeds || p.v2.components.length > 1)) r = await send(v2url, Object.assign({}, p.v2, { components: p.v2.embeds ? undefined : [p.v2.components[0]] }));
     if (!r.ok && p.legacy) r = await send(cfg.url, p.legacy);
     return r.ok;
   } catch (e) { return false; }
 }
 const quote = t => String(t).split('\n').map(l => '> ' + l).join('\n');
+const hexColor = (h, dflt) => { const m = /^#?([0-9a-f]{6})$/i.exec(String(h || '')); return m ? parseInt(m[1], 16) : dflt; };
+const brand = d => hexColor((d.applications || {}).discordColor, 0xf6cde5);
+const styleOf = d => (d.applications || {}).discordStyle || 'columns';
+/* two-column card: an embed with inline fields, two per row (a blank spacer fills the 3rd slot);
+   paragraph answers span the full width. Link button sent alongside. */
+function columnsCard(color, title, desc, pairs, footer, button) {
+  const fields = [];
+  let row = 0;
+  pairs.forEach(([name, value, wide]) => {
+    const v = String(value || '—').slice(0, 1000), n = String(name || '—').slice(0, 250);
+    if (wide || v.length > 60 || v.includes('\n')) {
+      if (row % 2 === 1) fields.push({ name: '​', value: '​', inline: true });
+      row = 0; fields.push({ name: n, value: v.length > 60 || v.includes('\n') ? quote(v) : v, inline: false });
+    } else {
+      fields.push({ name: n, value: v, inline: true }); row++;
+      if (row % 2 === 0) fields.push({ name: '​', value: '​', inline: true });
+    }
+  });
+  const out = { embeds: [{ title: title.slice(0, 250), description: desc || undefined, color, fields: fields.slice(0, 25), footer: { text: footer || '' }, timestamp: new Date().toISOString() }] };
+  if (button && /^https:\/\//.test(button.url)) out.components = [{ type: 1, components: [{ type: 2, style: 5, label: button.label, url: button.url }] }];
+  return out;
+}
 function notifyNew(s, d, form, app, edited) {
-  const qa = form.questions.map(q => { const v = answerText(d, q, app.answers[q.id]) || '—'; return `**${q.label || 'Question'}**\n${v.length > 80 || v.includes('\n') ? quote(v.slice(0, 900)) : v}`; });
+  const title = edited ? '✏️ Application Updated' : '📝 New Application';
+  const pairs = [[form.nameLabel || 'Name', app.applicant], ...form.questions.map(q => [q.label || 'Question', answerText(d, q, app.answers[q.id]) || '—', q.type === 'long'])];
+  const btn = { label: 'Review Application', url: reviewUrl() };
+  const ping = cfg => cfg.ping ? String(cfg.ping).slice(0, 300) : '';
   return discordPost(s, d, cfg => ({
-    v2: container(0x39c5bb, [
-      cfg.ping ? String(cfg.ping).slice(0, 300) : '',
-      `## ${edited ? '✏️ Application updated' : '📝 New application'}\n**${form.title}** · from **${app.applicant}**`,
-      '---',
-      `**${form.nameLabel || 'Name'}**\n${app.applicant}\n\n` + qa.join('\n\n'),
-      '---',
-      `-# ${d.league.name || ''} · <t:${Math.floor(Date.now() / 1000)}:f>`
-    ], { label: 'Review application', url: reviewUrl() }),
-    legacy: { content: cfg.ping ? String(cfg.ping).slice(0, 300) : undefined,
-      embeds: [{ title: `${edited ? '✏️ Application updated' : '📝 New application'} — ${form.title}`.slice(0, 250), url: reviewUrl(), color: 0x39c5bb,
-        description: `**${app.applicant}** applied${edited ? ' (edited their answers)' : ''}.`,
-        fields: form.questions.slice(0, 24).map(q => ({ name: String(q.label || 'Question').slice(0, 250), value: (answerText(d, q, app.answers[q.id]) || '—').slice(0, 1000) })),
-        footer: { text: d.league.name || '' }, timestamp: new Date().toISOString() }] }
+    v2: styleOf(d) === 'columns' ? Object.assign({ content: ping(cfg) || undefined }, columnsCard(brand(d), title, `**${form.title}** · from **${app.applicant}**`, pairs, d.league.name || '', btn))
+      : container(brand(d), [
+        ping(cfg),
+        `## ${title}\n**${form.title}** · from **${app.applicant}**`,
+        '---',
+        pairs.map(([n, v]) => `**${n}**\n${String(v).length > 80 || String(v).includes('\n') ? quote(String(v).slice(0, 900)) : v}`).join('\n\n'),
+        '---',
+        `-# ${d.league.name || ''} · <t:${Math.floor(Date.now() / 1000)}:f>`
+      ], btn),
+    legacy: Object.assign({ content: ping(cfg) || undefined }, columnsCard(brand(d), title, `**${form.title}** · from **${app.applicant}**`, pairs, d.league.name || ''))
   }));
 }
 const DECISION_COLOR = { accepted: 0x2ecc71, denied: 0xe12885, waitlist: 0x39c5bb, offer: 0xf3d27a, signed: 0xb18cff };
-const DECISION_TITLE = { accepted: '✅ Accepted', denied: '✖ Not accepted', waitlist: '🕓 Waitlisted', offer: '📜 Contract sent', signed: '✍️ Contract signed' };
+const DECISION_TITLE = { accepted: '✅ Accepted', denied: '✖ Not Accepted', waitlist: '🕓 Waitlisted', offer: '📜 Contract Sent', signed: '✍️ Contract Signed' };
 function notifyDecision(s, d, app, status, note, reviewer, extra) {
+  const title = `${DECISION_TITLE[status] || status} — ${app.applicant}`, color = DECISION_COLOR[status] || brand(d);
+  const btn = status === 'signed' ? { label: 'Confirm in Admin', url: reviewUrl() } : null;
+  const desc = `${app.formTitle || 'Application'}${reviewer ? ` · by ${reviewer}` : ''}${extra ? '\n' + extra : ''}${note ? '\n\n' + quote(String(note).slice(0, 1500)) : ''}`;
   return discordPost(s, d, cfg => cfg.decisions === false && status !== 'signed' ? null : ({
-    v2: container(DECISION_COLOR[status] || 0x39c5bb, [
-      `## ${DECISION_TITLE[status] || status} — ${app.applicant}`,
-      `${app.formTitle || 'Application'}${reviewer ? ` · by ${reviewer}` : ''}${extra ? '\n' + extra : ''}`,
-      note ? quote(String(note).slice(0, 1500)) : '',
-      `-# ${d.league.name || ''} · <t:${Math.floor(Date.now() / 1000)}:f>`
-    ], status === 'signed' ? { label: 'Confirm in admin', url: reviewUrl() } : null),
-    legacy: { embeds: [{ title: `${DECISION_TITLE[status] || status} — ${app.applicant}`.slice(0, 250), color: DECISION_COLOR[status] || 0x39c5bb,
-      description: `${app.formTitle || 'Application'}${reviewer ? `\nBy ${reviewer}` : ''}${extra ? '\n' + extra : ''}${note ? `\n\n> ${String(note).slice(0, 1500)}` : ''}`, footer: { text: d.league.name || '' }, timestamp: new Date().toISOString() }] }
+    v2: styleOf(d) === 'columns' ? columnsCard(color, title, desc, [], d.league.name || '', btn)
+      : container(color, [`## ${title}`, desc, `-# ${d.league.name || ''} · <t:${Math.floor(Date.now() / 1000)}:f>`], btn),
+    legacy: columnsCard(color, title, desc, [], d.league.name || '')
   })).catch(() => false);
 }
 
@@ -152,8 +172,16 @@ function field(d, q, v) {
   if (q.type === 'team') return `<label class="fld">${lab}<select name="${nm}" ${req}><option value="">— Choose a team —</option>${d.teams.map(t => `<option value="${esc(t.id)}" ${t.id === v ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>`;
   if (q.type === 'driver') return `<label class="fld">${lab}<select name="${nm}" ${req}><option value="">— Choose a driver —</option>${d.drivers.filter(x => x.active !== false).map(x => `<option value="${esc(x.id)}" ${x.id === v ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>`;
   if (q.type === 'multi') return `<div class="fld wide" data-q="${esc(q.id)}" role="group">${lab}<div class="ap-multi">${opts.map(o => `<label class="ap-check"><input type="checkbox" name="${nm}" value="${esc(o)}" ${(v || []).includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div></div>`;
-  return `<label class="fld">${lab}<input name="${nm}" value="${esc(v || '')}" maxlength="300" ${req}></label>`;
+  return `<label class="fld">${lab}<textarea class="ap-grow" name="${nm}" rows="1" maxlength="1000" ${req}>${esc(v || '')}</textarea></label>`;
 }
+/* short answers grow as you type, and Enter adds a new line instead of sending the form */
+const grow = el => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px'; };
+document.addEventListener('input', e => { if (e.target.classList && e.target.classList.contains('ap-grow')) grow(e.target); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+  if (e.target.closest('[data-ap-form], [data-ap-sign]')) e.preventDefault();
+});
+new MutationObserver(() => document.querySelectorAll('textarea.ap-grow').forEach(el => { if (!el.dataset.g) { el.dataset.g = 1; requestAnimationFrame(() => grow(el)); } })).observe(document.documentElement, { childList: true, subtree: true });
 
 function page(d, sub, mode) {
   const all = openForms(d), s = window.Portal && window.Portal.store(d);
@@ -270,7 +298,7 @@ function collect(form, f) {
   f.questions.forEach(q => {
     if (q.type === 'multi') ans[q.id] = fd.getAll('q_' + q.id).map(String);
     else if (q.type === 'number') { const v = String(fd.get('q_' + q.id) || '').trim(); ans[q.id] = v === '' ? '' : Number(v); }
-    else ans[q.id] = String(fd.get('q_' + q.id) || '').trim().slice(0, q.type === 'long' ? 4000 : 300);
+    else ans[q.id] = String(fd.get('q_' + q.id) || '').trim().slice(0, q.type === 'long' ? 4000 : 1000);
   });
   return { applicant: String(fd.get('__applicant') || '').trim().slice(0, 80), answers: ans };
 }
