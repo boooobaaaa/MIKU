@@ -99,14 +99,14 @@ window.addEventListener('hashchange', () => { if (/^#\/(apply|join)/.test(locati
 
 function field(d, q, v) {
   const nm = 'q_' + q.id, req = q.required ? 'required' : '';
-  const lab = `<span>${esc(q.label || 'Question')}${q.required ? ' <b class="ap-req">*</b>' : ''}</span>${q.help ? `<small class="ap-help">${esc(q.help)}</small>` : ''}`;
+  const lab = `<span>${esc(q.label || 'Question')}${q.required ? ' <b class="ap-req">*</b>' : ''}</span><small class="ap-help">${esc(q.help || '')}</small>`;
   const opts = (q.options || []).filter(Boolean);
   if (q.type === 'long') return `<label class="fld wide">${lab}<textarea name="${nm}" rows="5" maxlength="4000" ${req}>${esc(v || '')}</textarea></label>`;
   if (q.type === 'number') return `<label class="fld">${lab}<input type="number" name="${nm}" value="${esc(v ?? '')}" ${req}></label>`;
   if (q.type === 'choice') return `<label class="fld">${lab}<select name="${nm}" ${req}><option value="">— Choose —</option>${opts.map(o => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
   if (q.type === 'team') return `<label class="fld">${lab}<select name="${nm}" ${req}><option value="">— Choose a team —</option>${d.teams.map(t => `<option value="${esc(t.id)}" ${t.id === v ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>`;
   if (q.type === 'driver') return `<label class="fld">${lab}<select name="${nm}" ${req}><option value="">— Choose a driver —</option>${d.drivers.filter(x => x.active !== false).map(x => `<option value="${esc(x.id)}" ${x.id === v ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>`;
-  if (q.type === 'multi') return `<fieldset class="fld wide ap-multi" data-q="${esc(q.id)}" ${q.required ? 'data-required="1"' : ''}><legend>${lab}</legend>${opts.map(o => `<label class="ap-check"><input type="checkbox" name="${nm}" value="${esc(o)}" ${(v || []).includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</fieldset>`;
+  if (q.type === 'multi') return `<div class="fld wide" data-q="${esc(q.id)}" role="group">${lab}<div class="ap-multi">${opts.map(o => `<label class="ap-check"><input type="checkbox" name="${nm}" value="${esc(o)}" ${(v || []).includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div></div>`;
   return `<label class="fld">${lab}<input name="${nm}" value="${esc(v || '')}" maxlength="300" ${req}></label>`;
 }
 

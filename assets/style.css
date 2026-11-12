@@ -2159,3 +2159,12 @@ button.gd-card:hover { transform: perspective(900px) translateY(-6px) rotateX(va
 .ap-hub .ap-who { margin: -4px 0 12px; }
 .ap-signin-sm { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line-strong); font-size: 14px; }
 .seat-list a { flex: 1; }
+/* application form: label / help / box on shared rows so boxes line up across columns */
+.ap-form .fgrid { row-gap: 0; column-gap: 20px; align-items: stretch; }
+.ap-form .fld { display: grid; grid-template-rows: subgrid; grid-row: span 3; row-gap: 6px; align-content: start; margin: 0; }
+.ap-form .fld > span { align-self: end; }
+.ap-form .fld > .ap-help { margin: 0; align-self: start; }
+.ap-form .fld > .ap-help:empty { display: block; min-height: 0; }
+.ap-form .fld > :last-child { align-self: start; margin-bottom: 20px; }
+.ap-form .ap-multi { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 2px; }
+@supports not (grid-template-rows: subgrid) { .ap-form .fld { display: flex; flex-direction: column; justify-content: flex-end; } }
