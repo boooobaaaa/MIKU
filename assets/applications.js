@@ -95,7 +95,7 @@ const draftKey = id => 'league.apply.draft.' + id;
 const getDraft = id => { try { return JSON.parse(localStorage.getItem(draftKey(id))) || {}; } catch (e) { return {}; } };
 const setDraft = (id, v) => { try { localStorage.setItem(draftKey(id), JSON.stringify(v)); } catch (e) { } };
 const clearDraft = id => { try { localStorage.removeItem(draftKey(id)); } catch (e) { } };
-window.addEventListener('hashchange', () => { if (/^#\/apply/.test(location.hash) && !P.loading && !P.busy) { P.mine = null; setTimeout(() => LG.render(false), 0); } });
+window.addEventListener('hashchange', () => { if (/^#\/(apply|join)/.test(location.hash) && !P.loading && !P.busy) { P.mine = null; setTimeout(() => LG.render(false), 0); } });
 
 function field(d, q, v) {
   const nm = 'q_' + q.id, req = q.required ? 'required' : '';
@@ -116,11 +116,12 @@ function page(d, sub) {
   if (!s) return `<div class="page">${head('Applications')}<div class="card"><p class="muted">Applications aren't set up on this site yet.</p></div></div>`;
   if (!s.ready) return `<div class="page">${head('Applications')}<p class="muted">Loading…</p></div>`;
   const signedIn = !!s.user;
+  if ((P.uid || '') !== (signedIn ? s.user.uid : '')) { P.uid = signedIn ? s.user.uid : ''; P.mine = null; P.tab = ''; }
   if (signedIn && P.mine === null && !P.loading) {
     P.loading = true;
     s.myApps().then(x => { P.mine = x.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)); P.err = ''; }).catch(e => { P.mine = []; P.err = e.code || e.message; }).finally(() => { P.loading = false; LG.render(false); });
   }
-  const mine = P.mine || [];
+  const mine = signedIn ? (P.mine || []) : [];
   const mineFor = id => mine.find(a => a.formId === id);
   const who = signedIn ? `<div class="ap-who">Signed in as <b>${esc(s.user.email)}</b> · <a href="javascript:void 0" data-ap="signout">Sign out</a></div>` : '';
 
@@ -129,13 +130,13 @@ function page(d, sub) {
   if (f) {
     const ex = mineFor(f.id);
     const canEdit = !ex || ex.status === 'pending';
-    if (!f.open && !ex) return `<div class="page">${head(esc(f.title))}<div class="card"><p class="muted">This application is closed right now.</p><a class="btn" href="#/apply">← All applications</a></div></div>`;
-    if (!signedIn) return `<div class="page"><a class="back" href="#/apply">← Applications</a>${head(esc(f.title), f.description ? '' : '')}
+    if (!f.open && !ex) return `<div class="page">${head(esc(f.title))}<div class="card"><p class="muted">This application is closed right now.</p><a class="btn" href="#/join">← Join the league</a></div></div>`;
+    if (!signedIn) return `<div class="page"><a class="back" href="#/join">← Join the league</a>${head(esc(f.title), f.description ? '' : '')}
       ${f.description ? `<div class="card prose" style="margin-bottom:16px">${LG.md(f.description)}</div>` : ''}
       <div class="card ap-signin"><h3>Sign in to apply</h3><p class="muted">We use your Google account so you can come back and check your application's status. Your email is only visible to league admins.</p><button class="btn primary" data-ap="signin">Sign in with Google</button></div></div>`;
-    if (ex && !canEdit) return `<div class="page"><a class="back" href="#/apply">← Applications</a>${head(esc(f.title))}${statusCard(d, ex, f)}</div>`;
+    if (ex && !canEdit) return `<div class="page"><a class="back" href="#/join">← Join the league</a>${head(esc(f.title))}${statusCard(d, ex, f)}</div>`;
     const dr = ex && !Object.keys(getDraft(f.id)).length ? Object.assign({ __applicant: ex.applicant }, ex.answers) : getDraft(f.id);
-    return `<div class="page"><a class="back" href="#/apply">← Applications</a>${head(esc(f.title))}${who}
+    return `<div class="page"><a class="back" href="#/join">← Join the league</a>${head(esc(f.title))}${who}
       ${ex ? `<div class="ok-note">You've already applied — ${badge(ex.status)}. You can still update your answers while it's under review.</div>` : ''}
       ${f.description ? `<div class="card prose" style="margin:14px 0 16px">${LG.md(f.description)}</div>` : ''}
       <form class="card ap-form" data-ap-form="${esc(f.id)}" novalidate>
@@ -147,17 +148,32 @@ function page(d, sub) {
       </form></div>`;
   }
 
-  // ----- list + my applications -----
-  const tab = P.tab || (sub === 'status' ? 'mine' : 'open');
-  const tabs = signedIn ? `<div class="tabs"><button data-ap-tab="open" class="${tab === 'open' ? 'active' : ''}">Open applications</button><button data-ap-tab="mine" class="${tab === 'mine' ? 'active' : ''}">My applications${mine.length ? ` <span class="muted">${mine.length}</span>` : ''}</button></div>` : '';
-  const list = all.length ? `<div class="ap-list">${all.map(x => { const ex = mineFor(x.id); return `<a class="ap-card card" href="#/apply/${esc(x.id)}">
-      <div><h3>${esc(x.title)}</h3>${x.description ? `<p class="muted">${esc(LG.plain ? LG.plain(x.description).slice(0, 160) : x.description.slice(0, 160))}</p>` : ''}<span class="muted" style="font-size:12.5px">${x.questions.length} question${x.questions.length === 1 ? '' : 's'}</span></div>
-      <div class="ap-card-r">${ex ? badge(ex.status) : '<span class="btn primary sm">Apply →</span>'}</div></a>`; }).join('')}</div>` : `<div class="card"><p class="muted">No applications are open right now — check back soon or keep an eye on Discord.</p></div>`;
-  const mineHTML = P.err ? `<div class="warn">${esc(P.err)}</div>` : P.mine === null ? '<p class="muted">Loading your applications…</p>' : mine.length ? mine.map(a => statusCard(d, a, forms(d).find(x => x.id === a.formId))).join('') : '<div class="card"><p class="muted">You haven\'t applied for anything yet.</p></div>';
-  return `<div class="page">${head('Applications', 'Apply to race, join a team or help run the league — and track your application here.')}
-    ${who}
-    ${!signedIn ? `<div class="card ap-signin" style="margin-bottom:18px"><div><b>Already applied?</b><p class="muted" style="margin:4px 0 0">Sign in with the Google account you applied with to see your application status.</p></div><button class="btn" data-ap="signin">Sign in with Google</button></div>` : ''}
-    ${tabs}${tab === 'mine' && signedIn ? mineHTML : list}</div>`;
+  return `<div class="page">${hub(d, sub)}</div>`;
+}
+/* the "apply + my applications" block — shown on the Join page */
+function hub(d, sub) {
+  const all = openForms(d), s = window.Portal && window.Portal.store(d);
+  if (!s || !forms(d).length) return '';
+  if (!s.ready) return '<p class="muted">Loading applications…</p>';
+  const signedIn = !!s.user;
+  if ((P.uid || '') !== (signedIn ? s.user.uid : '')) { P.uid = signedIn ? s.user.uid : ''; P.mine = null; P.tab = ''; }
+  if (signedIn && P.mine === null && !P.loading) {
+    P.loading = true;
+    s.myApps().then(x => { P.mine = x.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)); P.err = ''; }).catch(e => { P.mine = []; P.err = e.code || e.message; }).finally(() => { P.loading = false; LG.render(false); });
+  }
+  if (sub === 'status') P.tab = 'mine';
+  const mine = signedIn ? (P.mine || []) : [], mineFor = id => mine.find(a => a.formId === id);
+  const tab = signedIn ? (P.tab || 'open') : 'open';
+  const tabs = signedIn ? `<div class="tabs"><button data-ap-tab="open" class="${tab === 'open' ? 'active' : ''}">Apply</button><button data-ap-tab="mine" class="${tab === 'mine' ? 'active' : ''}">My applications${mine.length ? ` <span class="muted">${mine.length}</span>` : ''}</button></div>` : '';
+  const list = all.length ? `<div class="ap-list">${all.map(x => { const ex = mineFor(x.id); return `<a class="ap-card" href="#/apply/${esc(x.id)}">
+      <div><h4>${esc(x.title)}</h4>${x.description ? `<p class="muted">${esc(LG.plain ? LG.plain(x.description).slice(0, 140) : x.description.slice(0, 140))}</p>` : ''}</div>
+      <div class="ap-card-r">${ex ? badge(ex.status) : '<span class="btn primary sm">Apply →</span>'}</div></a>`; }).join('')}</div>` : `<p class="muted">No applications are open right now — check back soon or keep an eye on Discord.</p>`;
+  const mineHTML = P.err ? `<div class="warn">${esc(P.err)}</div>` : P.mine === null ? '<p class="muted">Loading your applications…</p>' : mine.length ? mine.map(a => statusCard(d, a, forms(d).find(x => x.id === a.formId))).join('') : '<p class="muted">You haven\'t applied for anything yet.</p>';
+  return `<div class="ap-hub">
+    ${signedIn ? `<div class="ap-who">Signed in as <b>${esc(s.user.email)}</b> · <a href="javascript:void 0" data-ap="signout">Sign out</a></div>` : ''}
+    ${tabs}${tab === 'mine' ? mineHTML : list}
+    ${!signedIn ? `<div class="ap-signin-sm"><span class="muted">Already applied?</span><button class="btn sm" data-ap="signin">Sign in to check your status</button></div>` : ''}
+  </div>`;
 }
 function statusCard(d, a, f) {
   const steps = ['Submitted', 'Under review', a.status === 'accepted' ? 'Accepted' : a.status === 'denied' ? 'Not accepted' : a.status === 'waitlist' ? 'Waitlisted' : 'Decision'];
@@ -205,7 +221,7 @@ document.addEventListener('submit', async e => {
     clearDraft(f.id);
     notifyNew(s, d, f, app, !!ex);
     toast(ex ? 'Application updated ✓' : 'Application sent! You\'ll see the result under My applications. 🏁');
-    P.mine = null; P.tab = 'mine'; location.hash = '#/apply/status';
+    P.mine = null; P.tab = 'mine'; location.hash = '#/join';
   } catch (err) { toast('Could not send: ' + (err.code || err.message) + (/permission/.test(err.code || err.message) ? ' — this form may have closed, or the site admin needs to update the Firebase rules.' : ''), 'err'); }
   P.busy = false; LG.render(false);
 });
@@ -224,5 +240,5 @@ document.addEventListener('click', async e => {
   LG.render(false);
 });
 
-window.Apps = { page, badge, APP_STATUS, Q_TYPES, TEMPLATES, fromTemplate, forms, openForms, answerText, notifyDecision, uidOf };
+window.Apps = { page, hub, badge, APP_STATUS, Q_TYPES, TEMPLATES, fromTemplate, forms, openForms, answerText, notifyDecision, uidOf };
 })();
