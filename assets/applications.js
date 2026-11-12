@@ -12,6 +12,8 @@ const { esc, toast } = LG;
 
 const APP_STATUS = {
   pending: ['Under review', 'ap-pending', '⏳'],
+  offer: ['Contract to sign', 'ap-offer', '📜'],
+  signed: ['Contract signed', 'ap-signed', '✍️'],
   accepted: ['Accepted', 'ap-accepted', '✅'],
   waitlist: ['Waitlisted', 'ap-waitlist', '🕓'],
   denied: ['Not accepted', 'ap-denied', '✖']
@@ -52,6 +54,14 @@ function fromTemplate(k) {
   return { id: uidOf('form'), title: t.title, description: t.description, open: false, questions: t.questions.map(q => Object.assign({ id: uidOf('q'), options: [], help: '', required: false }, JSON.parse(JSON.stringify(q)))) };
 }
 const forms = d => ((d.applications || {}).forms || []).filter(f => f && f.id);
+/* phase 2: the contract a form uses after approval (null = accept straight away) */
+function contractFor(d, f) {
+  const C = (d.applications || {}).contract || {};
+  if (!f || f.contract === 'none') return null;
+  if (f.contract === 'custom' && String(f.contractTerms || '').trim()) return { title: f.contractTitle || C.title || 'Terms & Conditions', terms: f.contractTerms, agree: C.agree };
+  if (!C.enabled || !String(C.terms || '').trim()) return null;
+  return { title: C.title || 'Terms & Conditions', terms: C.terms, agree: C.agree };
+}
 const openForms = d => forms(d).filter(f => f.open);
 
 /* ---------- answers → text ---------- */
@@ -62,30 +72,65 @@ function answerText(d, q, v) {
   return Array.isArray(v) ? v.join(', ') : String(v);
 }
 
-/* ---------- Discord ---------- */
+/* ---------- Discord: posts as a "container" (Components V2), falls back to an embed ---------- */
+const site = () => location.href.split('#')[0];
+const reviewUrl = () => site() + '#/admin/applications';
+function container(accent, blocks, button) {
+  let budget = 3900;
+  const comps = [];
+  blocks.filter(b => b != null && b !== '').forEach(b => {
+    if (b === '---') return comps.push({ type: 14, divider: true, spacing: 1 });
+    const t = String(b).slice(0, Math.max(0, budget)); budget -= t.length;
+    if (t) comps.push({ type: 10, content: t });
+  });
+  const out = { flags: 1 << 15, components: [{ type: 17, accent_color: accent, components: comps }] };
+  if (button && /^https:\/\//.test(button.url)) out.components.push({ type: 1, components: [{ type: 2, style: 5, label: button.label, url: button.url }] });
+  return out;
+}
 async function discordPost(s, d, payload) {
   try {
     const cfg = await s.appHook(); if (!cfg || !cfg.url) return false;
-    const body = payload(cfg); if (!body) return false;
-    const r = await fetch(cfg.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ username: (d.league.name || 'League').slice(0, 60) + ' Applications' }, body)) });
+    const p = payload(cfg); if (!p) return false;
+    const name = { username: (d.league.name || 'League').slice(0, 60) + ' Applications' };
+    const send = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({}, name, body)) });
+    const v2url = cfg.url + (cfg.url.includes('?') ? '&' : '?') + 'with_components=true';
+    let r = await send(v2url, p.v2);
+    if (!r.ok && p.v2.components.length > 1) r = await send(v2url, Object.assign({}, p.v2, { components: [p.v2.components[0]] }));
+    if (!r.ok && p.legacy) r = await send(cfg.url, p.legacy);
     return r.ok;
   } catch (e) { return false; }
 }
-const site = () => location.href.split('#')[0];
+const quote = t => String(t).split('\n').map(l => '> ' + l).join('\n');
 function notifyNew(s, d, form, app, edited) {
+  const qa = form.questions.map(q => { const v = answerText(d, q, app.answers[q.id]) || '—'; return `**${q.label || 'Question'}**\n${v.length > 80 || v.includes('\n') ? quote(v.slice(0, 900)) : v}`; });
   return discordPost(s, d, cfg => ({
-    content: cfg.ping ? String(cfg.ping).slice(0, 300) : undefined,
-    embeds: [{ title: `${edited ? '✏️ Application updated' : '📝 New application'} — ${form.title}`.slice(0, 250), url: site() + '#/admin/applications', color: 0x39c5bb,
-      description: `**${app.applicant}** applied${edited ? ' (edited their answers)' : ''}.\nReview it in **Admin → Applications**.`,
-      fields: form.questions.slice(0, 24).map(q => ({ name: String(q.label || 'Question').slice(0, 250), value: (answerText(d, q, app.answers[q.id]) || '—').slice(0, 1000) })),
-      footer: { text: d.league.name || '' }, timestamp: new Date().toISOString() }]
+    v2: container(0x39c5bb, [
+      cfg.ping ? String(cfg.ping).slice(0, 300) : '',
+      `## ${edited ? '✏️ Application updated' : '📝 New application'}\n**${form.title}** · from **${app.applicant}**`,
+      '---',
+      `**${form.nameLabel || 'Name'}**\n${app.applicant}\n\n` + qa.join('\n\n'),
+      '---',
+      `-# ${d.league.name || ''} · <t:${Math.floor(Date.now() / 1000)}:f>`
+    ], { label: 'Review application', url: reviewUrl() }),
+    legacy: { content: cfg.ping ? String(cfg.ping).slice(0, 300) : undefined,
+      embeds: [{ title: `${edited ? '✏️ Application updated' : '📝 New application'} — ${form.title}`.slice(0, 250), url: reviewUrl(), color: 0x39c5bb,
+        description: `**${app.applicant}** applied${edited ? ' (edited their answers)' : ''}.`,
+        fields: form.questions.slice(0, 24).map(q => ({ name: String(q.label || 'Question').slice(0, 250), value: (answerText(d, q, app.answers[q.id]) || '—').slice(0, 1000) })),
+        footer: { text: d.league.name || '' }, timestamp: new Date().toISOString() }] }
   }));
 }
-function notifyDecision(s, d, app, status, note, reviewer) {
-  const st = APP_STATUS[status] || APP_STATUS.pending;
-  return discordPost(s, d, cfg => cfg.decisions === false ? null : ({
-    embeds: [{ title: `${st[2]} ${st[0]} — ${app.applicant}`.slice(0, 250), color: status === 'accepted' ? 0x2ecc71 : status === 'denied' ? 0xe12885 : 0xf3d27a,
-      description: `${app.formTitle || 'Application'}${reviewer ? `\nReviewed by ${reviewer}` : ''}${note ? `\n\n> ${String(note).slice(0, 1500)}` : ''}`, footer: { text: d.league.name || '' }, timestamp: new Date().toISOString() }]
+const DECISION_COLOR = { accepted: 0x2ecc71, denied: 0xe12885, waitlist: 0x39c5bb, offer: 0xf3d27a, signed: 0xb18cff };
+const DECISION_TITLE = { accepted: '✅ Accepted', denied: '✖ Not accepted', waitlist: '🕓 Waitlisted', offer: '📜 Contract sent', signed: '✍️ Contract signed' };
+function notifyDecision(s, d, app, status, note, reviewer, extra) {
+  return discordPost(s, d, cfg => cfg.decisions === false && status !== 'signed' ? null : ({
+    v2: container(DECISION_COLOR[status] || 0x39c5bb, [
+      `## ${DECISION_TITLE[status] || status} — ${app.applicant}`,
+      `${app.formTitle || 'Application'}${reviewer ? ` · by ${reviewer}` : ''}${extra ? '\n' + extra : ''}`,
+      note ? quote(String(note).slice(0, 1500)) : '',
+      `-# ${d.league.name || ''} · <t:${Math.floor(Date.now() / 1000)}:f>`
+    ], status === 'signed' ? { label: 'Confirm in admin', url: reviewUrl() } : null),
+    legacy: { embeds: [{ title: `${DECISION_TITLE[status] || status} — ${app.applicant}`.slice(0, 250), color: DECISION_COLOR[status] || 0x39c5bb,
+      description: `${app.formTitle || 'Application'}${reviewer ? `\nBy ${reviewer}` : ''}${extra ? '\n' + extra : ''}${note ? `\n\n> ${String(note).slice(0, 1500)}` : ''}`, footer: { text: d.league.name || '' }, timestamp: new Date().toISOString() }] }
   })).catch(() => false);
 }
 
@@ -110,7 +155,7 @@ function field(d, q, v) {
   return `<label class="fld">${lab}<input name="${nm}" value="${esc(v || '')}" maxlength="300" ${req}></label>`;
 }
 
-function page(d, sub) {
+function page(d, sub, mode) {
   const all = openForms(d), s = window.Portal && window.Portal.store(d);
   const head = (t, sub2) => `<div class="page-head"><div class="eyebrow">${esc(d.league.name || '')}</div><h1>${t}</h1>${sub2 ? `<p class="lead">${sub2}</p>` : ''}</div>`;
   if (!s) return `<div class="page">${head('Applications')}<div class="card"><p class="muted">Applications aren't set up on this site yet.</p></div></div>`;
@@ -134,6 +179,7 @@ function page(d, sub) {
     if (!signedIn) return `<div class="page"><a class="back" href="#/join">← Join the league</a>${head(esc(f.title), f.description ? '' : '')}
       ${f.description ? `<div class="card prose" style="margin-bottom:16px">${LG.md(f.description)}</div>` : ''}
       <div class="card ap-signin"><h3>Sign in to apply</h3><p class="muted">We use your Google account so you can come back and check your application's status. Your email is only visible to league admins.</p><button class="btn primary" data-ap="signin">Sign in with Google</button></div></div>`;
+    if (ex && mode === 'sign') return `<div class="page"><a class="back" href="#/join">← Join the league</a>${contractPage(d, f, ex)}</div>`;
     if (ex && !canEdit) return `<div class="page"><a class="back" href="#/join">← Join the league</a>${head(esc(f.title))}${statusCard(d, ex, f)}</div>`;
     const dr = ex && !Object.keys(getDraft(f.id)).length ? Object.assign({ __applicant: ex.applicant }, ex.answers) : getDraft(f.id);
     return `<div class="page"><a class="back" href="#/join">← Join the league</a>${head(esc(f.title))}${who}
@@ -176,18 +222,47 @@ function hub(d, sub) {
   </div>`;
 }
 function statusCard(d, a, f) {
-  const steps = ['Submitted', 'Under review', a.status === 'accepted' ? 'Accepted' : a.status === 'denied' ? 'Not accepted' : a.status === 'waitlist' ? 'Waitlisted' : 'Decision'];
-  const at = a.status === 'pending' ? 1 : 2;
+  const C = contractFor(d, f) || (['offer', 'signed'].includes(a.status) ? {} : null);
+  const st = a.status;
+  let steps, at;
+  if (C && !['denied', 'waitlist'].includes(st)) {
+    steps = ['Submitted', 'Under review', st === 'offer' ? 'Sign contract' : 'Contract signed', 'Accepted'];
+    at = { pending: 1, offer: 2, signed: 3, accepted: 4 }[st] ?? 1;
+  } else {
+    steps = ['Submitted', 'Under review', st === 'accepted' ? 'Accepted' : st === 'denied' ? 'Not accepted' : st === 'waitlist' ? 'Waitlisted' : 'Decision'];
+    at = st === 'pending' ? 1 : 3;
+  }
   const when = t => t ? new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-  return `<div class="card ap-status st-${esc(a.status)}">
-    <div class="ap-status-h"><div><div class="eyebrow">${esc(a.formTitle || (f && f.title) || 'Application')}</div><h3>${esc(a.applicant)}</h3></div>${badge(a.status)}</div>
-    <ol class="ap-steps">${steps.map((x, k) => `<li class="${k < at ? 'done' : k === at ? 'now' : ''}"><span></span>${esc(x)}</li>`).join('')}</ol>
-    <p class="muted" style="font-size:13px;margin:6px 0 0">Sent ${esc(when(a.createdAt))}${a.updatedAt && a.updatedAt - a.createdAt > 60000 ? ` · updated ${esc(when(a.updatedAt))}` : ''}${a.reviewedAt && a.status !== 'pending' ? ` · decided ${esc(when(a.reviewedAt))}` : ''}</p>
-    ${a.note && a.status !== 'pending' ? `<div class="ap-note"><b>Message from the league</b><div class="prose">${LG.md(a.note)}</div></div>` : ''}
+  return `<div class="card ap-status st-${esc(st)}">
+    <div class="ap-status-h"><div><div class="eyebrow">${esc(a.formTitle || (f && f.title) || 'Application')}</div><h3>${esc(a.applicant)}</h3></div>${badge(st)}</div>
+    <ol class="ap-steps" style="grid-template-columns:repeat(${steps.length},1fr)">${steps.map((x, k) => `<li class="${k < at ? 'done' : k === at ? 'now' : ''}"><span></span>${esc(x)}</li>`).join('')}</ol>
+    <p class="muted" style="font-size:13px;margin:6px 0 0">Sent ${esc(when(a.createdAt))}${a.updatedAt && a.updatedAt - a.createdAt > 60000 ? ` · updated ${esc(when(a.updatedAt))}` : ''}${a.signedAt ? ` · signed ${esc(when(a.signedAt))}` : ''}${a.reviewedAt && !['pending', 'offer', 'signed'].includes(st) ? ` · decided ${esc(when(a.reviewedAt))}` : ''}</p>
+    ${st === 'offer' && f ? `<div class="ap-action"><div><b>📜 You've been approved!</b><span>Read and sign your contract to finish joining.</span></div><a class="btn primary" href="#/apply/${esc(f.id)}/sign">Read &amp; sign contract</a></div>` : ''}
+    ${st === 'signed' ? `<div class="ap-note"><b>Contract signed</b><div>Signed as <span class="ap-sig">${esc(a.signature || '')}</span> — the league will confirm your place shortly.</div></div>` : ''}
+    ${a.note && st !== 'pending' ? `<div class="ap-note"><b>Message from the league</b><div class="prose">${LG.md(a.note)}</div></div>` : ''}
+    ${a.contract && ['signed', 'accepted'].includes(st) ? `<details class="ap-contract-copy"><summary>View the contract you signed</summary><div class="prose">${LG.md(a.contract)}</div><p class="muted" style="font-size:13px">Signed as <span class="ap-sig">${esc(a.signature || '')}</span>${a.signedAt ? ' on ' + esc(when(a.signedAt)) : ''}</p></details>` : ''}
     <div class="toolbar" style="margin-top:12px">
-      ${a.status === 'pending' && f ? `<a class="btn sm" href="#/apply/${esc(f.id)}">Edit answers</a>` : ''}
-      ${['pending', 'denied'].includes(a.status) ? `<button class="btn sm ghost" data-ap="withdraw" data-id="${esc(a.id)}">${a.status === 'pending' ? 'Withdraw' : 'Remove so I can reapply'}</button>` : ''}
+      ${st === 'pending' && f ? `<a class="btn sm" href="#/apply/${esc(f.id)}">Edit answers</a>` : ''}
+      ${['pending', 'denied'].includes(st) ? `<button class="btn sm ghost" data-ap="withdraw" data-id="${esc(a.id)}">${st === 'pending' ? 'Withdraw' : 'Remove so I can reapply'}</button>` : ''}
     </div></div>`;
+}
+function contractPage(d, f, a) {
+  const C = contractFor(d, f) || { title: 'Terms & Conditions', terms: '' };
+  if (a.status !== 'offer') return statusCard(d, a, f);
+  const today = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  return `<div class="contract card">
+    <div class="ct-head">${d.league.logo ? `<img src="${esc(LG.asset(d.league.logo))}" alt="" onerror="this.remove()">` : ''}<div><div class="eyebrow">${esc(d.league.name || '')}</div><h1>${esc(C.title)}</h1>
+      <p class="muted">Between <b>${esc(d.league.name || 'the league')}</b> and <b>${esc(a.applicant)}</b> · ${esc(a.formTitle || f.title)}</p></div></div>
+    ${a.note ? `<div class="ap-note"><b>Message from the league</b><div class="prose">${LG.md(a.note)}</div></div>` : ''}
+    <div class="ct-terms prose">${C.terms ? LG.md(C.terms) : '<p class="muted">No terms have been written yet — ask the league admins.</p>'}</div>
+    <form class="ct-sign" data-ap-sign="${esc(a.id)}" data-form="${esc(f.id)}">
+      <label class="ap-check ct-agree"><input type="checkbox" name="agree" required> <span>${esc(C.agree || 'I have read, understood and agree to the Terms & Conditions above.')}</span></label>
+      <div class="ct-sigrow">
+        <label class="fld"><span>Type your name to sign</span><input name="signature" maxlength="80" autocomplete="off" placeholder="${esc(a.applicant)}" required></label>
+        <div class="ct-sigline"><span class="ap-sig ct-preview">&nbsp;</span><small>Signature · ${esc(today)}</small></div>
+      </div>
+      <div class="toolbar"><button class="btn primary" ${P.busy ? 'disabled' : ''}>Sign contract</button><span class="hint" style="margin:0">Once signed it's sent to the league for final confirmation.</span></div>
+    </form></div>`;
 }
 
 function collect(form, f) {
@@ -200,12 +275,32 @@ function collect(form, f) {
   return { applicant: String(fd.get('__applicant') || '').trim().slice(0, 80), answers: ans };
 }
 document.addEventListener('input', e => {
+  if (e.target.name === 'signature' && e.target.closest('[data-ap-sign]')) { const p = e.target.closest('form').querySelector('.ct-preview'); if (p) p.textContent = e.target.value || '\u00a0'; return; }
   const form = e.target.closest && e.target.closest('[data-ap-form]'); if (!form) return;
   const f = forms(LG.S.data).find(x => x.id === form.dataset.apForm); if (!f) return;
   const c = collect(form, f); setDraft(f.id, Object.assign({ __applicant: c.applicant }, c.answers));
 });
 document.addEventListener('change', e => { const form = e.target.closest && e.target.closest('[data-ap-form]'); if (form) form.dispatchEvent(new Event('input', { bubbles: true })); });
 document.addEventListener('submit', async e => {
+  const sf = e.target.closest && e.target.closest('[data-ap-sign]');
+  if (sf) {
+    e.preventDefault();
+    const d = LG.S.data, s = window.Portal.store(d), f = forms(d).find(x => x.id === sf.dataset.form), a = (P.mine || []).find(x => x.id === sf.dataset.apSign);
+    if (!s || !s.user || !f || !a || P.busy) return;
+    const sig = String(sf.signature.value || '').trim().slice(0, 80);
+    if (!sf.agree.checked) return toast('Tick the box to agree to the terms first', 'err');
+    if (sig.length < 2) return toast('Type your name to sign', 'err');
+    const C = contractFor(d, f) || { title: 'Terms & Conditions', terms: '' };
+    const text = `# ${C.title}\n\n${C.terms || ''}\n\n---\n${C.agree || 'I have read, understood and agree to the Terms & Conditions above.'}`.slice(0, 30000);
+    P.busy = true; LG.render(false);
+    try {
+      await s.signApp(a.id, sig, text);
+      notifyDecision(s, d, a, 'signed', '', '', `Signed as **${sig}**`);
+      toast('Contract signed ✍️ — the league will confirm your place shortly');
+      P.mine = null; P.tab = 'mine'; location.hash = '#/join';
+    } catch (err) { toast('Could not sign: ' + (err.code || err.message) + (/permission/.test(err.code || err.message) ? ' — the site admin needs to update the Firebase rules.' : ''), 'err'); }
+    P.busy = false; LG.render(false); return;
+  }
   const form = e.target.closest && e.target.closest('[data-ap-form]'); if (!form) return;
   e.preventDefault();
   const d = LG.S.data, s = window.Portal.store(d), f = forms(d).find(x => x.id === form.dataset.apForm);
@@ -240,5 +335,5 @@ document.addEventListener('click', async e => {
   LG.render(false);
 });
 
-window.Apps = { page, hub, badge, APP_STATUS, Q_TYPES, TEMPLATES, fromTemplate, forms, openForms, answerText, notifyDecision, uidOf };
+window.Apps = { page, hub, badge, APP_STATUS, Q_TYPES, TEMPLATES, fromTemplate, forms, openForms, answerText, notifyDecision, uidOf, contractFor };
 })();

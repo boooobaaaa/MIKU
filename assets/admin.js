@@ -618,7 +618,7 @@ const APA = { list: null, loading: false, err: '', filter: 'pending', hook: unde
 window.addEventListener('hashchange', () => { if (/^#\/admin\/applications/.test(location.hash) && !APA.loading) { APA.list = null; APA.hook = undefined; setTimeout(rerender, 0); } });
 function secApplications(d) {
   const Apps = window.Apps, s = teamStore();
-  const top = head('Applications', 'Build application forms people fill in on the site. New applications are posted to your Discord channel; you accept, waitlist or deny them here and the applicant sees the result on the site (More → Applications → My applications).', `<a class="btn" href="#/apply">View public page</a>`);
+  const top = head('Applications', 'Build application forms people fill in on the site. New applications are posted to your Discord channel; you approve, waitlist or deny them here, approved people sign a contract on the site, and you confirm them. Applicants follow every step on the Join the league page → My applications.', `<a class="btn" href="#/apply">View public page</a>`);
   const forms = d.applications.forms;
   const qRow = (fi, q, k, n) => {
     const p = `applications.forms.${fi}.questions.${k}`;
@@ -637,13 +637,23 @@ function secApplications(d) {
         <div class="fgrid">${F.text('Form title', `applications.forms.${fi}.title`, f.title || '')}${F.check('Open — people can apply', `applications.forms.${fi}.open`, !!f.open)}</div>
         <div class="fgrid">${F.area('Description (shown above the form)', `applications.forms.${fi}.description`, f.description || '')}</div>
         <div class="fgrid">${F.text('First question (always asked — used as the applicant\'s name in review & Discord)', `applications.forms.${fi}.nameLabel`, f.nameLabel || '', 'placeholder="Your name / nickname"')}${F.text('Its help text (optional)', `applications.forms.${fi}.nameHelp`, f.nameHelp || '', 'placeholder="Shown to the admins and in Discord"')}</div>
+        <div class="fgrid">${F.select('After approval', `applications.forms.${fi}.contract`, f.contract || 'league', [['league', 'Send the league contract to sign'], ['custom', 'Send a custom contract for this form'], ['none', 'No contract — accepting is final']])}</div>
+        ${f.contract === 'custom' ? `<div class="fgrid">${F.text('Contract title', `applications.forms.${fi}.contractTitle`, f.contractTitle || '', 'placeholder="e.g. Team staff agreement"')}${F.area('Custom terms for this form (Markdown: # headings, **bold**, lists)', `applications.forms.${fi}.contractTerms`, f.contractTerms || '', 'ct-area')}</div>` : ''}
         <p class="hint">Link to this form: <code>#/apply/${esc(f.id)}</code></p>
         <h4 style="margin:14px 0 6px">Questions</h4>
         ${(f.questions || []).map((q, k) => qRow(fi, q, k, f.questions.length)).join('') || '<p class="muted">No questions yet.</p>'}
         <div class="toolbar" style="margin-top:10px"><button class="btn sm" data-act="apq-add" data-i="${fi}">+ Add question</button><button class="btn sm danger" data-act="apf-del" data-i="${fi}" style="margin-left:auto">Delete form</button></div>
       </div></details>`;
   }).join('');
-  const builder = `<div class="a-card"><h3>Forms</h3>${formsHTML || '<p class="muted">No forms yet — start from a template.</p>'}
+  const C = d.applications.contract = Object.assign({ enabled: false, title: 'Terms & Conditions', terms: '', agree: '' }, d.applications.contract || {});
+  const contractCard = `<div class="a-card"><h3>Contract (step 2)</h3>
+    <p class="hint" style="margin-top:-4px">When this is on, approving an application sends the applicant a contract. They read it, tick “I agree” and type their name to sign on the site; it comes back to you under <b>Contracts</b> to confirm. Forms can use this contract, their own, or none (set on each form).</p>
+    <div class="fgrid">${F.check('Send this contract after approval', 'applications.contract.enabled', !!C.enabled)}${F.text('Contract title', 'applications.contract.title', C.title || '')}</div>
+    <div class="fgrid">${F.area('Terms & Conditions (Markdown: # headings, **bold**, - lists)', 'applications.contract.terms', C.terms || '', 'ct-area')}</div>
+    <div class="fgrid">${F.text('“I agree” checkbox text', 'applications.contract.agree', C.agree || '', 'wide placeholder="I have read, understood and agree to the Terms & Conditions above."')}</div>
+    ${C.enabled && !String(C.terms || '').trim() ? '<div class="warn">Add your terms above — without them, approving accepts people straight away.</div>' : ''}
+    <p class="hint">Publish after changing it. Each signed contract keeps a copy of the exact terms they agreed to.</p></div>`;
+  const builder = contractCard + `<div class="a-card"><h3>Forms</h3>${formsHTML || '<p class="muted">No forms yet — start from a template.</p>'}
     <div class="toolbar" style="margin-top:12px"><span class="hint" style="margin:0">New form:</span>${Object.entries(Apps.TEMPLATES).map(([k, t]) => `<button class="btn sm" data-act="apf-add" data-tpl="${k}">+ ${esc(t.title)}</button>`).join('')}<button class="btn sm ghost" data-act="apf-add" data-tpl="blank">+ Blank form</button></div>
     <p class="hint">Forms are part of your site — <b>Publish</b> after changing them. The answers people send are stored privately in Firebase, never in your public site files.</p></div>`;
   if (!s) return top + `<div class="warn">Applications use the same Firebase project as Grid Draft. Finish the setup in <a href="#/admin/griddraft">Grid Draft</a> first (steps 1–7), then re-copy the rules.</div>` + builder;
@@ -658,12 +668,23 @@ function secApplications(d) {
       .catch(e => { APA.list = []; APA.err = (e.code || e.message) + (/permission/.test(e.code || e.message) ? ' — re-copy the security rules from Grid Draft ③ into Firebase (they now include applications).' : ''); })
       .finally(() => { APA.loading = false; rerender(); });
   }
-  const all = APA.list || [], counts = { pending: 0, accepted: 0, waitlist: 0, denied: 0 };
-  all.forEach(a => { counts[a.status] = (counts[a.status] || 0) + 1; });
-  const shown = all.filter(a => (APA.filter === 'all' || a.status === APA.filter) && (!APA.form || a.formId === APA.form));
+  const all = APA.list || [], counts = { pending: 0, contracts: 0, accepted: 0, waitlist: 0, denied: 0 };
+  all.forEach(a => { const k = ['offer', 'signed'].includes(a.status) ? 'contracts' : a.status; counts[k] = (counts[k] || 0) + 1; });
+  const toConfirm = all.filter(a => a.status === 'signed').length;
+  const inFilter = a => APA.filter === 'all' || (APA.filter === 'contracts' ? ['offer', 'signed'].includes(a.status) : a.status === APA.filter);
+  const shown = all.filter(a => inFilter(a) && (!APA.form || a.formId === APA.form)).sort((x, y) => (y.status === 'signed') - (x.status === 'signed'));
   const fmt = t => t ? new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+  const rb = (a, st, label, cls = '', clear = false) => `<button class="btn sm ${cls}" data-act="ap-review" data-id="${esc(a.id)}" data-st="${st}" ${clear ? 'data-clear="1"' : ''}>${label}</button>`;
+  const btn = (a, C) => {
+    const st = a.status, back = rb(a, 'pending', 'Back to review', 'ghost', true);
+    if (st === 'pending') return (C ? rb(a, 'offer', '✓ Approve &amp; send contract', 'primary') : rb(a, 'accepted', '✓ Accept', 'primary')) + rb(a, 'waitlist', '🕓 Waitlist') + rb(a, 'denied', '✕ Deny', 'danger');
+    if (st === 'offer') return rb(a, 'accepted', 'Accept without contract') + rb(a, 'denied', '✕ Deny', 'danger') + back;
+    if (st === 'signed') return rb(a, 'accepted', '✓ Confirm — fully accepted', 'primary') + rb(a, 'offer', 'Ask them to sign again', '', true) + rb(a, 'denied', '✕ Deny', 'danger');
+    if (st === 'waitlist') return (C ? rb(a, 'offer', '✓ Approve &amp; send contract', 'primary') : rb(a, 'accepted', '✓ Accept', 'primary')) + rb(a, 'denied', '✕ Deny', 'danger') + back;
+    return back;
+  };
   const review = `<div class="a-card" style="overflow-x:auto"><div class="card-title" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><h3 style="margin:0">Review</h3>
-      <div class="tabs" style="margin:0">${[['pending', 'Waiting'], ['accepted', 'Accepted'], ['waitlist', 'Waitlist'], ['denied', 'Denied'], ['all', 'All']].map(([k, l]) => `<button data-act="ap-filter" data-f="${k}" class="${APA.filter === k ? 'active' : ''}">${l}${k !== 'all' && counts[k] ? ` <span class="muted">${counts[k]}</span>` : ''}</button>`).join('')}</div>
+      <div class="tabs" style="margin:0">${[['pending', 'Waiting'], ['contracts', 'Contracts'], ['accepted', 'Accepted'], ['waitlist', 'Waitlist'], ['denied', 'Denied'], ['all', 'All']].map(([k, l]) => `<button data-act="ap-filter" data-f="${k}" class="${APA.filter === k ? 'active' : ''}">${l}${k !== 'all' && counts[k] ? ` <span class="muted">${counts[k]}</span>` : ''}${k === 'contracts' && toConfirm ? ' <span class="dot"></span>' : ''}</button>`).join('')}</div>
       ${forms.length > 1 ? `<select id="ap-form-filter"><option value="">All forms</option>${forms.map(f => `<option value="${esc(f.id)}" ${APA.form === f.id ? 'selected' : ''}>${esc(f.title)}</option>`).join('')}</select>` : ''}
       <button class="btn sm" data-act="ap-reload" style="margin-left:auto">Refresh</button></div>
     ${APA.err ? `<div class="warn">${esc(APA.err)}</div>` : ''}
@@ -674,14 +695,15 @@ function secApplications(d) {
         <div class="body"><dl class="ap-answers">${qs.map(q => `<dt>${esc(q.label)}</dt><dd>${esc(Apps.answerText(d, q, (a.answers || {})[q.id]) || '—')}</dd>`).join('')}</dl>
           <p class="hint">Google account: <span class="mono">${esc(a.email || '')}</span>${a.reviewer ? ` · last decision by ${esc(a.reviewer)} ${esc(fmt(a.reviewedAt))}` : ''}</p>
           <label class="fld wide"><span>Message to the applicant (they'll see it on the site${APA.hook && APA.hook.decisions !== false ? ' and it\'s posted to Discord' : ''})</span><textarea id="ap-note-${esc(a.id)}" rows="3" placeholder="e.g. Welcome aboard! You'll drive for … from Round 6.">${esc(a.note || '')}</textarea></label>
-          <div class="toolbar" style="margin-top:8px"><button class="btn sm primary" data-act="ap-review" data-id="${esc(a.id)}" data-st="accepted">✓ Accept</button><button class="btn sm" data-act="ap-review" data-id="${esc(a.id)}" data-st="waitlist">🕓 Waitlist</button><button class="btn sm danger" data-act="ap-review" data-id="${esc(a.id)}" data-st="denied">✕ Deny</button>${a.status !== 'pending' ? `<button class="btn sm ghost" data-act="ap-review" data-id="${esc(a.id)}" data-st="pending">Back to review</button>` : ''}<button class="btn sm ghost" data-act="ap-delete" data-id="${esc(a.id)}" style="margin-left:auto">Delete</button></div></div></details>`;
+          ${a.status === 'signed' ? `<div class="ap-signed-box"><div><b>✍️ Signed</b> as <span class="ap-sig">${esc(a.signature || '')}</span> · ${esc(fmt(a.signedAt))}</div>${a.contract ? `<details><summary>Read the contract they signed</summary><div class="prose">${LG.md(a.contract)}</div></details>` : ''}</div>` : a.status === 'offer' ? `<div class="ok-note">📜 Contract sent — waiting for them to sign it on the site.</div>` : ''}
+          <div class="toolbar" style="margin-top:8px">${btn(a, Apps.contractFor(d, f))}<button class="btn sm ghost" data-act="ap-delete" data-id="${esc(a.id)}" style="margin-left:auto">Delete</button></div></div></details>`;
     }).join('') : `<p class="muted">${APA.filter === 'pending' ? 'Nothing waiting for review. 🎉' : 'Nothing here.'}</p>`}</div>`;
   const h = APA.hook || {};
   const discord = owner ? `<div class="a-card"><h3>Discord channel</h3>
       ${h.url ? '<div class="ok-note">Connected — new applications are posted to your channel.</div>' : '<div class="warn">Not connected yet — applications still work, they just won\'t be posted to Discord.</div>'}
       <div class="fgrid"><label class="fld wide"><span>Webhook for your applications channel</span><input type="password" id="ap-hook" placeholder="${h.url ? '•••••• saved — paste a new one to replace it' : 'https://discord.com/api/webhooks/…'}" autocomplete="off"></label>
         <label class="fld"><span>Ping with each new application (optional)</span><input id="ap-ping" value="${esc(h.ping || '')}" placeholder="e.g. <@&123456789> for a role"></label>
-        <label class="chk"><input type="checkbox" id="ap-decisions" ${h.decisions !== false ? 'checked' : ''}><span>Also post decisions (accepted / waitlisted / denied)</span></label></div>
+        <label class="chk"><input type="checkbox" id="ap-decisions" ${h.decisions !== false ? 'checked' : ''}><span>Also post updates (contracts sent &amp; signed, accepted / waitlisted / denied)</span></label></div>
       <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="ap-hook-save">Save</button>${h.url ? '<button class="btn sm" data-act="ap-hook-test">Send test message</button><button class="btn sm danger" data-act="ap-hook-clear">Disconnect</button>' : ''}</div>
       <p class="hint">Discord → your applications channel → ⚙ Edit channel → Integrations → Webhooks → New webhook → Copy URL. It's stored in Firebase (not your public files). Signed-in applicants' browsers use it to post their application, so use a dedicated channel — if it's ever spammed, delete the webhook in Discord and paste a new one. To find a role ID for pings: Discord settings → Advanced → Developer Mode, then right-click the role → Copy ID.</p></div>` : '';
   return top + review + discord + builder;
@@ -1284,10 +1306,11 @@ document.addEventListener('click', async e => {
       const note = (document.getElementById('ap-note-' + a.id) || {}).value || '', st = b.dataset.st, me = team(), who = me ? me.name : '';
       b.disabled = true;
       try {
-        await s.reviewApp(a.id, st, note.trim(), who);
+        const clear = !!b.dataset.clear;
+        await s.reviewApp(a.id, st, note.trim(), who, clear);
         if (st !== 'pending') window.Apps.notifyDecision(s, d, a, st, note.trim(), who);
-        Object.assign(a, { status: st, note: note.trim(), reviewer: who, reviewedAt: Date.now() });
-        toast({ accepted: 'Accepted ✓', waitlist: 'Waitlisted', denied: 'Denied', pending: 'Moved back to review' }[st] + ' — the applicant will see it on the site');
+        Object.assign(a, { status: st, note: note.trim(), reviewer: who, reviewedAt: Date.now() }, clear ? { signature: '', contract: '', signedAt: 0 } : {});
+        toast({ accepted: 'Accepted ✓', waitlist: 'Waitlisted', denied: 'Denied', pending: 'Moved back to review', offer: 'Contract sent 📜' }[st] + ' — the applicant will see it on the site');
         if (me) me.s.log('Application ' + st, `${a.applicant} · ${a.formTitle || ''}`, who).catch(() => { });
       } catch (x) { toast('Could not save: ' + (x.code || x.message), 'err'); }
       b.disabled = false; return rerender();

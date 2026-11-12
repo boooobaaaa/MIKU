@@ -1926,7 +1926,7 @@ const ROUTES = [
   [/^gallery$/, d => pageGallery(d)],
   [/^seasons(?:\/(view)\/([^/]+))?$/, (d, m) => window.Extras ? window.Extras.pageSeasons(d, m[1], m[2]) : notFound()],
   [/^portal$/, d => window.Portal ? window.Portal.page(d) : notFound()],
-  [/^apply(?:\/([^/]+))?$/, (d, m) => !m[1] || m[1] === 'status' ? pageJoin(d, m[1]) : window.Apps ? window.Apps.page(d, m[1]) : notFound()],
+  [/^apply(?:\/([^/]+))?(?:\/(sign))?$/, (d, m) => !m[1] || m[1] === 'status' ? pageJoin(d, m[1]) : window.Apps ? window.Apps.page(d, m[1], m[2]) : notFound()],
   [/^griddraft(?:\/(\w+))?$/, (d, m) => window.GridDraft ? window.GridDraft.page(d, m[1]) : notFound()],
   [/^fantasy(?:\/(\w+))?$/, (d, m) => window.Fantasy ? window.Fantasy.page(d, m[1]) : notFound()],
   [/^search(?:\/(.*))?$/, (d, m) => pageSearch(d, m[1] || '')],
