@@ -1935,7 +1935,8 @@ async function updateIndexMeta(g, d) {
   if (fav && !/^data:/.test(fav)) {
     const href = esc(fav) + '?v=' + (fav.length + (d.league.favicon || '').split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 99991, 7));
     const tag = `<link rel="icon" href="${href}"><link rel="apple-touch-icon" href="${esc(fav)}">`;
-    next = next.replace(/\s*<link rel="apple-touch-icon"[^>]*>/g, '').replace(/<link rel="icon"[^>]*>/, tag);
+    // replace the whole icon line (the default icon is an SVG data link full of < > characters)
+    next = next.replace(/^[ \t]*<link rel="apple-touch-icon"[^\n]*\n/gm, '').replace(/^([ \t]*)<link rel="icon"[^\n]*$/m, (m, sp) => sp + tag);
   }
   if (next === html) return false;
   const put = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, g.headers), body: JSON.stringify({ message: 'Update site look & link preview', content: b64(next), branch: g.c.branch, sha: j.sha }) });

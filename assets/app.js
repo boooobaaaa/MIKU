@@ -2086,6 +2086,12 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('.ssw-all'); if (a) document.getElementById('season-sw').classList.remove('open'); });
 
+const SOCIAL_ICONS = {
+  discord: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18.2 18.2 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.7.1 18.2a19.8 19.8 0 0 0 6 3l1.3-2.1a12.8 12.8 0 0 1-2-1l.5-.4a14 14 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2.1a19.7 19.7 0 0 0 6-3c.5-5.2-.8-9.8-3.6-13.8zM8 15.4c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.6 8 10.6s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4z"/></svg>',
+  youtube: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31.4 31.4 0 0 0 0 12a31.4 31.4 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31.4 31.4 0 0 0 24 12a31.4 31.4 0 0 0-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg>',
+  twitch: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.6 0 1 4.2v16.9h5.8V24h3.2l3.2-2.9h4.6L24 15V0H2.6zm19.2 13.9-3.6 3.5h-5.8l-3.1 3V17.4H4.5V2.2h17.3v11.7zM18.2 6.1v6.1h-2.1V6.1h2.1zm-5.8 0v6.1h-2.1V6.1h2.1z"/></svg>',
+  website: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 0c2.8 2.7 4.2 6 4.2 10s-1.4 7.3-4.2 10m0-20C9.2 4.7 7.8 8 7.8 12s1.4 7.3 4.2 10M2.5 9h19M2.5 15h19"/></svg>'
+};
 function chrome() {
   ensureSearchFab();
   const d = S.data, L = d.league;
@@ -2105,9 +2111,9 @@ function chrome() {
   document.getElementById('nav').innerHTML = navItems.map(link).join('') +
     `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => (k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)) && (k !== 'fantasy' || (d.fantasy && d.fantasy.enabled)) && (k !== 'predictions' || (d.predictions && d.predictions.enabled)) && (k !== 'gallery' || (d.gallery || []).length) && (k !== 'apply' || ((d.applications || {}).forms || []).length)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
   const links = L.links || {};
-  const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
+  const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a class="soc soc-${k}" href="${esc(links[k])}" target="_blank" rel="noopener" aria-label="${l}" title="${l}">${SOCIAL_ICONS[k]}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · ${esc(seasonName(L.season))}<br><span style="font-size:12px">${esc(L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.')}</span></div>
-    <div class="links">${ext}<a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}<a href="#/admin">Admin</a></div></div>`;
+    <div class="foot-r">${ext ? `<div class="socials">${ext}</div>` : ''}<div class="links"><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}<a href="#/admin">Console</a></div></div></div>`;
 }
 
 /* Title Case for UI labels (menus, tabs, buttons, headings). Only capitalises — never lowercases names like FIA or R5. */

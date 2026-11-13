@@ -2340,3 +2340,17 @@ input.fl-time { border-color: #b46cff !important; color: #c79bff; }
   .topbar .brand-text b { max-width: 260px; }
 }
 .chip { white-space: nowrap; }
+
+/* footer socials */
+.site-foot .foot-r { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
+.site-foot .socials { display: flex; gap: 8px; }
+.site-foot .soc { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: var(--text-2); border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--miku) 6%, transparent); transition: transform .2s, color .2s, background .2s, border-color .2s; padding: 0 !important; }
+.site-foot .soc svg { width: 20px; height: 20px; }
+.site-foot .soc:hover { transform: translateY(-2px); color: #fff; }
+.site-foot .soc-discord:hover { background: #5865f2; border-color: #5865f2; }
+.site-foot .soc-youtube:hover { background: #ff0000; border-color: #ff0000; }
+.site-foot .soc-twitch:hover { background: #9146ff; border-color: #9146ff; }
+.site-foot .soc-website:hover { background: var(--miku); border-color: var(--miku); color: #061012; }
+@media (max-width: 700px) { .site-foot .foot-r { justify-content: flex-start; } }
+@media (min-width: 701px) { .site-foot .inner { padding-right: 84px; } }
