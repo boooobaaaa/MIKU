@@ -2586,3 +2586,9 @@ select option { background: var(--card-solid); color: var(--text); }
 .ac-grid { align-items: stretch; }
 .ac-grid > section, .ac-grid > section + section { margin: 0; }
 .ac-grid > .card { display: block; }
+.acc-id { max-width: 420px; margin-top: 6px; }
+.acc-id .fld { margin: 0; }
+.acc-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 14px; }
+.acc-opts .chk { display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--miku) 4%, transparent); line-height: 1.35; cursor: pointer; min-height: 64px; }
+.acc-opts .chk:hover { border-color: var(--line-strong); }
+.acc-opts .chk input { flex: none; margin: 0; }

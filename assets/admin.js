@@ -1209,10 +1209,10 @@ function secAccounts(d) {
       <li>Go to <b>OAuth2</b> → copy the <b>Client ID</b> → paste it below. <b>Don't</b> copy the Client Secret — it isn't needed and must never go on your site.</li>
       <li>Still in <b>OAuth2</b> → <b>Redirects</b> → <b>Add Redirect</b> → paste exactly <code class="acc-uri">${esc(AC.redirectUri())}</code> → <b>Save Changes</b>. (Use your real site address when you're on it — if you open this console on GitHub Pages, the address above is already the right one.)</li>
       <li>Re-copy the Firestore rules from <a href="#/admin/griddraft">Grid Draft ③</a> into Firebase → <b>Publish</b> (they now include accounts and fantasy teams).</li>
-      <li>Tick <b>Show “My account”</b> below and Publish the site.</li>
+      <li>Tick <b>Show the 👤 My account button</b> below and Publish the site.</li>
     </ol>
-    <div class="fgrid">
-      ${F.text('Discord application Client ID', 'accounts.discordClientId', c.discordClientId || '', 'placeholder="e.g. 1234567890123456789" inputmode="numeric"')}
+    <div class="acc-id">${F.text('Discord application Client ID', 'accounts.discordClientId', c.discordClientId || '', 'placeholder="e.g. 1234567890123456789" inputmode="numeric"')}</div>
+    <div class="acc-opts">
       ${F.check('Show the 👤 My account button in the top bar', 'accounts.enabled', c.enabled)}
       ${F.check('Fantasy leaderboard: only show approved accounts', 'accounts.fantasyApproved', c.fantasyApproved)}
       ${F.check('Grid Draft leaderboard: only show approved accounts', 'accounts.gdApproved', c.gdApproved)}
