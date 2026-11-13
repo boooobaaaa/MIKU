@@ -938,6 +938,7 @@ async function seasonArchive(d, startNew, btn) {
     const e = await saveArchive(d, d);
     if (startNew) {
       if (!d.history.some(h => String(h.season) === String(d.league.season))) d.history.push(LG.snapshotSeason(d));
+      gdKeepSeason(d);
       d.results = {}; d.adjustments = []; d.stewards = []; d.calendar = [];
       d.league.season = next;
       toast(`${LG.seasonName(e.label)} archived — ${LG.seasonName(next)} is ready. Set up the calendar, then Publish.`);
@@ -1002,7 +1003,7 @@ function secGridDraft(d) {
   const isAdm = s && s.user && String(c.admins || '').toLowerCase().split(/[\s,;]+/).includes(String(s.user.email || '').toLowerCase());
   const host = location.hostname || 'your-site.github.io';
   const pct = v => (Math.round(v * 1000) / 10).toFixed(1) + '%';
-  const probTable = (list, isD) => list.length ? `<table class="rtable gd-ptable"><thead><tr><th>Card</th><th>Type</th><th>Season</th><th>Points</th><th>Point share</th><th>Rarity</th><th>Draw probability</th></tr></thead><tbody>${[...list].sort((a, b) => (a.seasonNum || 0) - (b.seasonNum || 0) || b.points - a.points).map(x => `<tr><td><b>${esc(x.name)}</b></td><td>${isD ? 'Driver' : 'Constructor'}</td><td>${isD ? `S${x.seasonNum} · ${esc(x.season)}` : '—'}</td><td class="mono">${LG.fmtPts(x.points)}</td><td class="mono">${pct(x.share)}</td><td><span class="gd-rar r-${x.rarity}">${GD.R_LABEL[x.rarity]}</span></td><td class="mono"><b>${pct(x.prob)}</b></td></tr>`).join('')}</tbody></table>` : '<p class="muted">No eligible cards yet — they appear once drivers have race results.</p>';
+  const probTable = (list, isD) => list.length ? `<table class="rtable gd-ptable"><thead><tr><th>Card</th><th>Type</th><th>Season</th><th>Points</th><th>Point share</th><th>Rarity</th><th>Draw probability</th></tr></thead><tbody>${[...list].sort((a, b) => (b.seasonNum || 0) - (a.seasonNum || 0) || b.points - a.points).map(x => `<tr><td><b>${esc(x.name)}</b></td><td>${isD ? 'Driver' : 'Constructor'}</td><td>${esc(LG.seasonName(x.season))}</td><td class="mono">${LG.fmtPts(x.points)}</td><td class="mono">${pct(x.share)}</td><td><span class="gd-rar r-${x.rarity}">${GD.R_LABEL[x.rarity]}</span></td><td class="mono">${x.prob > 0 ? `<b>${pct(x.prob)}</b>` : '<span class="muted">Not in pool</span>'}</td></tr>`).join('')}</tbody></table>` : '<p class="muted">No eligible cards yet — they appear once drivers have race results.</p>';
   const rules = GD.rulesText(d);
   return head('Grid Draft', 'A card-drafting mini-game scored with real championship points. Players sign in with Google; their attempts, rerolls and teams are stored in your own free Firebase project.', '<a class="btn" href="#/griddraft">View game</a>') + `
     <div class="a-card"><h3>Setup (one time, about 10 minutes)</h3>
@@ -1042,7 +1043,8 @@ function secGridDraft(d) {
     <div class="a-card"><h3>③ Firestore security rules</h3><p class="hint" style="margin:-4px 0 10px">Copy all of this into Firebase → Firestore Database → Rules → Publish.${!String(c.admins || '').includes('@') ? ' <b style="color:var(--pink-soft)">Add your admin email first.</b>' : ''}</p>
       <textarea class="gd-rules" readonly rows="10">${esc(rules)}</textarea>
       <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="gd-copyrules">Copy rules</button></div></div>
-    <div class="a-card"><h3>Constructor points for Grid Draft</h3><p class="hint" style="margin:-4px 0 10px">Leave empty to use each team's current championship points.</p>
+    ${gdSetsCard(d, c, cards)}
+    <div class="a-card"><h3>Constructor points for Grid Draft</h3><p class="hint" style="margin:-4px 0 10px">For the <b>current season</b> only. Leave empty to use each team's championship points. These are cleared when a new season starts (the old values stay saved in that season's card set).</p>
       <div class="ft-price-grid">${d.teams.map((t, i) => `<label class="ft-price-row"><span class="swatch" style="--tc:${esc(LG.teamColor(t))}"></span><span class="ft-pn">${esc(t.name)}<small>${LG.fmtPts(((cards.constructors.find(x => x.key === t.id) || {}).points) || 0)} pts in use</small></span><input type="number" step="any" data-num data-path="teams.${i}.gdPoints" data-reload value="${esc(t.gdPoints ?? '')}" placeholder="auto"></label>`).join('')}</div></div>
     <div class="a-card" style="overflow-x:auto"><h3>Driver cards (${cards.drivers.length})</h3>${probTable(cards.drivers, true)}</div>
     <div class="a-card" style="overflow-x:auto"><h3>Constructor cards (${cards.constructors.length})</h3>${probTable(cards.constructors, false)}</div>
@@ -1053,6 +1055,43 @@ function secGridDraft(d) {
         ${GDA.players ? (() => { const pi = GD.periodInfo(d, s); const rows = GDA.players.map(p => ({ p, sc: p.team ? GD.teamScore(cards, p.team) : null, n: (GDA.drafts || []).filter(x => x.uid === p.uid).length })).sort((a, b) => (b.sc ? b.sc.total : -1) - (a.sc ? a.sc.total : -1));
           return `<p class="muted" style="font-size:13px">${rows.length} players · ${(GDA.drafts || []).length} drafts · ${(GDA.drafts || []).filter(x => x.stage === 'done').length} completed</p><table class="rtable"><thead><tr><th>Player</th><th>Attempts this reset</th><th>Total drafts</th><th>Current team</th><th>Score</th><th>Last draft</th><th></th></tr></thead><tbody>${rows.map(({ p, sc, n }) => `<tr><td><b>${esc(p.name)}</b></td><td class="mono">${p.period === pi.key ? p.attempts : 0}/${c.attempts}</td><td class="mono">${n}</td><td style="font-size:12.5px">${p.team ? ['d1', 'd2', 'c'].map(k => esc((cards.byId[p.team[k]] || {}).name || '?')).join(' · ') : '<span class="muted">—</span>'}</td><td class="c-pts">${sc ? LG.fmtPts(sc.total) : '—'}</td><td class="muted" style="font-size:12.5px">${p.lastStart ? new Date(p.lastStart).toLocaleString() : ''}</td><td>${p.period === pi.key && p.attempts > 0 ? `<button class="btn xs" data-act="gd-resetone" data-uid="${esc(p.uid)}" data-name="${esc(p.name)}" title="Give this player all their attempts back">↺ Reset rolls</button>` : ''}</td></tr>`).join('')}</tbody></table>`; })() : ''}`}
     </div>`;
+}
+
+function gdSetsCard(d, c, cards) {
+  const GD = window.GridDraft, cur = String(d.league.season), saved = cards.live;
+  const src = { set: '💾 Saved set', hof: '🏆 From Hall of Fame', live: '🟢 Live (this season)' };
+  const pctS = v => v === undefined ? '—' : (Math.round(v * 1000) / 10) + '%';
+  const rows = [...cards.seasons].reverse().map(s => {
+    const o = GD.seasonOpt(c, s.key), k = s.key.replace(/[^\w-]/g, '_'), base = `gridDraft.seasonOpts.${k}`;
+    const hasSaved = s.src === 'set' || (s.current && saved);
+    return `<tr class="${o.off ? 'gd-off' : ''}"><td><b>${esc(LG.seasonName(s.label))}</b>${s.current ? ' <span class="chip">newest</span>' : ''}<div class="muted" style="font-size:12px">${src[s.src]}${s.src === 'set' && (c.sets || []).find(x => x.key === s.key) ? ' · ' + new Date((c.sets.find(x => x.key === s.key) || {}).savedAt).toLocaleDateString() : ''}${s.current && saved ? ` · backup saved ${new Date(saved.savedAt).toLocaleDateString()}` : ''}</div></td>
+      <td class="mono">${s.drivers.length} / ${s.constructors.length}</td>
+      <td><label class="tgl"><input type="checkbox" data-gd-opt="${esc(s.key)}" data-k="on" ${o.off ? '' : 'checked'}><span>${o.off ? 'Off' : 'In pool'}</span></label></td>
+      <td>${s.current ? `<span class="muted" style="font-size:12.5px">Gets ${esc(c.newShare ?? 50)}%</span>` : `<input type="number" min="0" step="0.5" style="width:80px" data-gd-opt="${esc(s.key)}" data-k="weight" value="${esc(o.weight)}">`}</td>
+      <td class="mono">${pctS(s.share && s.share.drivers)}</td>
+      <td><input type="text" style="min-width:150px" maxlength="24" data-gd-opt="${esc(s.key)}" data-k="edition" value="${esc(o.edition)}" placeholder="e.g. Sakura Edition"></td>
+      <td class="c-act" style="white-space:nowrap">${s.current ? `<button class="btn xs" data-act="gd-saveset">${saved ? '↻ Update backup' : '💾 Save now'}</button>` : ''}${hasSaved && !s.current ? `<button class="iconbtn del" data-act="gd-delset" data-key="${esc(s.key)}" title="Delete this saved card set">✕</button>` : ''}</td></tr>`;
+  }).join('');
+  return `<div class="a-card" style="overflow-x:auto"><h3>Card sets by season</h3>
+    <p class="hint" style="margin:-4px 0 12px">Each season has its own cards. When you <b>start a new season</b>, this season's cards are saved automatically (photos, teams, points and all), so they can still be pulled — and score exactly the same — after the new season begins. The newest season's cards are built live from your results.</p>
+    <div class="fgrid">${F.num('Chance a pull comes from the newest season (%)', 'gridDraft.newShare', c.newShare ?? 50, 'data-reload min="0" max="100"')}</div>
+    <p class="hint">The rest is split between older seasons by their <b>weight</b> (1 = normal, 2 = twice as likely, 0 = never). Untick <b>In pool</b> to retire a season's cards from pulls — players who already own them keep their scores. An <b>edition</b> name is printed on that season's cards.</p>
+    <table class="rtable gd-sets" style="margin-top:12px"><thead><tr><th>Season</th><th>Drivers / Teams</th><th>Pulls</th><th>Weight</th><th>Driver pull share</th><th>Edition name</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    ${saved ? '' : `<p class="hint" style="margin-top:10px">Tip: “Save now” keeps a backup of ${esc(LG.seasonName(cur))}'s cards. It doesn't freeze them — the live cards keep updating until the season changes.</p>`}</div>`;
+}
+document.addEventListener('change', e => {
+  const el = e.target.closest && e.target.closest('[data-gd-opt]'); if (!el) return;
+  const d = D(), g = d.gridDraft = d.gridDraft || {}, so = g.seasonOpts = g.seasonOpts || {};
+  const o = so[el.dataset.gdOpt] = so[el.dataset.gdOpt] || {}, k = el.dataset.k;
+  if (k === 'on') o.off = !el.checked; else if (k === 'weight') o.weight = Math.max(0, Number(el.value) || 0); else o.edition = el.value.trim().slice(0, 24);
+  commit();
+});
+/* save this season's Grid Draft cards (called right before a new season clears the results) */
+function gdKeepSeasonBackup(d) { return window.GridDraft && window.GridDraft.saveSet(d); }
+function gdKeepSeason(d) {
+  const set = window.GridDraft && window.GridDraft.saveSet(d);
+  if (set) d.teams.forEach(t => { delete t.gdPoints; });
+  return set;
 }
 
 /* ---------------- fantasy admin ---------------- */
@@ -1616,6 +1655,8 @@ document.addEventListener('click', async e => {
     }
     case 'gd-adminsignin': { const s = window.GridDraft.store(d); try { await s.signIn(); } catch (x) { toast('Sign-in failed: ' + (x.code || x.message) + (/unauthorized-domain/.test(x.code || '') ? ' — add this site in Firebase → Authentication → Settings → Authorized domains.' : ''), 'err'); } return; }
     case 'gd-loadplayers': { const s = window.GridDraft.store(d); GDA.err = ''; try { GDA.players = await s.players(); GDA.drafts = await s.allDrafts(); } catch (x) { GDA.err = 'Couldn\'t load: ' + (x.code || x.message); } return rerender(); }
+    case 'gd-saveset': { const st = gdKeepSeasonBackup(d); if (!st) return toast('No cards yet — they appear once drivers have race results.', 'err'); toast(`${LG.seasonName(st.label)} cards saved (${st.drivers.length} drivers, ${st.constructors.length} teams)`); return commit(); }
+    case 'gd-delset': { const k = b.dataset.key; if (!confirm('Delete this saved card set? Its cards leave the pool, and players who own them will show a missing card (0 pts). This can\'t be undone after you publish.')) return; d.gridDraft.sets = (d.gridDraft.sets || []).filter(x => x.key !== k); return commit(); }
     case 'gd-resetone': {
       if (!confirm(`Give ${b.dataset.name} all their attempts back for this reset period?`)) return;
       const s = window.GridDraft.store(d); b.disabled = true;
@@ -1651,6 +1692,7 @@ document.addEventListener('click', async e => {
       if (!confirm('Start a new season? A backup will download first. Results, penalties and the calendar will be cleared (nothing goes live until you publish).')) return;
       download(d, `league-${String(d.league.season).replace(/[^\w-]+/g, '_')}-backup.json`);
       d.history.push(LG.snapshotSeason(d));
+      gdKeepSeason(d);
       d.results = {}; d.adjustments = []; d.stewards = []; d.calendar = [];
       const n = parseInt(d.league.season, 10); if (!isNaN(n) && String(n) === String(d.league.season).trim()) d.league.season = String(n + 1);
       toast('New season started — set up the calendar next'); return commit();

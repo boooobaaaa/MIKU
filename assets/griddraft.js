@@ -17,6 +17,7 @@ const STAGE_LABEL = { d1: 'Driver 1', d2: 'Driver 2', c: 'Constructor', done: 'T
 const D1_MULT = 1.5;
 
 const DEFAULTS = {
+  newShare: 50,
   enabled: false, firebase: null, admins: '', attempts: 10, periodHours: 10, cooldownSec: 3,
   iconGap: 10, primeCount: 3, elitePct: 25, advancedPct: 50, smoothing: 0.05, minProb: 0.5, maxProb: 25
 };
@@ -27,64 +28,124 @@ const hasVal = v => v !== '' && v !== null && v !== undefined;
 /* =========================================================
    ENGINE — cards, rarity, probabilities, scoring (pure)
    ========================================================= */
+/* One season's cards straight from the live league data (results so far). */
+function liveRows(d) {
+  const st = LG.computeStandings(d);
+  const raced = {};
+  LG.rounds(d).forEach(r => ['race', 'sprint'].forEach(ss => LG.session(d, r.id, ss).forEach(e => {
+    if (!e.driverId) return;
+    const t = raced[e.driverId] || (raced[e.driverId] = []);
+    if (e.teamId && !t.includes(e.teamId)) t.push(e.teamId);
+  })));
+  const drivers = st.drivers.filter(x => raced[x.id]).map(x => {
+    const m = byId(d.drivers, x.id) || {};
+    const teams = raced[x.id].map(id => byId(d.teams, id)).filter(Boolean).map(t => ({ name: t.name, color: teamColor(t) }));
+    return { key: x.id, name: m.name || 'Unknown driver', country: m.country || '', photo: m.photo || '', headshot: m.headshot || m.photo || '', number: hasVal(m.number) ? m.number : '', rating: hasVal(m.rating) ? m.rating : null, teams, points: x.points };
+  });
+  const anyGd = d.teams.some(t => hasVal(t.gdPoints));
+  const constructors = (drivers.length || anyGd) ? d.teams.map(t => ({
+    key: t.id, name: t.name, logo: t.logo || '', country: t.country || '', color: teamColor(t), car: t.carImage || '',
+    points: hasVal(t.gdPoints) ? Number(t.gdPoints) : ((st.T[t.id] || {}).points || 0)
+  })) : [];
+  return { drivers, constructors };
+}
+/* Hall of Fame snapshot → rows (for seasons that never had a saved card set) */
+function histRows(d, h) {
+  const byName = {}, tByName = {};
+  d.drivers.forEach(x => { byName[String(x.name || '').trim().toLowerCase()] = x; });
+  d.teams.forEach(t => { tByName[String(t.name || '').trim().toLowerCase()] = t; });
+  const drivers = (h.standings.drivers || []).map(x => {
+    const m = byName[String(x.name || '').trim().toLowerCase()];
+    return { key: m ? m.id : 'n-' + slug(x.name), name: x.name, country: x.country || (m && m.country) || '', photo: m ? (m.photo || '') : '', headshot: m ? (m.headshot || m.photo || '') : '', number: m && hasVal(m.number) ? m.number : '', rating: m && hasVal(m.rating) ? m.rating : null, teams: x.team ? [{ name: x.team, color: x.color || '#39c5bb' }] : [], points: Number(x.points) || 0 };
+  });
+  const constructors = (h.standings.teams || []).map(x => {
+    const t = tByName[String(x.name || '').trim().toLowerCase()];
+    return { key: t ? t.id : 'n-' + slug(x.name), name: x.name, logo: t ? (t.logo || '') : '', country: t ? (t.country || '') : '', color: x.color || (t ? teamColor(t) : '#39c5bb'), car: t ? (t.carImage || '') : '', points: Number(x.points) || 0 };
+  });
+  return { drivers, constructors };
+}
+/* Freeze the live season's cards so they stay pullable (and score the same) forever. */
+function snapshotSet(d) {
+  const label = String(d.league.season || 'Current'), rows = liveRows(d);
+  const r1 = v => Math.round((Number(v) || 0) * 10) / 10;
+  return {
+    key: slug(label), label, savedAt: new Date().toISOString(),
+    drivers: rows.drivers.map(x => Object.assign({}, x, { points: r1(x.points), teams: x.teams.map(t => ({ name: t.name, color: t.color })) })),
+    constructors: rows.constructors.map(x => Object.assign({}, x, { points: r1(x.points) }))
+  };
+}
+/* Save (or update) the current season's set inside d.gridDraft. Returns the set, or null if it has no cards yet. */
+function saveSet(d) {
+  const set = snapshotSet(d);
+  if (!set.drivers.length && !set.constructors.length) return null;
+  const g = d.gridDraft = d.gridDraft || {};
+  g.sets = (g.sets || []).filter(x => x.key !== set.key);
+  g.sets.push(set);
+  if (!g.legacyKey) g.legacyKey = set.key; // old constructor ids (before card sets) belong to this season
+  return set;
+}
+const seasonOpt = (c, key) => Object.assign({ off: false, weight: 1, edition: '' }, (c.seasonOpts || {})[key] || {});
+
 function buildCards(d) {
   const c = cfg(d);
-  const st = LG.computeStandings(d);
-  const curLabel = String(d.league.season || 'Current');
-  // seasons: archived snapshots (with real standings) + the live season
-  const seasons = [];
-  (d.history || []).filter(h => h && h.standings && (h.standings.drivers || []).length && String(h.season) !== curLabel)
-    .forEach(h => seasons.push({ label: String(h.season), hist: h }));
-  seasons.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
-  seasons.push({ label: curLabel, current: true });
-  seasons.forEach((s, i) => { s.num = i + 1; s.key = slug(s.label); });
+  const curLabel = String(d.league.season || 'Current'), curKey = slug(curLabel);
+  // every season that has cards: saved sets, Hall of Fame snapshots, and the live season (live always wins for the current season)
+  const map = {};
+  (c.sets || []).forEach(x => { if (x && x.key && x.key !== curKey) map[x.key] = { label: String(x.label), key: x.key, src: 'set', rows: x }; });
+  (d.history || []).filter(h => h && h.standings && (h.standings.drivers || []).length).forEach(h => {
+    const k = slug(h.season); if (k === curKey || map[k]) return;
+    map[k] = { label: String(h.season), key: k, src: 'hof', rows: histRows(d, h) };
+  });
+  const seasons = Object.values(map).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+  seasons.push({ label: curLabel, key: curKey, src: 'live', current: true, rows: liveRows(d) });
+  seasons.forEach((s, i) => { s.num = i + 1; s.opt = seasonOpt(c, s.key); });
 
-  const byName = {};
-  d.drivers.forEach(x => { byName[String(x.name || '').trim().toLowerCase()] = x; });
-  const drivers = [];
+  const drivers = [], cons = [];
   seasons.forEach(s => {
-    let rows = [];
-    if (s.current) {
-      const raced = {};
-      LG.rounds(d).forEach(r => ['race', 'sprint'].forEach(ss => LG.session(d, r.id, ss).forEach(e => {
-        if (!e.driverId) return;
-        const t = raced[e.driverId] || (raced[e.driverId] = []);
-        if (e.teamId && !t.includes(e.teamId)) t.push(e.teamId);
-      })));
-      rows = st.drivers.filter(x => raced[x.id]).map(x => {
-        const m = byId(d.drivers, x.id) || {};
-        const teams = raced[x.id].map(id => byId(d.teams, id)).filter(Boolean).map(t => ({ name: t.name, color: teamColor(t) }));
-        return { key: x.id, master: m, name: m.name || 'Unknown driver', country: m.country, points: x.points, teams };
-      });
-    } else {
-      rows = s.hist.standings.drivers.map(x => {
-        const m = byName[String(x.name || '').trim().toLowerCase()];
-        return { key: m ? m.id : 'n-' + slug(x.name), master: m || null, name: x.name, country: x.country || (m && m.country), points: Number(x.points) || 0, teams: x.team ? [{ name: x.team, color: x.color || '#39c5bb' }] : [] };
-      });
-    }
-    const total = rows.reduce((a, r) => a + Math.max(0, r.points), 0);
-    rows.forEach(r => drivers.push({
-      id: `d:${r.key}:${s.key}`, type: 'driver', key: r.key, season: s.label, seasonNum: s.num, name: r.name, country: r.country,
-      photo: r.master ? (r.master.photo || '') : '', headshot: r.master ? (r.master.headshot || r.master.photo || '') : '',
-      number: r.master ? r.master.number : '', rating: r.master && hasVal(r.master.rating) ? r.master.rating : null,
-      teams: r.teams, color: r.teams[0] ? r.teams[0].color : '#39c5bb',
-      points: Math.round(r.points * 10) / 10, share: total > 0 ? Math.max(0, r.points) / total : 0
+    const base = { season: s.label, seasonKey: s.key, seasonNum: s.num, edition: s.opt.edition || '', newest: !!s.current };
+    const dl = (s.rows.drivers || []).map(r => Object.assign({}, base, {
+      id: `d:${r.key}:${s.key}`, type: 'driver', key: r.key, name: r.name, country: r.country, photo: r.photo || '', headshot: r.headshot || r.photo || '',
+      number: hasVal(r.number) ? r.number : '', rating: hasVal(r.rating) ? r.rating : null, teams: r.teams || [], color: (r.teams || [])[0] ? r.teams[0].color : '#39c5bb',
+      points: Math.round((Number(r.points) || 0) * 10) / 10
     }));
+    const cl = (s.rows.constructors || []).map(r => Object.assign({}, base, {
+      id: `c:${r.key}:${s.key}`, type: 'constructor', key: r.key, name: r.name, logo: r.logo || '', country: r.country || '', color: r.color || '#39c5bb', car: r.car || '',
+      points: Math.round((Number(r.points) || 0) * 10) / 10
+    }));
+    [dl, cl].forEach(list => {
+      const tot = list.reduce((a, x) => a + Math.max(0, x.points), 0);
+      list.forEach(x => { x.share = tot > 0 ? Math.max(0, x.points) / tot : 0; });
+      assignRarity(list, c);
+    });
+    s.drivers = dl; s.constructors = cl;
+    drivers.push(...dl); cons.push(...cl);
   });
-  seasons.forEach(s => assignRarity(drivers.filter(x => x.season === s.label), c));
-
-  const cons = d.teams.map(t => {
-    const pts = hasVal(t.gdPoints) ? Number(t.gdPoints) : ((st.T[t.id] || {}).points || 0);
-    return { id: `c:${t.id}`, type: 'constructor', key: t.id, name: t.name, logo: t.logo || '', country: t.country || '', color: teamColor(t), car: t.carImage || '', points: Math.round(pts * 10) / 10 };
-  });
-  const ctot = cons.reduce((a, x) => a + Math.max(0, x.points), 0);
-  cons.forEach(x => { x.share = ctot > 0 ? Math.max(0, x.points) / ctot : 0; });
-  assignRarity(cons, c);
-
-  probabilities(drivers, c);
-  probabilities(cons, c);
+  weightSeasons(seasons, 'drivers', c);
+  weightSeasons(seasons, 'constructors', c);
   const all = {}; [...drivers, ...cons].forEach(x => { all[x.id] = x; });
-  return { drivers, constructors: cons, byId: all, seasons };
+  // cards drafted before card sets existed used "c:<team>" — point them at the season they were drafted in
+  const legacy = c.legacyKey || curKey;
+  cons.filter(x => x.seasonKey === legacy).forEach(x => { if (!all['c:' + x.key]) all['c:' + x.key] = x; });
+  return { drivers, constructors: cons, byId: all, seasons, live: (c.sets || []).filter(x => x.key === curKey)[0] || null };
+}
+/* Split the draw chance between seasons: the newest gets "newShare" %, older seasons share the rest by their weight.
+   Inside each season the usual rarity-based probabilities apply. */
+function weightSeasons(seasons, kind, c) {
+  const on = seasons.filter(s => !s.opt.off && s[kind].length);
+  seasons.forEach(s => { if (s.opt.off || !s[kind].length) s[kind].forEach(x => { x.prob = 0; }); });
+  if (!on.length) return;
+  const newest = on[on.length - 1], old = on.slice(0, -1);
+  const share = Math.min(100, Math.max(0, hasVal(c.newShare) ? Number(c.newShare) : 50)) / 100;
+  const wsum = old.reduce((a, s) => a + Math.max(0, Number(s.opt.weight) || 0), 0);
+  on.forEach(s => {
+    let w;
+    if (!old.length) w = 1;
+    else if (s === newest) w = wsum > 0 ? share : 1;
+    else w = wsum > 0 ? (1 - share) * Math.max(0, Number(s.opt.weight) || 0) / wsum : 0;
+    probabilities(s[kind], c);
+    s[kind].forEach(x => { x.prob = (x.prob || 0) * w; });
+    s.share = s.share || {}; s.share[kind] = w;
+  });
 }
 
 function takeWithTies(list, n) {
@@ -146,7 +207,7 @@ function drawPair(pool, exclude = [], excludeKey = '') {
   const pick = list => { const tot = list.reduce((a, x) => a + x.prob, 0); let r = rand() * tot; for (const x of list) { r -= x.prob; if (r <= 0) return x; } return list[list.length - 1]; };
   if (cand.length < 2) return null;
   const a = pick(cand);
-  cand = cand.filter(x => x.id !== a.id && (a.type !== 'driver' || x.key !== a.key));
+  cand = cand.filter(x => x.id !== a.id && x.key !== a.key);
   if (!cand.length) return null;
   const b = pick(cand);
   return [a.id, b.id];
@@ -403,6 +464,7 @@ const rarityBadge = r => `<span class="gd-rar r-${r}">${R_LABEL[r] || ''}</span>
 const SAKURA_PETAL = 'M0 0C-7.5-5-9-14.5-4.2-20.5L0-17.2L4.2-20.5C9-14.5 7.5-5 0 0Z';
 const sakuraMark = (cls = '') => `<svg class="gd-sakura ${cls}" viewBox="-24 -24 48 48" aria-hidden="true">${[0, 72, 144, 216, 288].map(a => `<path d="${SAKURA_PETAL}" transform="rotate(${a})"/>`).join('')}<circle r="3.4"/></svg>`;
 const cardBack = () => `<div class="gd-back" aria-hidden="true"><div class="gd-back-in">${sakuraMark()}<b>GRID<br>DRAFT</b><span>${esc((LG.S.data.league || {}).name || '')}</span></div></div>`;
+const edStamp = x => x.edition ? `<span class="gd-ed">${esc(x.edition)}</span>` : '';
 const R_ORDER = { icon: 5, prime: 4, elite: 3, advanced: 2, basic: 1 };
 function cardHTML(x, opts = {}) {
   if (!x) return `<div class="gd-card missing"><div class="gd-card-in"><p class="muted">This card is no longer available.</p></div></div>`;
@@ -412,8 +474,8 @@ function cardHTML(x, opts = {}) {
   if (x.type === 'driver') {
     return `<${tag} class="gd-card r-${x.rarity} ${opts.selected ? 'sel' : ''} ${opts.cls || ''}" style="--tc:${esc(x.color)}" ${attrs}>${cardBack()}
       <div class="gd-card-in"><i class="gd-holo"></i>
-        <div class="gd-top">${rarityBadge(x.rarity)}<span class="gd-season">Season ${esc(x.seasonNum)} · ${esc(x.season)}</span></div>
-        <div class="gd-photo">${x.photo ? `<img src="${esc(LG.asset(x.photo))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
+        <div class="gd-top">${rarityBadge(x.rarity)}<span class="gd-season">${esc(LG.seasonName(x.season))}</span></div>
+        <div class="gd-photo">${edStamp(x)}${x.photo ? `<img src="${esc(LG.asset(x.photo))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
         <div class="gd-info">
           <div class="gd-name">${nameHTML(x.name)}${hasVal(x.number) ? `<span class="gd-no">#${esc(x.number)}</span>` : ''}</div>
           <div class="gd-meta">${flag(x.country)}${x.country ? `<span>${esc(String(x.country).toUpperCase())}</span>` : ''}${x.rating !== null ? `<span class="gd-rating">${esc(x.rating)} OVR</span>` : ''}</div>
@@ -424,8 +486,8 @@ function cardHTML(x, opts = {}) {
   }
   return `<${tag} class="gd-card con r-${x.rarity} ${opts.selected ? 'sel' : ''} ${opts.cls || ''}" style="--tc:${esc(x.color)}" ${attrs}>${cardBack()}
     <div class="gd-card-in"><i class="gd-holo"></i>
-      <div class="gd-top">${rarityBadge(x.rarity)}<span class="gd-season">Constructor</span></div>
-      <div class="gd-photo con">${x.logo ? `<img class="gd-logo" src="${esc(LG.asset(x.logo))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${x.car ? `<img class="gd-car" src="${esc(LG.asset(x.car))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
+      <div class="gd-top">${rarityBadge(x.rarity)}<span class="gd-season">${esc(LG.seasonName(x.season))}</span></div>
+      <div class="gd-photo con"><span class="gd-ctag">Constructor</span>${edStamp(x)}${x.logo ? `<img class="gd-logo" src="${esc(LG.asset(x.logo))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${x.car ? `<img class="gd-car" src="${esc(LG.asset(x.car))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
       <div class="gd-info">
         <div class="gd-name con">${esc(x.name)}</div>
         <div class="gd-meta">${flag(x.country)}${x.country ? `<span>${esc(String(x.country).toUpperCase())}</span>` : ''}</div>
@@ -479,7 +541,7 @@ function page(d, sub) {
 
 function landing(d, s, cards) {
   const c = cfg(d), p = s.profile, pi = periodInfo(d, s);
-  const noCards = cards.drivers.length < 3 || cards.constructors.length < 2;
+  const noCards = cards.drivers.filter(x => x.prob > 0).length < 3 || cards.constructors.filter(x => x.prob > 0).length < 2;
   const left = attemptsLeft(d, s), cd = cooldownLeft(d, s);
   if (s.user && p && G.lb === null) loadLeaderboard(d, s).then(() => LG.render(false));
   if (s.user && p && p.active && G.draftFor !== p.active && !G.loading) loadActiveDraft(s).then(() => LG.render(false));
@@ -713,5 +775,5 @@ setInterval(() => {
 }, 1000);
 window.addEventListener('hashchange', () => { if (/^#\/griddraft\/?$/.test(location.hash)) { G.lb = null; } if (/^#\/griddraft\/history/.test(location.hash)) G.hist = null; });
 
-window.GridDraft = { page, buildCards, assignRarity, probabilities, drawPair, teamScore, rulesText, parseFirebaseConfig, store, cfg, DEFAULTS, R_LABEL, RARITIES, periodInfo, G };
+window.GridDraft = { page, buildCards, snapshotSet, saveSet, seasonOpt, assignRarity, probabilities, drawPair, teamScore, rulesText, parseFirebaseConfig, store, cfg, DEFAULTS, R_LABEL, RARITIES, periodInfo, G };
 })();
