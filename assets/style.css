@@ -2217,3 +2217,12 @@ textarea.ct-area { min-height: 220px; }
 .round-card .rc-round { white-space: nowrap; }
 .round-card .rc-top > span:last-child { flex-wrap: wrap; justify-content: flex-end; }
 .round-card .badge { white-space: nowrap; }
+
+/* admin drivers toolbar */
+.drv-tools { display: grid; gap: 10px; }
+.drv-tools-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.drv-tools .tabs { margin: 0; }
+.drv-tools input[type=search] { flex: 1; min-width: 200px; }
+.drv-tools-row > select { width: auto; flex: 0 1 200px; min-width: 150px; }
+.drv-tools-row > input[type=search] { flex: 1 1 240px; background: color-mix(in srgb, var(--bg) 60%, transparent); border: 1px solid var(--line-strong); border-radius: 10px; color: var(--text); font: 14px var(--f-body); padding: 9px 12px; outline: none; }
+.drv-tools-row > input[type=search]:focus { border-color: var(--miku); }

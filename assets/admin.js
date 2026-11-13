@@ -177,12 +177,29 @@ function secLeague(d) {
     </div>`}`;
 }
 
+const ADS = (() => { try { return Object.assign({ sort: 'custom', team: '', show: 'all' }, JSON.parse(localStorage.getItem('league.admin.drvview') || '{}')); } catch (e) { return { sort: 'custom', team: '', show: 'all' }; } })();
+const saveADS = () => { try { localStorage.setItem('league.admin.drvview', JSON.stringify(ADS)); } catch (e) { } };
+const lastNameOf = x => { const p = String(x.name || '').trim().split(/\s+/); return (p[p.length - 1] || '').toLowerCase(); };
+function driverOrder(d, st) {
+  const num = x => { const n = parseInt(x.number, 10); return isNaN(n) ? 999 : n; };
+  const team = x => { const t = byId(d.teams, x.teamId); return t ? t.name.toLowerCase() : 'zzz'; };
+  const pos = x => (st.D[x.id] || {}).position || 999;
+  const by = { number: (a, b) => num(a) - num(b), name: (a, b) => lastNameOf(a).localeCompare(lastNameOf(b)) || String(a.name).localeCompare(String(b.name)),
+    team: (a, b) => team(a).localeCompare(team(b)) || num(a) - num(b), standings: (a, b) => pos(a) - pos(b) || num(a) - num(b) }[ADS.sort];
+  const idx = d.drivers.map((x, i) => i);
+  return by ? idx.sort((i, j) => by(d.drivers[i], d.drivers[j])) : idx;
+}
 function secDrivers(d) {
   const st = LG.computeStandings(d);
-  const items = d.drivers.map((x, i) => {
+  const custom = ADS.sort === 'custom';
+  const shownIdx = driverOrder(d, st).filter(i => { const x = d.drivers[i]; return (!ADS.team || x.teamId === ADS.team || (ADS.team === '-' && !x.teamId)) && (ADS.show === 'all' || (ADS.show === 'active' ? x.active !== false : x.active === false)); });
+  const canMove = custom && !ADS.team && ADS.show === 'all';
+  const items = shownIdx.map(i => {
+    const x = d.drivers[i];
     const t = byId(d.teams, x.teamId), key = 'drv-' + x.id, p = `drivers.${i}`;
-    return `<details class="item" data-key="${key}" ${A.open[key] ? 'open' : ''}>
-      <summary>${mvBtns('drivers', i, d.drivers.length)}<span class="swatch" style="--tc:${esc(LG.teamColor(t))}"></span><b class="mono" style="width:34px">${esc(x.number ?? '')}</b>${LG.nameHTML(x.name)} ${LG.flag(x.country)} <span class="muted" style="font-size:13px">${esc(t ? t.name : 'No team')} · ${fmtPts((st.D[x.id] || {}).points || 0)} pts</span>${x.active === false ? '<span class="pill-inactive">inactive</span>' : ''}</summary>
+    const search = [x.name, x.number, x.gamertag, t && t.name, x.country].filter(Boolean).join(' ').toLowerCase();
+    return `<details class="item" data-key="${key}" data-search="${esc(search)}" ${A.open[key] ? 'open' : ''}>
+      <summary>${canMove ? mvBtns('drivers', i, d.drivers.length) : ''}<span class="swatch" style="--tc:${esc(LG.teamColor(t))}"></span><b class="mono" style="width:34px">${esc(x.number ?? '')}</b>${LG.nameHTML(x.name)} ${LG.flag(x.country)} <span class="muted" style="font-size:13px">${esc(t ? t.name : 'No team')} · ${fmtPts((st.D[x.id] || {}).points || 0)} pts</span>${x.active === false ? '<span class="pill-inactive">inactive</span>' : ''}</summary>
       <div class="body"><div class="fgrid">
         ${F.text('Full name', p + '.name', x.name, 'data-reload')}
         ${F.num('Car number', p + '.number', x.number, 'data-reload')}
@@ -210,8 +227,18 @@ function secDrivers(d) {
       <div class="item-actions"><a class="btn sm ghost" href="#/driver/${esc(x.id)}">View page</a><button class="btn sm danger" data-act="del-driver" data-i="${i}">Delete driver</button></div></div>
     </details>`;
   }).join('');
+  const sorts = [['custom', 'My order'], ['number', 'Number'], ['name', 'Last name'], ['team', 'Team'], ['standings', 'Championship']];
+  const bar = d.drivers.length > 1 ? `<div class="a-card drv-tools">
+      <div class="drv-tools-row"><span class="muted">Sort</span><div class="tabs">${sorts.map(([k, l]) => `<button data-act="drv-sort" data-s="${k}" class="${ADS.sort === k ? 'active' : ''}">${l}</button>`).join('')}</div>
+        ${!custom ? `<button class="btn sm" data-act="drv-save-order" title="Make this the saved order (used for ↑ ↓ and the public pages when set to My order)">Save as my order</button>` : ''}
+        <span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm ghost" data-act="drv-expand">Expand all</button><button class="btn sm ghost" data-act="drv-collapse">Collapse all</button></span></div>
+      <div class="drv-tools-row"><input type="search" id="drv-q" placeholder="Search name, number, team, gamertag…" autocomplete="off">
+        <select id="drv-team"><option value="">All teams</option>${d.teams.map(t => `<option value="${esc(t.id)}" ${ADS.team === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}<option value="-" ${ADS.team === '-' ? 'selected' : ''}>No team</option></select>
+        <select id="drv-show">${[['all', 'Active & benched'], ['active', 'Active only'], ['benched', 'Benched only']].map(([k, l]) => `<option value="${k}" ${ADS.show === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+</div>
+      ${!canMove ? `<p class="hint" style="margin:8px 0 0">↑ ↓ buttons show in <b>My order</b> with no filters.</p>` : ''}</div>` : '';
   return head('Drivers', 'Moving a driver to a new team only affects future results — past points stay with the team they scored them for. Untick "Active" to bench someone without losing their history.',
-    `<button class="btn primary" data-act="add-driver">+ Add driver</button>`) + `<div class="a-card">${items || '<p class="muted">No drivers yet.</p>'}</div>`;
+    `<button class="btn primary" data-act="add-driver">+ Add driver</button>`) + bar + `<div class="a-card" id="drv-list">${items || `<p class="muted">${d.drivers.length ? 'No drivers match.' : 'No drivers yet.'}</p>`}<p class="muted drv-none" hidden>No drivers match your search.</p></div>`;
 }
 
 function secTeams(d) {
@@ -1301,6 +1328,9 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'drv-sort': ADS.sort = b.dataset.s; saveADS(); return rerender();
+    case 'drv-save-order': { const st = LG.computeStandings(d); const order = driverOrder(d, st); d.drivers = order.map(k => d.drivers[k]); ADS.sort = 'custom'; saveADS(); toast('Saved as your order — Publish to use it on the site'); return commit(); }
+    case 'drv-expand': case 'drv-collapse': document.querySelectorAll('#drv-list details.item').forEach(el => { if (!el.hidden) { el.open = b.dataset.act === 'drv-expand'; A.open[el.dataset.key] = el.open; } }); return;
     case 'apf-add': { const f = b.dataset.tpl === 'blank' ? { id: window.Apps.uidOf('form'), title: 'New application', description: '', open: false, questions: [{ id: window.Apps.uidOf('q'), label: 'Discord username', type: 'short', required: true, options: [], help: '' }] } : window.Apps.fromTemplate(b.dataset.tpl); d.applications.forms.push(f); A.open['apf-' + f.id] = true; toast('Form added — tick "Open" when it\'s ready, then Publish'); return commit(); }
     case 'apf-del': if (confirm('Delete this form? Applications already sent stay in Firebase.')) { d.applications.forms.splice(i, 1); commit(); } return;
     case 'apq-add': d.applications.forms[i].questions.push({ id: window.Apps.uidOf('q'), label: 'New question', type: 'short', required: false, options: [], help: '' }); return commit();
@@ -1857,7 +1887,15 @@ document.addEventListener('click', async e => {
   if (b.dataset.team === 'signout') { await s.signOut(); TEAMKEY.key = undefined; ACT.members = null; }
   rerender();
 });
+document.addEventListener('input', e => {
+  if (e.target.id !== 'drv-q') return;
+  const q = e.target.value.trim().toLowerCase(); let n = 0;
+  document.querySelectorAll('#drv-list details.item').forEach(el => { const hit = !q || q.split(/\s+/).every(w => el.dataset.search.includes(w)); el.hidden = !hit; if (hit) n++; });
+  const none = document.querySelector('#drv-list .drv-none'); if (none) none.hidden = n > 0;
+});
 document.addEventListener('change', e => {
+  if (e.target.id === 'drv-team') { ADS.team = e.target.value; saveADS(); return rerender(); }
+  if (e.target.id === 'drv-show') { ADS.show = e.target.value; saveADS(); return rerender(); }
   if (e.target.id === 'ap-form-filter') { APA.form = e.target.value; return rerender(); }
   if (e.target.id === 'ac-all') document.querySelectorAll('.ac-sec').forEach(x => { x.disabled = e.target.checked; if (e.target.checked) x.checked = true; });
 });
