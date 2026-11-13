@@ -423,6 +423,7 @@ function poleDriver(d, rid) {
 /* Turns an ordered list of entries into classified rows with positions & points.
    Order in the array = finishing order. Non-finishers (DNF/DSQ/DNS) get no position. */
 function classify(entries, type, sc, pole) {
+  if (type === 'sprintQuali') type = 'quali';
   const fin = [], other = [];
   (entries || []).forEach(e => ((e.status || 'FIN') === 'FIN' ? fin : other).push(e));
   const table = type === 'race' ? (sc.race || []) : type === 'sprint' ? (sc.sprint || []) : [];
@@ -533,7 +534,14 @@ const teamLabel = (d, id) => byId(d.teams, id) || { id, name: id ? 'Unknown team
 const head = (eyebrow, title, sub) => `<div class="page-head"><div class="eyebrow">${esc(eyebrow)}</div><h1>${title}</h1>${sub ? `<p class="sub">${sub}</p>` : ''}</div>`;
 const empty = (t, s) => `<div class="empty"><b>${esc(t)}</b>${s || ''}</div>`;
 const teamCell = t => `<span class="swatch" style="--tc:${esc(teamColor(t))}"></span><span class="team-name">${esc(t ? t.name : '—')}</span>`;
-const sessionName = s => ({ race: 'Race', sprint: 'Sprint', quali: 'Qualifying' }[s] || s);
+/* "1:31.456" / "91.456" / "1.31.456" → seconds */
+function lapSecs(t) {
+  const s = String(t || '').trim().replace(/,/g, '.'); if (!s) return null;
+  const p = s.split(/[:]/).map(Number);
+  if (p.some(isNaN)) { const m = s.match(/^(\d+)\.(\d{1,2})\.(\d+)$/); return m ? Number(m[1]) * 60 + Number(m[2] + '.' + m[3]) : null; }
+  return p.reduce((a, v) => a * 60 + v, 0);
+}
+const sessionName = s => ({ race: 'Race', sprint: 'Sprint', quali: 'Qualifying', sprintQuali: 'Sprint Qualifying' }[s] || s);
 
 function roundStatus(d, r) {
   if (r.cancelled) return ['cancelled', 'Cancelled'];
@@ -711,7 +719,7 @@ function detailedTable(d, r, sess, cl, isQ) {
   const quali = classify(session(d, r.id, sess === 'sprint' ? 'sprintQuali' : 'quali'), 'quali', d.scoring);
   const gridOf = id => { const i = quali.findIndex(q => q.driverId === id); return i >= 0 ? i + 1 : null; };
   const total = Number(r.laps) || Math.max(0, ...cl.map(e => Number(e.laps) || 0));
-  const usage = {}; let anyTyre = false;
+  const usage = {}; let anyTyre = false; const anyBest = cl.some(e => e.bestLap);
   const rows = cl.map(e => {
     const drv = driverLabel(d, e.driverId), t = teamLabel(d, e.teamId), st = parseTyres(e.tyres);
     if (st.length) anyTyre = true;
@@ -727,6 +735,7 @@ function detailedTable(d, r, sess, cl, isQ) {
       <td class="mono c">${st.length ? st.length - 1 : '—'}</td>
       <td class="strat">${stintBar(st, Number(e.laps) || total)}${oneCompound ? '<span class="one-c" title="Only one dry compound used">!</span>' : ''}</td>
       <td class="mono hide-sm">${esc(e.time || (e.pos ? '' : e.status))}</td>
+      ${anyBest ? `<td class="mono hide-sm ${e.fastestLap ? 'fl-cell' : ''}">${esc(e.bestLap || '')}</td>` : ''}
       <td class="pts">${fmtPts(e.pts)}</td>
     </tr>`;
   }).join('');
@@ -739,31 +748,34 @@ function detailedTable(d, r, sess, cl, isQ) {
         <div class="ty-legend">${Object.keys(TYRES).filter(c => usage[c]).map(c => `<span>${tyreChip(c, 1)} ${TYRES[c][0]} <b>${Math.round(usage[c] / usedTotal * 100)}%</b></span>`).join('')}</div></div>
       ${topStrat ? `<div class="ty-stat"><span class="ty-lbl">Most common strategy</span><b>${topStrat[0].split('-').map(c => tyreChip(c)).join('<i>›</i>')}</b><small class="muted">${topStrat[1]} driver${topStrat[1] > 1 ? 's' : ''}</small></div>` : ''}
     </div>` : `<p class="muted ty-none">Tyre data hasn't been added for this ${sessionName(sess).toLowerCase()} yet.</p>`;
-  return `${summary}<div class="table-wrap"><table class="tbl detail"><thead><tr><th>Pos</th><th>Driver</th><th class="hide-sm">Team</th><th class="c">Grid</th><th class="c">+/-</th><th class="c">Stops</th><th>Tyre strategy</th><th class="hide-sm">Time</th><th class="r">Pts</th></tr></thead><tbody>${rows}</tbody></table></div>
+  return `${summary}<div class="table-wrap"><table class="tbl detail"><thead><tr><th>Pos</th><th>Driver</th><th class="hide-sm">Team</th><th class="c">Grid</th><th class="c">+/-</th><th class="c">Stops</th><th>Tyre strategy</th><th class="hide-sm">Time</th>${anyBest ? '<th class="hide-sm">Best lap</th>' : ''}<th class="r">Pts</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="legend">${Object.keys(TYRES).map(c => `<span>${tyreChip(c, 1)} ${TYRES[c][0]}</span>`).join('')}<span><span class="one-c">!</span> only one dry compound</span></div>`;
 }
 
 function pageRound(d, rid, sess) {
   const r = byId(d.calendar, rid);
   if (!r) return notFound();
-  const avail = ['race', 'sprint', 'quali'].filter(s => s === 'race' || session(d, rid, s).length || (s === 'sprint' && r.sprint));
+  const avail = ['race', 'sprint', 'sprintQuali', 'quali'].filter(s => s === 'race' || session(d, rid, s).length || (s === 'sprint' && r.sprint));
   sess = avail.includes(sess) ? sess : 'race';
   const pole = poleDriver(d, rid);
   const cl = classify(session(d, rid, sess), sess, d.scoring, pole);
   const rs = rounds(d).filter(x => !x.cancelled);
   const idx = rs.findIndex(x => x.id === rid);
   const prev = rs[idx - 1], next = rs[idx + 1];
-  const isQ = sess === 'quali';
+  const isQ = sess === 'quali' || sess === 'sprintQuali';
+  const anyBest = !isQ && cl.some(e => e.bestLap);
+  const flE = !isQ && cl.find(e => e.fastestLap);
 
   const rows = cl.map(e => {
     const drv = driverLabel(d, e.driverId), t = teamLabel(d, e.teamId);
     return `<tr class="${e.pos && e.pos <= 3 ? 'top' + e.pos : ''}">
       <td class="pos">${e.pos ? e.pos : `<span class="status">${esc(e.label)}</span>`}</td>
       <td class="num muted hide-sm">${esc(drv.number ?? '')}</td>
-      <td>${avatar(drv, t, 'sm')}<a href="#/driver/${esc(drv.id)}">${nameHTML(drv.name)}</a>${e.fastestLap && !isQ ? '<span class="tag-fl">FL</span>' : ''}${!isQ && sess === 'race' && pole === e.driverId ? '<span class="tag-pole">POLE</span>' : ''}</td>
+      <td>${avatar(drv, t, 'sm')}<a href="#/driver/${esc(drv.id)}">${nameHTML(drv.name)}</a>${e.fastestLap && !isQ ? `<span class="tag-fl" title="Fastest lap${e.bestLap ? ' · ' + esc(e.bestLap) : ''}">FL</span>` : ''}${!isQ && sess === 'race' && pole === e.driverId ? '<span class="tag-pole">POLE</span>' : ''}</td>
       <td>${teamCell(t)}</td>
       ${isQ ? '' : `<td class="mono hide-sm">${esc(e.laps ?? '')}</td>`}
       <td class="mono">${esc(e.time || (e.pos ? '' : e.status))}</td>
+      ${anyBest ? `<td class="mono hide-sm ${e.fastestLap ? 'fl-cell' : ''}">${esc(e.bestLap || '')}</td>` : ''}
       ${isQ ? '' : `<td class="pts">${fmtPts(e.pts)}</td>`}
     </tr>`;
   }).join('');
@@ -786,8 +798,9 @@ function pageRound(d, rid, sess) {
     </div>
     ${!isDone(d, r) && !r.cancelled ? weekendSchedule(d, r) : ''}
     ${tabs}
-    ${cl.length && view === 'detail' ? detailedTable(d, r, sess, cl, isQ) : cl.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th class="hide-sm">No</th><th>Driver</th><th>Team</th>${isQ ? '' : '<th class="hide-sm">Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / Retired'}</th>${isQ ? '' : '<th class="r">Pts</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`
+    ${cl.length && view === 'detail' ? detailedTable(d, r, sess, cl, isQ) : cl.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th class="hide-sm">No</th><th>Driver</th><th>Team</th>${isQ ? '' : '<th class="hide-sm">Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / Retired'}</th>${anyBest ? '<th class="hide-sm">Best lap</th>' : ''}${isQ ? '' : '<th class="r">Pts</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`
       : empty(r.cancelled ? 'This round was cancelled' : 'No results yet', r.start ? `<p>${esc(sessionName(sess))} scheduled for ${fmtDate(r.start)} · ${fmtTime(r.start)}</p>` : '')}
+    ${cl.length && flE ? (() => { const fd = driverLabel(d, flE.driverId), ft = teamLabel(d, flE.teamId); return `<div class="fl-banner" style="--tc:${esc(teamColor(ft))}"><span class="fl-ic">⏱</span><span class="fl-lbl">Fastest lap</span><b>${nameHTML(fd.name)}</b><span class="muted">${esc(ft ? ft.name : '')}</span>${flE.bestLap ? `<span class="fl-time mono">${esc(flE.bestLap)}</span>` : ''}</div>`; })() : ''}
     ${dotdHTML}
     ${(d.gallery || []).some(x => x.roundId === rid) ? `<section><div class="section-title"><h2>Photos</h2><a href="#/gallery">Gallery →</a></div>${galleryGrid(d, d.gallery.filter(x => x.roundId === rid))}</section>` : ''}
     ${notes}
@@ -2108,7 +2121,7 @@ window.addEventListener('hashchange', () => render(true));
 
 /* expose helpers for the admin console */
 window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
-  rcName, HIST_ROLES, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
+  rcName, HIST_ROLES, lapSecs, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
   DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, titleCaseText, applyTitleCase, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 
 load().then(() => render(false));

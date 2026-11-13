@@ -106,7 +106,7 @@ function toLocalInput(iso) { if (!iso) return ''; const t = new Date(iso); if (i
 const teamOpts = d => [['', '— No team —'], ...d.teams.map(t => [t.id, t.name])];
 const driverOpts = d => d.drivers.map(x => [x.id, `${x.number !== undefined && x.number !== '' ? '#' + x.number + ' ' : ''}${x.name}${x.active === false ? ' (inactive)' : ''}`]);
 const head = (title, sub, tools = '') => `<div class="a-head"><div><div class="eyebrow">Admin console</div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div><div class="toolbar">${tools}</div></div>`;
-const usedInResults = (d, key, id) => Object.values(d.results).some(r => ['race', 'sprint', 'quali'].some(s => (r[s] || []).some(e => e[key] === id)));
+const usedInResults = (d, key, id) => Object.values(d.results).some(r => ['race', 'sprint', 'sprintQuali', 'quali'].some(s => (r[s] || []).some(e => e[key] === id)));
 
 /* ---------------- sections ---------------- */
 function secDashboard(d) {
@@ -361,7 +361,7 @@ function secResults(d) {
   const r = byId(d.calendar, A.roundId);
   const sess = A.session;
   const list = (d.results[r.id] && d.results[r.id][sess]) || [];
-  const isQ = sess === 'quali';
+  const isQ = sess === 'quali' || sess === 'sprintQuali';
   const pole = LG.poleDriver(d, r.id);
   const cl = LG.classify(list.map((e, i) => ({ ...e, _i: i })), sess, d.scoring, pole);
   const view = {}; cl.forEach(c => { view[c._i] = c; });
@@ -379,6 +379,7 @@ function secResults(d) {
       <td class="c-sm"><select data-path="${p}.status" data-reload>${STATUSES.map(s => opt(s, s, e.status || 'FIN')).join('')}</select></td>
       ${isQ ? '' : `<td class="c-sm"><input type="number" data-num data-path="${p}.laps" value="${esc(e.laps ?? '')}"></td>`}
       <td class="c-md"><input type="text" data-path="${p}.time" value="${esc(e.time || '')}" placeholder="${isQ ? '1:29.708' : i === 0 ? '1:32:44.123' : '+3.211'}"></td>
+      ${isQ ? '' : `<td class="c-md"><input type="text" class="${e.fastestLap ? 'fl-time' : ''}" data-path="${p}.bestLap" value="${esc(e.bestLap || '')}" placeholder="1:31.456"></td>`}
       ${isQ ? '' : `<td class="c-ty"><input type="text" data-path="${p}.tyres" data-reload value="${esc(Array.isArray(e.tyres) ? e.tyres.map(t => t.c + (t.laps || '')).join(' ') : e.tyres || '')}" placeholder="S12 M45"><span class="ty-prev">${LG.parseTyres(e.tyres).map(t => LG.tyreChip(t.c, 1)).join('')}</span></td>`}
       ${isQ ? '' : `<td class="c-chk"><input type="checkbox" data-act="flag" data-flag="fastestLap" data-i="${i}" ${e.fastestLap ? 'checked' : ''} title="Fastest lap"></td>`}
       ${sess === 'race' ? `<td class="c-chk"><input type="checkbox" data-act="flag" data-flag="pole" data-i="${i}" ${e.pole ? 'checked' : ''} title="Pole position"></td>` : ''}
@@ -387,7 +388,7 @@ function secResults(d) {
     </tr>`;
   }).join('');
 
-  const sessions = [['race', 'Race'], ['sprint', 'Sprint'], ['quali', 'Qualifying']];
+  const sessions = [['race', 'Race'], ['sprint', 'Sprint'], ...(r.sprint || ((d.results[r.id] || {}).sprintQuali || []).length || sess === 'sprintQuali' ? [['sprintQuali', 'Sprint Qualifying']] : []), ['quali', 'Qualifying']];
   return head('Results', 'Put drivers in finishing order (top = winner). Set DNF/DSQ/DNS for non-finishers — they score nothing and drop to the bottom automatically. Points are calculated from your scoring system; type a number in <b>Override</b> only for special cases.') + `
     <div class="a-card">
       <div class="toolbar" style="justify-content:space-between">
@@ -396,15 +397,16 @@ function secResults(d) {
       </div>
       ${sess === 'sprint' && !r.sprint ? '<p class="hint">This round isn\'t marked as a sprint weekend — results entered here still count. Tick "Sprint weekend" in the calendar to show the badge.</p>' : ''}
       ${!isQ ? '<p class="hint"><b>Tyres:</b> type the compounds in order with optional stint laps — <code>S12 M45</code>, <code>M H</code>, <code>S M S</code>. S soft · M medium · H hard · I inter · W wet. Shown in the "Detailed · tyres" view on the results page.</p>' : ''}
-      ${isQ ? '<p class="hint">Qualifying order sets the pole sitter (P1) unless you tick a pole box in the race session. Qualifying itself scores no points.</p>' : ''}
+      ${sess === 'quali' ? '<p class="hint">Qualifying order sets the pole sitter (P1) unless you tick a pole box in the race session. Qualifying itself scores no points.</p>' : sess === 'sprintQuali' ? '<p class="hint">Sprint Qualifying sets the Sprint grid — use <b>Copy sprint qualifying order</b> on the Sprint tab. It scores no points.</p>' : ''}
     </div>
     <div class="a-card" style="overflow-x:auto">
-      ${list.length ? `<table class="rtable"><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th>${isQ ? '' : '<th>Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / gap'}</th>${isQ ? '' : '<th title="Compounds in order, laps optional: S12 M45 · S M H · I W">Tyres</th>'}${isQ ? '' : '<th>FL</th>'}${sess === 'race' ? '<th>Pole</th>' : ''}${isQ ? '' : '<th>Override</th><th>Pts</th>'}<th></th></tr></thead><tbody>${rows}</tbody></table>`
-        : `<p class="muted">No ${sess === 'quali' ? 'qualifying' : sess} results for this round yet.</p>`}
+      ${list.length ? `<table class="rtable"><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th>${isQ ? '' : '<th>Laps</th>'}<th>${isQ ? 'Lap time' : 'Time / gap'}</th>${isQ ? '' : '<th title="Each driver\'s best lap time — the fastest one can be ticked as FL automatically">Best lap</th>'}${isQ ? '' : '<th title="Compounds in order, laps optional: S12 M45 · S M H · I W">Tyres</th>'}${isQ ? '' : '<th>FL</th>'}${sess === 'race' ? '<th>Pole</th>' : ''}${isQ ? '' : '<th>Override</th><th>Pts</th>'}<th></th></tr></thead><tbody>${rows}</tbody></table>`
+        : `<p class="muted">No ${sess === 'quali' ? 'qualifying' : sess === 'sprintQuali' ? 'sprint qualifying' : sess} results for this round yet.</p>`}
       <div class="toolbar" style="margin-top:16px">
         ${avail.length ? `<select id="add-entry-sel" style="max-width:260px">${avail.map(x => opt(x.id, `${x.name}${x.active === false ? ' (inactive)' : ''}`, '')).join('')}</select><button class="btn sm" data-act="add-entry">+ Add driver</button>` : ''}
         <button class="btn sm" data-act="fill-all">Add all active drivers</button>
-        ${sess !== 'quali' && ((d.results[r.id] || {}).quali || []).length ? '<button class="btn sm" data-act="copy-quali">Copy qualifying order</button>' : ''}
+        ${!isQ && list.length ? '<button class="btn sm" data-act="fl-auto" title="Ticks FL for the quickest best lap">⏱ Set fastest lap from best laps</button>' : ''}
+        ${sess === 'race' && ((d.results[r.id] || {}).quali || []).length ? '<button class="btn sm" data-act="copy-quali" data-from="quali">Copy qualifying order</button>' : ''}${sess === 'sprint' && ((d.results[r.id] || {}).sprintQuali || []).length ? '<button class="btn sm" data-act="copy-quali" data-from="sprintQuali">Copy sprint qualifying order</button>' : ''}${sess === 'sprint' && !((d.results[r.id] || {}).sprintQuali || []).length && ((d.results[r.id] || {}).quali || []).length ? '<button class="btn sm" data-act="copy-quali" data-from="quali">Copy qualifying order</button>' : ''}
         ${list.length ? '<button class="btn sm danger" data-act="clear-session">Clear session</button>' : ''}
         <a class="btn sm ghost" href="#/results/${esc(r.id)}/${sess}">Preview →</a>
       </div>
@@ -1084,7 +1086,7 @@ function secStewards(d) {
       <summary><span class="chip">${r ? 'R' + esc(r.round) : '—'}</span><b>${esc(x.title || 'Incident')}</b><span class="muted" style="font-size:13px">${drv ? esc(drv.name) : ''}</span><span class="badge">${esc(x.status || '')}</span>${Number(x.points) ? `<span class="tag-fl">${fmtPts(x.points)} pts</span>` : ''}</summary>
       <div class="body"><div class="fgrid">
         ${F.select('Round', p + '.roundId', x.roundId, [['', '— none —'], ...rs.map(z => [z.id, `R${z.round} · ${z.name}`])])}
-        ${F.select('Session', p + '.session', x.session, [['race', 'Race'], ['sprint', 'Sprint'], ['quali', 'Qualifying']])}
+        ${F.select('Session', p + '.session', x.session, [['race', 'Race'], ['sprint', 'Sprint'], ['sprintQuali', 'Sprint Qualifying'], ['quali', 'Qualifying']])}
         ${F.text('Lap / corner', p + '.lap', x.lap, 'placeholder="Lap 1, Turn 3"')}
         ${F.text('Incident', p + '.title', x.title, 'wide data-reload')}
         ${F.select('Driver investigated', p + '.driverId', x.driverId, [['', '— none —'], ...driverOpts(d)])}
@@ -1291,9 +1293,16 @@ document.addEventListener('click', async e => {
     case 'add-entry': { const sel = document.getElementById('add-entry-sel'); const drv = byId(d.drivers, sel && sel.value); if (drv) { sessList().push(newEntry(drv)); commit(); } return; }
     case 'fill-all': { const l = sessList(); const used = new Set(l.map(x => x.driverId)); d.drivers.filter(x => x.active !== false && !used.has(x.id)).forEach(x => l.push(newEntry(x))); return commit(); }
     case 'copy-quali': {
-      const q = (d.results[A.roundId] || {}).quali || [];
-      if (sessList().length && !confirm('Replace this session\'s order with the qualifying order?')) return;
+      const q = (d.results[A.roundId] || {})[b.dataset.from || 'quali'] || [];
+      if (sessList().length && !confirm('Replace this session\'s order with the ' + (b.dataset.from === 'sprintQuali' ? 'sprint qualifying' : 'qualifying') + ' order?')) return;
       d.results[A.roundId][A.session] = q.map(x => ({ driverId: x.driverId, teamId: x.teamId, status: 'FIN', time: '', laps: '' })); return commit();
+    }
+    case 'fl-auto': {
+      const L = sessList(), secs = L.map(e => LG.lapSecs(e.bestLap));
+      let best = -1; secs.forEach((v, k) => { if (v != null && (best < 0 || v < secs[best])) best = k; });
+      if (best < 0) return toast('Type some best lap times first (e.g. 1:31.456)', 'err');
+      L.forEach((e, k) => { e.fastestLap = k === best; });
+      toast(`Fastest lap: ${(byId(d.drivers, L[best].driverId) || {}).name || 'driver'} · ${L[best].bestLap}`); return commit();
     }
     case 'clear-session': if (confirm('Remove every entry from this session?')) { d.results[A.roundId][A.session] = []; commit(); } return;
     case 'move': { const l = sessList(), j = i + Number(b.dataset.dir); if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; return commit(); }
