@@ -2296,3 +2296,47 @@ input.fl-time { border-color: #b46cff !important; color: #c79bff; }
 .pr-pastbar { margin-bottom: 14px; } .pr-pastbar select { min-width: 260px; }
 @media (max-width: 700px) { .pr-podium { grid-template-columns: 1fr; } .pr-step { padding-bottom: 14px !important; } .pr-step.p1 { order: -1; } .pr-extra { grid-template-columns: 1fr; } .pr-round { grid-template-columns: auto 1fr; } .pr-entries { grid-column: 1 / -1; text-align: left; } }
 .pr-pastbar select { background: color-mix(in srgb, var(--bg) 60%, transparent); border: 1px solid var(--line-strong); border-radius: 10px; color: var(--text); font: 14px var(--f-body); padding: 9px 12px; }
+
+/* season switcher */
+.season-sw { position: relative; margin-left: 4px; flex: none; }
+.ssw-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line-strong); background: color-mix(in srgb, var(--miku) 8%, transparent);
+  color: var(--text-2); font: 700 11.5px var(--f-head); letter-spacing: .14em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.ssw-btn:hover { border-color: var(--miku); color: var(--text); }
+.ssw-btn.arch { background: color-mix(in srgb, #f3d27a 18%, transparent); border-color: color-mix(in srgb, #f3d27a 55%, transparent); color: #f3d27a; }
+.ssw-btn i { font-style: normal; font-size: 10px; }
+.ssw-menu { display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 200; min-width: 230px; padding: 6px; border-radius: 14px; background: var(--card-solid, #17141a); border: 1px solid var(--line-strong); box-shadow: 0 20px 50px -18px rgba(0,0,0,.7); }
+.season-sw.open .ssw-menu { display: block; }
+.ssw-menu a { display: flex; flex-direction: column; gap: 1px; padding: 9px 12px; border-radius: 10px; color: var(--text); text-decoration: none; }
+.ssw-menu a:hover { background: color-mix(in srgb, var(--miku) 12%, transparent); }
+.ssw-menu a.on { background: color-mix(in srgb, var(--miku) 20%, transparent); }
+.ssw-menu small { color: var(--muted); font-size: 12px; }
+.ssw-menu .ssw-all { border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; margin-top: 4px; color: var(--miku); font-size: 13.5px; }
+@media (max-width: 760px) { .ssw-btn { padding: 5px 9px; font-size: 10px; } }
+.th-autobox { margin: 4px 0 10px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--miku) 7%, transparent); font-size: 13.5px; } .th-autobox .chip { margin: 2px 4px 2px 0; }
+/* prediction driver picker */
+.dpick { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 54px; padding: 7px 12px; border-radius: 12px; border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--bg) 60%, transparent); color: var(--text); font: 15px var(--f-body); cursor: pointer; text-align: left; }
+.dpick:hover, .dpick:focus { border-color: var(--miku); outline: none; }
+.dpick > i { margin-left: auto; font-style: normal; color: var(--muted); font-size: 12px; }
+.dp-ph { color: var(--muted); }
+.dp-num { min-width: 32px; color: var(--accent-text); font-weight: 700; font-size: 14px; }
+.dp-nm { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.dp-nm small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dpick .avatar, .dpick-list .avatar { flex: none; }
+.dpick-pop { position: fixed; z-index: 9000; display: flex; flex-direction: column; max-height: 380px; padding: 8px; border-radius: 14px; background: var(--card-solid, #17141a); border: 1px solid var(--line-strong); box-shadow: 0 24px 60px -18px rgba(0,0,0,.7); }
+.dpick-pop input { width: 100%; margin-bottom: 6px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line-strong); background: color-mix(in srgb, var(--bg) 70%, transparent); color: var(--text); font: 14px var(--f-body); outline: none; }
+.dpick-list { overflow-y: auto; flex: 1; }
+.dpick-list button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border: 0; border-left: 3px solid var(--tc); border-radius: 8px; margin-bottom: 3px; background: none; color: var(--text); font: 14.5px var(--f-body); cursor: pointer; text-align: left; }
+.dpick-list button:hover { background: color-mix(in srgb, var(--tc) 16%, transparent); }
+.dpick-list button.on { background: color-mix(in srgb, var(--miku) 22%, transparent); }
+.dpick-list button.taken { opacity: .45; }
+/* keep the nav on one row now the season switcher sits in the top bar */
+@media (min-width: 981px) {
+  .topbar .nav { flex-wrap: nowrap; }
+  .topbar .nav a, .topbar .more-btn { white-space: nowrap; }
+}
+@media (min-width: 981px) and (max-width: 1500px) {
+  .topbar .nav a, .topbar .more-btn { padding-left: 10px; padding-right: 10px; letter-spacing: .08em; }
+  .topbar .brand-text b { max-width: 260px; }
+}
+.chip { white-space: nowrap; }

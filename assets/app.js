@@ -57,6 +57,7 @@ function normalize(x) {
   d.league = Object.assign(emptyLeague().league, d.league || {});
   d.league.links = d.league.links || {};
   d.predictions = Object.assign({ enabled: false, intro: '', points: { exact: 3, podium: 1, fl: 2, pole: 2 } }, d.predictions || {});
+  d.predictions.schedule = Object.assign({ auto: true, openDays: 3, openTime: '', closeOn: 'quali', closeMins: 0 }, d.predictions.schedule || {});
   d.applications = Object.assign({ forms: [] }, d.applications || {}); if (!Array.isArray(d.applications.forms)) d.applications.forms = [];
   d.settings = Object.assign({ adminHash: '' }, d.settings || {});
   if (!d.league.rcKira) { if (!d.league.raceControl || /^\s*fia\s*$/i.test(d.league.raceControl)) d.league.raceControl = 'KIRA'; d.league.rcKira = true; }
@@ -896,10 +897,44 @@ function pageDrivers(d) {
 
 const isNowWord = v => /^\s*(now|present|current|today|-|—)\s*$/i.test(String(v ?? ''));
 const seasonNum = v => { const n = parseFloat(String(v ?? '').replace(/[^\d.]/g, '')); return isNaN(n) ? null : n; };
+/* Team history = your manual entries + spells worked out automatically from this season's race/sprint results.
+   A manual entry for this season "claims" the rounds it covers; every round outside those is filled in from results,
+   so fixing one spell by hand doesn't stop the rest from staying automatic. */
+function autoHistory(d, D) {
+  const manual = (D.history || []).filter(h => h && (h.teamId || h.team));
+  if (D.autoHistory === false) return manual;
+  const season = String(d.league.season), rs = rounds(d).filter(r => !r.cancelled).slice().sort((a, b) => Number(a.round) - Number(b.round));
+  const maxR = rs.length ? Number(rs[rs.length - 1].round) || rs.length : 0;
+  const claimed = new Set();
+  const same = (a, b) => String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase() || (seasonNum(a) !== null && seasonNum(a) === seasonNum(b));
+  const cmp = (a, b) => same(a, b) ? 0 : seasonNum(a) !== null && seasonNum(b) !== null ? seasonNum(a) - seasonNum(b) : null;
+  manual.forEach(h => {
+    const open = (!h.toSeason && !h.toRound) || isNowWord(h.toSeason) || isNowWord(h.toRound);
+    const fromC = cmp(h.fromSeason || season, season), toS = open ? season : (h.toSeason || h.fromSeason || season), toC = cmp(toS, season);
+    if (fromC === null || toC === null || fromC > 0 || toC < 0) return; // doesn't touch this season
+    const from = fromC === 0 ? Number(h.fromRound) || 1 : 1;
+    const to = open || toC > 0 ? maxR : Number(h.toRound) || maxR;
+    for (let n = from; n <= to; n++) claimed.add(n);
+  });
+  const seq = [];
+  rs.forEach(r => {
+    const n = Number(r.round) || 0; if (claimed.has(n)) return;
+    const e = session(d, r.id, 'race').find(x => x.driverId === D.id) || session(d, r.id, 'sprint').find(x => x.driverId === D.id);
+    if (e && e.teamId && e.status !== 'NS') seq.push({ n, teamId: e.teamId });
+  });
+  const auto = [];
+  seq.forEach(x => { const last = auto[auto.length - 1]; if (last && last.teamId === x.teamId && !rs.some(r => { const m = Number(r.round); return m > last.to && m < x.n && claimed.has(m); })) last.to = x.n; else auto.push({ teamId: x.teamId, from: x.n, to: x.n }); });
+  const out = auto.map((a, i) => {
+    const isLast = i === auto.length - 1 && ![...claimed].some(n => n > a.to);
+    const now = isLast && D.active !== false && D.teamId === a.teamId;
+    return { teamId: a.teamId, role: D.reserve ? 'Reserve Driver' : 'Race Driver', fromSeason: season, fromRound: a.from, toSeason: now ? '' : season, toRound: now ? '' : a.to, auto: true };
+  });
+  return [...manual, ...out];
+}
 function careerStints(d, D) {
   const curSeason = d.league.season, cal = d.calendar.filter(r => !r.cancelled).length || 1, last = lastRound(d);
   const lastNo = last ? Number(last.round) || 0 : 0;
-  return (D.history || []).filter(h => h && (h.teamId || h.team)).map((h, k) => {
+  return autoHistory(d, D).map((h, k) => {
     const t = byId(d.teams, h.teamId);
     const cur = (!h.toSeason && !h.toRound) || isNowWord(h.toSeason) || isNowWord(h.toRound);
     const fs = h.fromSeason || '', fr = Number(h.fromRound) || 1;
@@ -972,9 +1007,9 @@ function pageDriver(d, id) {
       <div class="stat"><b>${x.dnfs}</b><span>DNFs</span></div>
       <div class="stat"><b>${rounds(d).filter(r => (dotdOf(d, r.id) || {}).driverId === id).length}</b><span>Driver of the Day</span></div>
     </div>
-    ${D.bio || (D.history || []).length ? `<div class="grid grid-2 drv-about">
+    ${D.bio || autoHistory(d, D).length ? `<div class="grid grid-2 drv-about">
       ${D.bio ? `<section class="card drv-bio"><div class="card-title"><h3>Biography</h3></div><div class="prose">${md(D.bio)}</div></section>` : ''}
-      ${(D.history || []).filter(h => h && (h.teamId || h.team)).length ? `<section class="card drv-hist" ${D.bio ? '' : 'style="grid-column:1/-1"'}><div class="card-title"><h3>Team history</h3></div>${teamHistory(d, D)}</section>` : ''}
+      ${autoHistory(d, D).length ? `<section class="card drv-hist" ${D.bio ? '' : 'style="grid-column:1/-1"'}><div class="card-title"><h3>Team history</h3></div>${teamHistory(d, D)}</section>` : ''}
     </div>` : ''}
     <div class="section-title"><h2>Season results</h2></div>
     ${rows ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Rd</th><th>Grand Prix</th><th class="hide-sm">Team</th><th>Sprint</th><th>Race</th><th class="r">Pts</th></tr></thead><tbody>${rows}</tbody></table></div>` : empty('No results yet')}
@@ -1958,7 +1993,7 @@ const notFound = () => `<div class="page">${empty('Page not found', '<p><a href=
 
 /* ---------------- router & chrome ---------------- */
 const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News']];
-const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['seasons', 'Seasons'], ['gallery', 'Gallery'], ['griddraft', 'Grid Draft'], ['predictions', 'Predictions'], ['join', 'Join the league']];
+const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['gallery', 'Gallery'], ['fantasy', 'Fantasy'], ['predictions', 'Predictions'], ['griddraft', 'Grid Draft'], ['join', 'Join the league']];
 const ROUTES = [
   [/^$/, d => pageHome(d)],
   [/^schedule$/, d => pageSchedule(d)],
@@ -2023,6 +2058,34 @@ function ensureSearchFab() {
   b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.6-4.6"/></svg>';
   document.body.appendChild(b);
 }
+/* ---------- season switcher in the top bar ---------- */
+function seasonSwitch(d) {
+  const E = window.Extras, list = E ? E.seasonsIndex(d) : [];
+  let el = document.getElementById('season-sw');
+  const brandSea = document.getElementById('brand-season');
+  if (!list.length) { if (el) el.remove(); brandSea.hidden = false; return; }
+  brandSea.hidden = true;
+  if (!el) { el = document.createElement('div'); el.id = 'season-sw'; el.className = 'season-sw'; document.querySelector('.topbar .brand').after(el); }
+  const A = S.archive, cur = A ? A.label : d.league.season;
+  el.innerHTML = `<button class="ssw-btn ${A ? 'arch' : ''}" data-ssw="toggle" aria-haspopup="true" title="Change season"><span>${esc(seasonName(cur))}</span><i>▾</i></button>
+    <div class="ssw-menu" role="menu">
+      <a href="javascript:void 0" data-ssw="current" class="${A ? '' : 'on'}"><b>${esc(seasonName(d.league.season))}</b><small>Current season</small></a>
+      ${list.map(s => `<a href="javascript:void 0" data-ssw="open" data-id="${esc(s.id)}" class="${A && A.id === s.id ? 'on' : ''}"><b>${esc(seasonName(s.label))}</b><small>${s.champion ? '🏆 ' + esc(s.champion) : 'Archive'}</small></a>`).join('')}
+      <a href="#/seasons" class="ssw-all">All seasons →</a></div>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-ssw]');
+  const sw = document.getElementById('season-sw');
+  if (!b) { if (sw && !e.target.closest('#season-sw')) sw.classList.remove('open'); return; }
+  e.preventDefault();
+  const k = b.dataset.ssw, go = /^#\/(admin|fantasy|griddraft|portal|predictions|apply|join|search)/.test(location.hash) || location.hash === '#/seasons' ? '#/standings' : null;
+  if (k === 'toggle') return sw.classList.toggle('open');
+  sw.classList.remove('open');
+  if (k === 'current') window.Extras.closeArchive(go);
+  if (k === 'open') window.Extras.openArchive(S.data, b.dataset.id, go);
+});
+document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('.ssw-all'); if (a) document.getElementById('season-sw').classList.remove('open'); });
+
 function chrome() {
   ensureSearchFab();
   const d = S.data, L = d.league;
@@ -2037,9 +2100,10 @@ function chrome() {
   raceBar();
   const link = ([k, l]) => `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${l}${k === 'join' && d.signups.open ? '<span class="dot" title="Sign-ups open"></span>' : ''}</a>`;
   const moreOn = MORE.some(([k]) => k === cur);
-  const navItems = d.fantasy && d.fantasy.enabled ? [...NAV, ['fantasy', 'Fantasy']] : NAV;
+  const navItems = NAV;
+  seasonSwitch(d);
   document.getElementById('nav').innerHTML = navItems.map(link).join('') +
-    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => (k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)) && (k !== 'predictions' || (d.predictions && d.predictions.enabled)) && (k !== 'gallery' || (d.gallery || []).length) && (k !== 'apply' || ((d.applications || {}).forms || []).length)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
+    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => (k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)) && (k !== 'fantasy' || (d.fantasy && d.fantasy.enabled)) && (k !== 'predictions' || (d.predictions && d.predictions.enabled)) && (k !== 'gallery' || (d.gallery || []).length) && (k !== 'apply' || ((d.applications || {}).forms || []).length)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · ${esc(seasonName(L.season))}<br><span style="font-size:12px">${esc(L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.')}</span></div>
@@ -2151,7 +2215,7 @@ window.addEventListener('hashchange', () => render(true));
 
 /* expose helpers for the admin console */
 window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
-  rcName, HIST_ROLES, lapSecs, seasonName, countries, countryName, flagEmoji, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
+  rcName, HIST_ROLES, autoHistory, lapSecs, seasonName, countries, countryName, flagEmoji, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
   DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, titleCaseText, applyTitleCase, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 
 load().then(() => render(false));

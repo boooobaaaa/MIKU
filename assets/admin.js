@@ -228,7 +228,9 @@ function secDrivers(d) {
         ${F.image('Driver photo (driver cards, team page & profile)', p + '.photo', x.photo, 'drivers', 1400, 'driverPhoto')}
         ${F.image('Headshot for the small circles (optional — the photo is used if empty)', p + '.headshot', x.headshot, 'drivers', 500, 'headshot')}
         ${F.area('Biography — shown on their profile (# headings, **bold**, - lists, [links](https://…))', p + '.bio', x.bio)}
-        <div class="wide th-ed"><div class="fld"><span>Team history (newest shown first on the profile — leave the "to" side empty for their current team)</span></div>
+        <div class="wide th-ed"><div class="fld"><span>Team history</span></div>
+          ${F.check(`Work out this season's spells automatically from results`, p + '.autoHistory', x.autoHistory !== false)}
+          ${x.autoHistory !== false ? (() => { const auto = LG.autoHistory(d, x).filter(h => h.auto); return `<div class="th-autobox">${auto.length ? `<b>Auto from results:</b> ${auto.map(h => `<span class="chip">${esc((byId(d.teams, h.teamId) || {}).name || h.teamId)} · R${esc(h.fromRound)} → ${h.toRound ? 'R' + esc(h.toRound) : 'Present'}</span>`).join(' ')}` : '<span class="muted">No race results yet this season.</span>'}<p class="hint" style="margin:6px 0 0">Wrong? Add a spell below to override it — your spell takes over the rounds it covers, and every other round stays automatic. Use the rows below for earlier seasons too.</p></div>`; })() : '<p class="hint">Only the spells below are shown.</p>'}
           ${(x.history || []).length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Team</th><th>Role</th><th>From season</th><th>Round</th><th>To season</th><th>Round</th><th></th></tr></thead><tbody>${(x.history || []).map((h, k) => `<tr>
             <td><select data-path="${p}.history.${k}.teamId" data-reload>${[['', '— other team (type) —'], ...d.teams.map(t => [t.id, t.name])].map(([v, l]) => opt(v, l, h.teamId)).join('')}</select>${h.teamId ? '' : `<input type="text" data-path="${p}.history.${k}.team" value="${esc(h.team || '')}" placeholder="Team name" style="margin-top:4px">`}</td>
             <td class="c-md"><select data-path="${p}.history.${k}.role">${[...LG.HIST_ROLES, ...(h.role && !LG.HIST_ROLES.includes(h.role) ? [h.role] : [])].map(r => `<option value="${esc(r)}" ${r === (h.role || 'Race Driver') ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></td>
@@ -237,7 +239,7 @@ function secDrivers(d) {
             <td class="c-sm">${combo(`${p}.history.${k}.toSeason`, h.toSeason || '', seasonOpts(d), 'Current')}</td>
             <td class="c-sm"><input type="number" data-num data-path="${p}.history.${k}.toRound" value="${esc(h.toRound ?? '')}"></td>
             <td class="c-act"><button class="iconbtn del" data-act="th-del" data-i="${i}" data-k="${k}">✕</button></td></tr>`).join('')}</tbody></table></div>` : ''}
-          <div class="toolbar" style="margin-top:8px"><button class="btn sm" data-act="th-add" data-i="${i}">+ Add team spell</button><button class="btn sm" data-act="th-auto" data-i="${i}">Fill from this season's results</button></div>
+          <div class="toolbar" style="margin-top:8px"><button class="btn sm" data-act="th-add" data-i="${i}">+ Add team spell</button>${x.autoHistory === false ? `<button class="btn sm" data-act="th-auto" data-i="${i}">Fill from this season's results</button>` : ''}</div>
           
         </div>
       </div>
@@ -662,11 +664,19 @@ async function postToDiscord(x, d) {
 
 /* ---------------- predictions ---------------- */
 const PRA = { rounds: null, all: null, loading: false, err: '' };
-window.addEventListener('hashchange', () => { if (/^#\/admin\/predictions/.test(location.hash) && !PRA.loading) { PRA.rounds = null; setTimeout(rerender, 0); } });
+window.addEventListener('hashchange', () => { if (/^#\/admin\/predictions/.test(location.hash) && !PRA.loading) { PRA.rounds = null; PRA.synced = false; setTimeout(rerender, 0); } });
 function secPredictions(d) {
-  const PR = window.Predictions, s = teamStore(), C = d.predictions;
-  const top = head('Predictions', 'Fans predict the podium, fastest lap and pole for the next round. You open each round; picks lock automatically when qualifying starts (or the race, if there\'s no qualifying session). Points are worked out from your results.', '<a class="btn" href="#/predictions">View page</a>');
-  const settings = `<div class="a-card"><h3>Settings</h3><div class="fgrid">${F.check('Predictions page is on (shows in More)', 'predictions.enabled', !!C.enabled)}</div>
+  const PR = window.Predictions, s = teamStore(), C = d.predictions, now = Date.now(), fmt = t => t ? `${LG.fmtDate(t)} · ${LG.fmtTime(t)}` : '—';
+  const top = head('Predictions', 'Fans predict the podium, fastest lap and pole for each round. With the automatic schedule on, rounds open and close by themselves (set the timing under Schedule). Points are worked out from your results.', '<a class="btn" href="#/predictions">View page</a>');
+  const SC = C.schedule = Object.assign({ auto: true, openDays: 3, openTime: '', closeOn: 'quali', closeMins: 0 }, C.schedule || {});
+  const nx = LG.nextRound(d), ex = nx ? `e.g. ${esc(nx.name)}: opens ${fmt(PR.openFor(nx, d))}, closes ${fmt(PR.lockFor(nx, d))}` : '';
+  const schedCard = `<div class="a-card"><h3>Schedule</h3>
+    <div class="fgrid">${F.check('Open and close every round automatically', 'predictions.schedule.auto', SC.auto !== false)}</div>
+    <div class="fgrid">${F.num('Opens — days before it closes', 'predictions.schedule.openDays', SC.openDays)}<label class="fld"><span>…at this time of day (optional, your time)</span><input type="time" data-path="predictions.schedule.openTime" value="${esc(SC.openTime || '')}"></label>
+      ${F.select('Closes at', 'predictions.schedule.closeOn', SC.closeOn || 'quali', [['quali', 'Start of Qualifying'], ['race', 'Start of the race']])}${F.num('…minus minutes (0 = right at the start)', 'predictions.schedule.closeMins', SC.closeMins)}</div>
+    <p class="hint">${ex}. Qualifying time comes from the round's weekend schedule (falls back to the race start). The schedule is sent to Firebase when you open this page or press <b>Sync now</b> — do that after changing the calendar or these settings (and Publish).</p>
+    <div class="toolbar"><button class="btn sm" data-act="pr-sync">⟳ Sync now</button></div></div>`;
+  const settings = schedCard + `<div class="a-card"><h3>Settings</h3><div class="fgrid">${F.check('Predictions page is on (shows in More)', 'predictions.enabled', !!C.enabled)}</div>
     <div class="fgrid">${F.num('Exact podium spot', 'predictions.points.exact', C.points.exact)}${F.num('Right driver, wrong spot', 'predictions.points.podium', C.points.podium)}${F.num('Fastest lap', 'predictions.points.fl', C.points.fl)}${F.num('Pole', 'predictions.points.pole', C.points.pole)}</div>
     <div class="fgrid">${F.area('Intro text (optional)', 'predictions.intro', C.intro || '')}</div><p class="hint">Publish after changing these.</p></div>`;
   if (!s) return top + `<div class="warn">Predictions use the same Firebase project as Grid Draft. Finish the setup in <a href="#/admin/griddraft">Grid Draft</a> first, then re-copy the rules.</div>` + settings;
@@ -678,19 +688,33 @@ function secPredictions(d) {
       .catch(e => { PRA.rounds = {}; PRA.all = []; PRA.err = (e.code || e.message) + (/permission/.test(e.code || e.message) ? ' — re-copy the security rules from Grid Draft ③ into Firebase (they now include predictions).' : ''); })
       .finally(() => { PRA.loading = false; rerender(); });
   }
-  const now = Date.now(), fmt = t => t ? `${LG.fmtDate(t)} · ${LG.fmtTime(t)}` : '—';
   const rs = LG.rounds(d).filter(r => !r.cancelled);
+  if (PRA.rounds && !PRA.synced && C.schedule.auto !== false) { PRA.synced = true; prSync(d, s, true); }
   const rows = rs.map(r => {
-    const R = (PRA.rounds || {})[r.id], auto = PR.lockFor(r), lock = (R && R.lockAt) || auto, n = (PRA.all || []).filter(p => p.roundId === r.id).length;
-    const st = !R || !R.open ? (LG.isDone(d, r) ? '<span class="muted">—</span>' : '<span class="chip">Not open</span>') : lock > now ? '<span class="chip on">● Open</span>' : '<span class="chip">🔒 Locked</span>';
+    const R = (PRA.rounds || {})[r.id], auto = PR.lockFor(r, d), lock = (R && R.lockAt) || auto, opens = (R && R.openAt) || PR.openFor(r, d), n = (PRA.all || []).filter(p => p.roundId === r.id).length;
+    const st = !R || !R.open ? (LG.isDone(d, r) ? '<span class="muted">—</span>' : '<span class="chip">Not open</span>') : lock <= now ? '<span class="chip">🔒 Locked</span>' : opens > now ? '<span class="chip">⏳ Scheduled</span>' : '<span class="chip on">● Open</span>';
     const act = !R || !R.open
       ? (!LG.isDone(d, r) && auto > now ? `<button class="btn xs primary" data-act="pr-open" data-r="${esc(r.id)}">Open</button>` : !auto ? '<span class="hint" style="margin:0">Set a start time</span>' : '')
       : `${lock > now ? `<button class="btn xs" data-act="pr-lock" data-r="${esc(r.id)}">Lock now</button>` : ''}${lock !== auto && auto > now ? `<button class="btn xs" data-act="pr-open" data-r="${esc(r.id)}" title="Use the session time again">Reset lock time</button>` : ''}<button class="btn xs ghost" data-act="pr-hide" data-r="${esc(r.id)}">Hide</button>`;
-    return `<tr><td class="mono">R${esc(r.round)}</td><td>${esc(r.name)}</td><td class="mono" style="font-size:13px">${esc(fmt(lock))}</td><td>${st}</td><td class="r mono">${n}</td><td style="white-space:nowrap">${act}</td></tr>`;
+    return `<tr><td class="mono">R${esc(r.round)}</td><td>${esc(r.name)}${R && R.manual ? ' <span class="chip" title="Set by hand — the automatic schedule leaves it alone">manual</span>' : ''}</td><td class="mono" style="font-size:13px">${esc(fmt(opens))}</td><td class="mono" style="font-size:13px">${esc(fmt(lock))}</td><td>${st}</td><td class="r mono">${n}</td><td style="white-space:nowrap">${act}</td></tr>`;
   }).join('');
   return top + (PRA.err ? `<div class="warn">${esc(PRA.err)}</div>` : '') + `<div class="a-card" style="overflow-x:auto"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0">Rounds</h3><button class="btn sm" data-act="pr-reload">Refresh</button></div>
-    ${PRA.rounds === null ? '<p class="muted">Loading…</p>' : `<table class="rtable"><thead><tr><th>Rnd</th><th>Grand Prix</th><th>Locks at</th><th>Status</th><th class="r">Entries</th><th></th></tr></thead><tbody>${rows}</tbody></table>`}
-    <p class="hint">Open the next round once the weekend schedule is set — the lock time comes from its <b>Qualifying</b> session (or race start). Opening works right away, no Publish needed.</p></div>` + settings;
+    ${PRA.rounds === null ? '<p class="muted">Loading…</p>' : `<table class="rtable"><thead><tr><th>Rnd</th><th>Grand Prix</th><th>Opens</th><th>Closes</th><th>Status</th><th class="r">Entries</th><th></th></tr></thead><tbody>${rows}</tbody></table>`}
+    <p class="hint">With the automatic schedule on, every upcoming round is scheduled for you. <b>Open</b> / <b>Lock now</b> / <b>Hide</b> override one round by hand (marked <i>manual</i>); <b>Open</b> on a manual round puts it back on the schedule.</p></div>` + settings;
+}
+
+async function prSync(d, s, quiet) {
+  const PR = window.Predictions, now = Date.now(); let n = 0;
+  try {
+    for (const r of LG.rounds(d).filter(x => !x.cancelled && !LG.isDone(d, x))) {
+      const lock = PR.lockFor(r, d), open = PR.openFor(r, d); if (!lock || lock <= now) continue;
+      const cur = (PRA.rounds || {})[r.id]; if (cur && cur.manual) continue;
+      if (cur && cur.open && cur.lockAt === lock && cur.openAt === open) continue;
+      await s.setPredRound(r.id, { open: true, lockAt: lock, openAt: open }); PRA.rounds[r.id] = { open: true, lockAt: lock, openAt: open }; n++;
+    }
+    if (n || !quiet) toast(n ? `Schedule synced — ${n} round${n === 1 ? '' : 's'} updated` : 'Schedule is up to date');
+  } catch (e) { toast('Could not sync: ' + (e.code || e.message) + (/permission/.test(e.code || e.message) ? ' — re-copy the rules from Grid Draft ③' : ''), 'err'); }
+  rerender();
 }
 
 /* ---------------- applications ---------------- */
@@ -1408,10 +1432,12 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
-    case 'pr-reload': PRA.rounds = null; return rerender();
+    case 'pr-reload': PRA.rounds = null; PRA.synced = false; return rerender();
+    case 'pr-sync': return prSync(d, teamStore(), false);
     case 'pr-open': case 'pr-lock': case 'pr-hide': {
       const r = byId(d.calendar, b.dataset.r), s = teamStore(); if (!r || !s) return;
-      const x = b.dataset.act === 'pr-open' ? { open: true, lockAt: window.Predictions.lockFor(r) } : b.dataset.act === 'pr-lock' ? { open: true, lockAt: Date.now() } : { open: false, lockAt: window.Predictions.lockFor(r) || Date.now() };
+      const PRx = window.Predictions, auto = d.predictions.schedule && d.predictions.schedule.auto !== false;
+      const x = b.dataset.act === 'pr-open' ? { open: true, lockAt: PRx.lockFor(r, d), openAt: auto ? PRx.openFor(r, d) : 0, manual: !auto } : b.dataset.act === 'pr-lock' ? { open: true, lockAt: Date.now(), openAt: 0, manual: true } : { open: false, lockAt: PRx.lockFor(r, d) || Date.now(), openAt: 0, manual: true };
       if (b.dataset.act === 'pr-hide' && !confirm('Hide predictions for this round? Picks already made are kept.')) return;
       b.disabled = true;
       try { await s.setPredRound(r.id, x); PRA.rounds = Object.assign({}, PRA.rounds, { [r.id]: x }); toast({ 'pr-open': `Predictions open for R${r.round} — they lock ${LG.fmtDate(x.lockAt)} ${LG.fmtTime(x.lockAt)}`, 'pr-lock': 'Locked — everyone\'s picks are now visible', 'pr-hide': 'Hidden' }[b.dataset.act]); }
@@ -1986,6 +2012,12 @@ document.addEventListener('change', e => {
 /* ---- country picker (flags + names, searchable) ---- */
 function cpFlag(c) { const e = LG.flagEmoji(c.slice(0, 2)); return `<img class="flag" src="https://flagcdn.com/w40/${c.toLowerCase()}.png" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cp-emo',textContent:'${e}'}))">`; }
 let CP = null;
+function placeCP() {
+  if (!CP) return; const r = CP.btn.getBoundingClientRect(), w = Math.max(r.width, 300), el = CP.el;
+  if (r.bottom < 0 || r.top > innerHeight) return closeCP();
+  el.style.width = w + 'px'; el.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 10)) + 'px';
+  el.style.top = (innerHeight - r.bottom > 340 ? r.bottom + 6 : Math.max(10, r.top - 346)) + 'px';
+}
 function closeCP() { if (CP) { CP.el.remove(); CP = null; } }
 function openCP(btn) {
   closeCP();
@@ -1993,10 +2025,7 @@ function openCP(btn) {
   const el = document.createElement('div'); el.className = 'cpick-pop';
   el.innerHTML = `<input type="search" placeholder="Search countries…" autocomplete="off"><div class="cpick-list">${LG.countries().map(([c, n]) => `<button type="button" data-cc="${c}" class="${c === cur.toUpperCase() ? 'on' : ''}" data-s="${esc((n + ' ' + c).toLowerCase())}">${cpFlag(c)}<span>${esc(n)}</span><small class="mono">${c}</small></button>`).join('')}</div>${cur ? '<button type="button" class="cpick-clear" data-cc="">Clear</button>' : ''}`;
   document.body.appendChild(el);
-  const r = btn.getBoundingClientRect(), w = Math.max(r.width, 300);
-  el.style.width = w + 'px'; el.style.left = Math.min(r.left, innerWidth - w - 10) + 'px';
-  const below = innerHeight - r.bottom > 340; el.style.top = (below ? r.bottom + 6 : Math.max(10, r.top - 346)) + 'px';
-  CP = { el, path };
+  CP = { el, path, btn }; placeCP();
   const q = el.querySelector('input'); q.focus();
   const on = el.querySelector('.on'); if (on) on.scrollIntoView({ block: 'center' });
   q.addEventListener('input', () => { const t = q.value.trim().toLowerCase(); el.querySelectorAll('.cpick-list button').forEach(b => { b.hidden = !!t && !b.dataset.s.includes(t); }); });
@@ -2014,7 +2043,7 @@ document.addEventListener('click', e => {
   if (CP && !(e.target.closest && e.target.closest('.cpick-pop'))) closeCP();
 });
 window.addEventListener('hashchange', closeCP);
-document.addEventListener('scroll', e => { if (CP && !(e.target.closest && e.target.closest('.cpick-pop'))) closeCP(); }, true);
+document.addEventListener('scroll', e => { if (CP && !(e.target.closest && e.target.closest('.cpick-pop'))) placeCP(); }, true);
 document.addEventListener('input', e => {
   if (e.target.id !== 'drv-q') return;
   const q = e.target.value.trim().toLowerCase(); let n = 0;

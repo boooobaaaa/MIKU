@@ -11,12 +11,24 @@ const { esc, toast, byId } = LG;
 
 const cfg = d => Object.assign({ enabled: false, intro: '', points: {} }, d.predictions || {});
 const PTS = d => Object.assign({ exact: 3, podium: 1, fl: 2, pole: 2 }, cfg(d).points || {});
-const lockFor = r => {
+const SCHED = d => Object.assign({ auto: true, openDays: 3, openTime: '', closeOn: 'quali', closeMins: 0 }, cfg(d).schedule || {});
+const sessStart = (r, re) => { const q = (r.sessions || []).find(s => s && re.test(String(s.name || '').trim()) && s.start); const t = new Date((q && q.start) || 0).getTime(); return isNaN(t) ? 0 : t; };
+const raceStart = r => { const t = new Date(r.start || 0).getTime(); return isNaN(t) ? 0 : t; };
+/* when picks close for a round (needs the LG data for the schedule settings) */
+function lockFor(r, d) {
   if (!r) return 0;
-  const q = (r.sessions || []).find(s => s && /^qualifying$/i.test(String(s.name || '').trim()) && s.start);
-  const t = new Date((q && q.start) || r.start || 0).getTime();
-  return isNaN(t) ? 0 : t;
-};
+  const sc = SCHED(d || LG.S.data);
+  const base = sc.closeOn === 'race' ? raceStart(r) : (sessStart(r, /^qualifying$/i) || raceStart(r));
+  return base ? base - (Number(sc.closeMins) || 0) * 60000 : 0;
+}
+/* when picks open: N days before the close, optionally at a set time of day */
+function openFor(r, d) {
+  const lock = lockFor(r, d); if (!lock) return 0;
+  const sc = SCHED(d || LG.S.data);
+  const t = new Date(lock - (Number(sc.openDays) || 0) * 864e5);
+  if (/^\d{1,2}:\d{2}$/.test(sc.openTime || '')) { const [h, m] = sc.openTime.split(':').map(Number); t.setHours(h, m, 0, 0); if (t.getTime() >= lock) t.setTime(lock - 3600e3); }
+  return t.getTime();
+}
 const nameKey = 'league.pred.name';
 const getName = () => { try { return localStorage.getItem(nameKey) || ''; } catch (e) { return ''; } };
 const setName = v => { try { localStorage.setItem(nameKey, v); } catch (e) { } };
@@ -59,11 +71,14 @@ window.addEventListener('hashchange', () => { if (/^#\/predictions/.test(locatio
 function currentRound(d) {
   const now = Date.now(), R = S.rounds || {};
   const rs = LG.rounds(d).filter(r => !r.cancelled);
+  const lk = r => (R[r.id] && R[r.id].lockAt) || lockFor(r, d), op = r => (R[r.id] && R[r.id].openAt) || 0;
   const open = rs.filter(r => R[r.id] && R[r.id].open);
-  const live = open.filter(r => (R[r.id].lockAt || lockFor(r)) > now).sort((a, b) => lockFor(a) - lockFor(b))[0];
+  const live = open.filter(r => lk(r) > now && op(r) <= now).sort((a, b) => lk(a) - lk(b))[0];
   if (live) return { r: live, state: 'open' };
-  const waiting = open.filter(r => !LG.isDone(d, r)).sort((a, b) => lockFor(a) - lockFor(b))[0];
+  const waiting = open.filter(r => lk(r) <= now && !LG.isDone(d, r)).sort((a, b) => lk(a) - lk(b))[0];
   if (waiting) return { r: waiting, state: 'locked' };
+  const soon = open.filter(r => op(r) > now).sort((a, b) => op(a) - op(b))[0];
+  if (soon) return { r: soon, state: 'soon', opensAt: op(soon) };
   const next = LG.nextRound(d);
   return next ? { r: next, state: 'soon' } : { r: null, state: 'none' };
 }
@@ -96,18 +111,18 @@ function page(d) {
 }
 
 function roundView(d, s) {
-  const { r, state } = currentRound(d);
+  const { r, state, opensAt } = currentRound(d);
   if (!r) return '<div class="card"><p class="muted">The season is over — see you next season!</p></div>';
-  const R = (S.rounds || {})[r.id] || {}, lockAt = R.lockAt || lockFor(r);
+  const R = (S.rounds || {})[r.id] || {}, lockAt = R.lockAt || lockFor(r, d);
   const mine = s.user ? (S.all || []).find(p => p.roundId === r.id && p.uid === s.user.uid) : null;
   const hdr = `<div class="pr-round card" style="--tc:var(--miku)"><div>${LG.flag(r.country, 'lg')}</div><div><div class="eyebrow">Round ${esc(r.round)}</div><h2>${esc(r.name)}</h2>
-      <div class="muted">${state === 'open' ? `Closes <b>${esc(LG.fmtDate(lockAt))} · ${esc(LG.fmtTime(lockAt))}</b> <span class="pr-count">in ${esc(until(lockAt))}</span>` : state === 'locked' ? '🔒 Predictions are locked — results soon' : 'Predictions open soon'}</div></div>
+      <div class="muted">${state === 'open' ? `Closes <b>${esc(LG.fmtDate(lockAt))} · ${esc(LG.fmtTime(lockAt))}</b> <span class="pr-count">in ${esc(until(lockAt))}</span>` : state === 'locked' ? '🔒 Predictions are locked — results soon' : opensAt ? `Opens <b>${esc(LG.fmtDate(opensAt))} · ${esc(LG.fmtTime(opensAt))}</b> <span class="pr-count">in ${esc(until(opensAt))}</span>` : 'Predictions open soon'}</div></div>
       <div class="pr-entries"><b>${(S.all || []).filter(p => p.roundId === r.id).length}</b><span>entries</span></div></div>`;
-  if (state === 'soon') return hdr + '<div class="card"><p class="muted">The admins haven\'t opened predictions for this round yet — check back closer to the weekend.</p></div>';
+  if (state === 'soon') return hdr + `<div class="card"><p class="muted">${opensAt ? 'Predictions for this round open soon — come back then to make your picks.' : 'Predictions for this round aren\'t open yet — check back closer to the weekend.'}</p></div>`;
   if (state === 'locked') return hdr + entriesTable(d, r, s);
   if (!s.user) return hdr + `<div class="card ap-signin"><div><h3>Sign in to predict</h3><p class="muted">Sign in with Google so your picks and points are saved. Only the name you choose is shown publicly.</p></div><button class="btn primary" data-pr="signin">Sign in with Google</button></div>`;
   const drivers = d.drivers.filter(x => x.active !== false).slice().sort((a, b) => (parseInt(a.number, 10) || 999) - (parseInt(b.number, 10) || 999));
-  const sel = (nm, val, label, ph) => `<label class="fld pr-fld"><span>${label}</span><select name="${nm}" required><option value="">${ph}</option>${drivers.map(x => { const t = byId(d.teams, x.teamId); return `<option value="${esc(x.id)}" ${x.id === val ? 'selected' : ''}>${x.number != null && x.number !== '' ? '#' + esc(x.number) + ' ' : ''}${esc(x.name)}${t ? ' · ' + esc(t.name) : x.reserve ? ' · reserve' : ''}</option>`; }).join('')}</select></label>`;
+  const sel = (nm, val, label, ph) => `<div class="fld pr-fld"><span>${label}</span><input type="hidden" name="${nm}" value="${esc(val || '')}"><button type="button" class="dpick" data-dpick="${nm}" data-ph="${esc(ph)}">${dpickFace(d, val, ph)}</button></div>`;
   const pod = (mine && mine.podium) || [];
   return hdr + `<form class="card pr-form" data-pr-form="${esc(r.id)}">
       <div class="pr-who">Signed in as <b>${esc(s.user.email)}</b> · <a href="javascript:void 0" data-pr="signout">Sign out</a>${mine ? ' · <span class="ok-txt">✓ Your picks are saved — you can change them until it closes</span>' : ''}</div>
@@ -121,6 +136,45 @@ function roundView(d, s) {
       <div class="toolbar" style="margin-top:14px"><button class="btn primary" ${S.busy ? 'disabled' : ''}>${mine ? 'Update my predictions' : 'Lock in my predictions'}</button><span class="hint" style="margin:0">Everyone's picks are revealed when predictions close.</span></div>
     </form>`;
 }
+
+const numTxt = x => x && x.number != null && x.number !== '' ? '#' + x.number : '';
+function dpickFace(d, id, ph) {
+  const x = id && byId(d.drivers, id); if (!x) return `<span class="dp-ph">${esc(ph)}</span><i>▾</i>`;
+  const t = byId(d.teams, x.teamId);
+  return `${LG.avatar(x, t)}<span class="dp-num mono">${esc(numTxt(x))}</span><span class="dp-nm">${LG.nameHTML(x.name)}<small>${esc(t ? t.name : x.reserve ? 'Reserve' : '')}</small></span><i>▾</i>`;
+}
+let DP = null;
+function placeDP() {
+  if (!DP) return; const r = DP.btn.getBoundingClientRect(), w = Math.max(r.width, 300), el = DP.el;
+  if (r.bottom < 0 || r.top > innerHeight) return closeDP();
+  el.style.width = w + 'px'; el.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+  el.style.top = (innerHeight - r.bottom > 380 ? r.bottom + 6 : Math.max(8, r.top - 386)) + 'px';
+}
+function closeDP() { if (DP) { DP.el.remove(); DP = null; } }
+function openDP(btn) {
+  closeDP();
+  const d = LG.S.data, form = btn.closest('form'), inp = form.querySelector(`input[name="${btn.dataset.dpick}"]`);
+  const drivers = d.drivers.filter(x => x.active !== false).slice().sort((a, b) => (parseInt(a.number, 10) || 999) - (parseInt(b.number, 10) || 999));
+  const taken = btn.dataset.dpick.startsWith('p') ? ['p1', 'p2', 'p3'].filter(k => k !== btn.dataset.dpick).map(k => form.querySelector(`input[name="${k}"]`).value) : [];
+  const el = document.createElement('div'); el.className = 'dpick-pop';
+  el.innerHTML = `<input type="search" placeholder="Search drivers…" autocomplete="off"><div class="dpick-list">${drivers.map(x => { const t = byId(d.teams, x.teamId); return `<button type="button" data-id="${esc(x.id)}" class="${x.id === inp.value ? 'on' : ''} ${taken.includes(x.id) ? 'taken' : ''}" data-s="${esc((x.name + ' ' + (x.number ?? '') + ' ' + (t ? t.name : '')).toLowerCase())}" style="--tc:${esc(LG.teamColor(t))}">${LG.avatar(x, t)}<span class="dp-num mono">${esc(numTxt(x))}</span><span class="dp-nm">${LG.nameHTML(x.name)}<small>${esc(t ? t.name : x.reserve ? 'Reserve' : '')}${taken.includes(x.id) ? ' · already on your podium' : ''}</small></span></button>`; }).join('')}</div>`;
+  document.body.appendChild(el);
+  DP = { el, btn, inp }; placeDP();
+  const q = el.querySelector('input'); if (matchMedia('(pointer:fine)').matches) q.focus();
+  const on = el.querySelector('.on'); if (on) on.scrollIntoView({ block: 'center' });
+  q.addEventListener('input', () => { const t = q.value.trim().toLowerCase(); el.querySelectorAll('.dpick-list button').forEach(b => { b.hidden = !!t && !b.dataset.s.includes(t); }); });
+  q.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); const f = [...el.querySelectorAll('.dpick-list button')].find(b => !b.hidden); if (f) f.click(); } if (ev.key === 'Escape') closeDP(); });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-dpick]');
+  if (b) { e.preventDefault(); return DP && DP.btn === b ? closeDP() : openDP(b); }
+  const c = e.target.closest && e.target.closest('.dpick-pop [data-id]');
+  if (c && DP) { DP.inp.value = c.dataset.id; DP.btn.innerHTML = dpickFace(LG.S.data, c.dataset.id, DP.btn.dataset.ph); closeDP(); return; }
+  if (DP && !(e.target.closest && e.target.closest('.dpick-pop'))) closeDP();
+});
+window.addEventListener('hashchange', closeDP);
+document.addEventListener('scroll', e => { if (DP && !(e.target.closest && e.target.closest('.dpick-pop'))) placeDP(); }, true);
+window.addEventListener('resize', placeDP);
 
 function entriesTable(d, r, s) {
   const list = (S.all || []).filter(p => p.roundId === r.id);
@@ -188,7 +242,7 @@ document.addEventListener('submit', async e => {
   } catch (err) { toast('Could not save: ' + (err.code || err.message) + (/permission/.test(err.code || err.message) ? ' — predictions may have just closed.' : ''), 'err'); }
   S.busy = false; LG.render(false);
 });
-setInterval(() => { if (/^#\/predictions/.test(location.hash) && S.tab === 'round' && !document.activeElement.closest('[data-pr-form]')) { const c = document.querySelector('.pr-count'); if (c) { const { r } = currentRound(LG.S.data); if (r) { const R = (S.rounds || {})[r.id] || {}; c.textContent = 'in ' + until(R.lockAt || lockFor(r)); } } } }, 30000);
+setInterval(() => { if (/^#\/predictions/.test(location.hash) && S.tab === 'round' && !document.activeElement.closest('[data-pr-form]')) { const c = document.querySelector('.pr-count'); if (c) { const { r } = currentRound(LG.S.data); if (r) { const R = (S.rounds || {})[r.id] || {}; c.textContent = 'in ' + until(R.lockAt || lockFor(r, LG.S.data)); } } } }, 30000);
 
-window.Predictions = { page, score, actual, lockFor, cfg, PTS, state: S };
+window.Predictions = { page, score, actual, lockFor, openFor, SCHED, cfg, PTS, state: S };
 })();

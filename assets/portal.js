@@ -72,8 +72,8 @@ function fbStore(conf) {
     async signApp(id, signature, contract) { await F.updateDoc(F.doc(db, 'applications', id), { status: 'signed', signature, contract, signedAt: F.serverTimestamp() }); },
     async deleteApp(id) { await F.deleteDoc(F.doc(db, 'applications', id)); },
     /* predictions */
-    async predRounds() { const q = await F.getDocs(F.collection(db, 'pred_rounds')); const o = {}; q.docs.forEach(x => { const v = x.data(); o[x.id] = { open: !!v.open, lockAt: ts(v.lockAt) }; }); return o; },
-    async setPredRound(rid, x) { await F.setDoc(F.doc(db, 'pred_rounds', rid), { open: !!x.open, lockAt: new Date(x.lockAt) }); },
+    async predRounds() { const q = await F.getDocs(F.collection(db, 'pred_rounds')); const o = {}; q.docs.forEach(x => { const v = x.data(); o[x.id] = { open: !!v.open, lockAt: ts(v.lockAt), openAt: ts(v.openAt), manual: !!v.manual }; }); return o; },
+    async setPredRound(rid, x) { await F.setDoc(F.doc(db, 'pred_rounds', rid), { open: !!x.open, lockAt: new Date(x.lockAt), openAt: new Date(x.openAt || 0), manual: !!x.manual }); },
     async allPreds() { const q = await F.getDocs(F.collection(db, 'predictions')); return q.docs.map(x => Object.assign({ id: x.id }, x.data(), { at: ts(x.data().at) })); },
     async savePred(rid, x) { await F.setDoc(F.doc(db, 'predictions', rid + '_' + s.user.uid), { uid: s.user.uid, name: x.name, roundId: rid, podium: x.podium, fl: x.fl, pole: x.pole, at: F.serverTimestamp() }); },
     async deletePred(id) { await F.deleteDoc(F.doc(db, 'predictions', id)); }
@@ -191,7 +191,8 @@ const RULES = `
     function predOpen(rid) {
       return exists(/databases/$(db)/documents/pred_rounds/$(rid))
         && get(/databases/$(db)/documents/pred_rounds/$(rid)).data.open == true
-        && request.time < get(/databases/$(db)/documents/pred_rounds/$(rid)).data.lockAt;
+        && request.time < get(/databases/$(db)/documents/pred_rounds/$(rid)).data.lockAt
+        && request.time >= get(/databases/$(db)/documents/pred_rounds/$(rid)).data.get('openAt', timestamp.value(0));
     }
     match /pred_rounds/{rid} {
       allow read: if true;
