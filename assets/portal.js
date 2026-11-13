@@ -18,6 +18,8 @@ function fbStore(conf) {
   let A, F, auth, db;
   const emit = () => s.listeners.forEach(f => { try { f(); } catch (e) { } });
   const ts = v => v && v.toMillis ? v.toMillis() : (v || 0);
+  const convL = x => Object.assign({}, x.data(), { uid: x.id, createdAt: ts(x.data().createdAt), createdAtRaw: x.data().createdAt || null, updatedAt: ts(x.data().updatedAt), reviewedAt: ts(x.data().reviewedAt) });
+  const convF = x => { const v = x.data(); return Object.assign({}, v, { uid: x.id, updatedAt: ts(v.updatedAt), history: (v.history || []).map(h => ({ picks: h.picks, at: ts(h.at) })) }); };
   const conv = x => Object.assign({ id: x.id }, x.data(), { createdAt: ts(x.data().createdAt), updatedAt: ts(x.data().updatedAt), reviewedAt: ts(x.data().reviewedAt), signedAt: ts(x.data().signedAt) });
   (async () => {
     try {
@@ -76,12 +78,33 @@ function fbStore(conf) {
     async setPredRound(rid, x) { await F.setDoc(F.doc(db, 'pred_rounds', rid), { open: !!x.open, lockAt: new Date(x.lockAt), openAt: new Date(x.openAt || 0), manual: !!x.manual }); },
     async allPreds() { const q = await F.getDocs(F.collection(db, 'predictions')); return q.docs.map(x => Object.assign({ id: x.id }, x.data(), { at: ts(x.data().at) })); },
     async savePred(rid, x) { await F.setDoc(F.doc(db, 'predictions', rid + '_' + s.user.uid), { uid: s.user.uid, name: x.name, roundId: rid, podium: x.podium, fl: x.fl, pole: x.pole, at: F.serverTimestamp() }); },
-    async deletePred(id) { await F.deleteDoc(F.doc(db, 'predictions', id)); }
+    async deletePred(id) { await F.deleteDoc(F.doc(db, 'predictions', id)); },
+    /* accounts — Discord links (approved by an admin) */
+    async myLink() { const x = await F.getDoc(F.doc(db, 'links', s.user.uid)); return x.exists() ? convL(x) : null; },
+    async requestLink(x, prev) {
+      await F.setDoc(F.doc(db, 'links', s.user.uid), { uid: s.user.uid, discordId: String(x.discordId), discordName: x.discordName || '', discordUser: x.discordUser || '', discordAvatar: x.discordAvatar || '', driverId: x.driverId || '',
+        status: 'pending', note: '', createdAt: prev && prev.createdAtRaw ? prev.createdAtRaw : F.serverTimestamp(), updatedAt: F.serverTimestamp(), reviewedAt: null });
+    },
+    async unlink() { await F.deleteDoc(F.doc(db, 'links', s.user.uid)); },
+    async approvedLinks() { const q = await F.getDocs(F.query(F.collection(db, 'links'), F.where('status', '==', 'approved'))); return q.docs.map(convL); },
+    async allLinks() { const q = await F.getDocs(F.collection(db, 'links')); return q.docs.map(convL); },
+    async reviewLink(uid, status, note, driverId) { await F.updateDoc(F.doc(db, 'links', uid), { status, note: note || '', driverId: driverId || '', reviewedAt: F.serverTimestamp() }); },
+    async deleteLink(uid) { await F.deleteDoc(F.doc(db, 'links', uid)); },
+    /* fantasy teams on accounts — every save is appended with the time it was made */
+    async allFantasy() { const q = await F.getDocs(F.collection(db, 'fantasy')); return q.docs.map(convF); },
+    async myFantasy() { const x = await F.getDoc(F.doc(db, 'fantasy', s.user.uid)); return x.exists() ? convF(x) : null; },
+    async saveFantasy(x, picksChanged) {
+      const ref = F.doc(db, 'fantasy', s.user.uid), cur = await F.getDoc(ref);
+      const hist = cur.exists() ? (cur.data().history || []) : [];
+      const next = picksChanged || !hist.length ? hist.concat([{ picks: x.picks, at: F.Timestamp.now() }]) : hist;
+      await F.setDoc(ref, { uid: s.user.uid, name: x.name, manager: x.manager, history: next, updatedAt: F.serverTimestamp() });
+    },
+    async deleteFantasy(uid) { await F.deleteDoc(F.doc(db, 'fantasy', uid)); }
   });
   return s;
 }
 let STORE = null, KEY = '';
-function hook(s) { if (s && !s.__hooked) { s.__hooked = true; s.on(() => { P.subs = null; if (/^#\/(portal|admin|apply|join|predictions)/.test(location.hash)) LG.render(false); }); } return s; }
+function hook(s) { if (s && !s.__hooked) { s.__hooked = true; s.on(() => { P.subs = null; if (/^#\/(portal|admin|apply|join|predictions|account|fantasy)/.test(location.hash)) LG.render(false); }); } return s; }
 function store(d) {
   if (window.PT_TEST_STORE) return hook(window.PT_TEST_STORE);
   const conf = d.gridDraft && d.gridDraft.firebase && d.gridDraft.firebase.apiKey ? d.gridDraft.firebase : null;
@@ -211,6 +234,49 @@ const RULES = `
         && request.resource.data.at == request.time
         && predOpen(request.resource.data.roundId);
       allow delete: if canRunPreds();
+    }
+
+    // ---------------- Accounts: Discord links approved by an admin ----------------
+    function canReviewLinks() { return isAdmin() || (isCoAdmin() && ('*' in coSections() || 'accounts' in coSections())); }
+    function canRunFantasy() { return isAdmin() || (isCoAdmin() && ('*' in coSections() || 'fantasy' in coSections())); }
+    function shortStr(v, n) { return v is string && v.size() <= n; }
+    function validLinkReq(x, uid) {
+      return x.keys().hasOnly(['uid', 'discordId', 'discordName', 'discordUser', 'discordAvatar', 'driverId', 'status', 'note', 'createdAt', 'updatedAt', 'reviewedAt'])
+        && x.uid == uid && x.status == 'pending' && x.note == '' && x.reviewedAt == null && x.updatedAt == request.time
+        && x.discordId is string && x.discordId.matches('[0-9]{5,25}')
+        && shortStr(x.discordName, 80) && shortStr(x.discordUser, 40) && shortStr(x.discordAvatar, 80) && shortStr(x.driverId, 60);
+    }
+    match /links/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid) || resource.data.status == 'approved' || canReviewLinks();
+      allow create: if signedIn() && request.auth.uid == uid && validLinkReq(request.resource.data, uid) && request.resource.data.createdAt == request.time;
+      allow update: if (signedIn() && request.auth.uid == uid && resource.data.status in ['pending', 'denied']
+          && validLinkReq(request.resource.data, uid) && request.resource.data.createdAt == resource.data.createdAt)
+        || (canReviewLinks() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'note', 'driverId', 'reviewedAt'])
+          && request.resource.data.status in ['pending', 'approved', 'denied'] && shortStr(request.resource.data.note, 500) && shortStr(request.resource.data.driverId, 60));
+      allow delete: if (signedIn() && request.auth.uid == uid) || canReviewLinks();
+    }
+
+    // ---------------- Fantasy teams saved to accounts ----------------
+    function ftEntryOk(h) {
+      return h.keys().hasOnly(['picks', 'at']) && h.picks is map && h.picks.size() <= 8
+        && h.at is timestamp && h.at > request.time - duration.value(10, 'm') && h.at < request.time + duration.value(2, 'm');
+    }
+    function ftDocOk(x, uid) {
+      return x.keys().hasOnly(['uid', 'name', 'manager', 'history', 'updatedAt']) && x.uid == uid
+        && x.name is string && x.name.size() >= 1 && x.name.size() <= 40
+        && x.manager is string && x.manager.size() >= 1 && x.manager.size() <= 40
+        && x.history is list && x.history.size() >= 1 && x.history.size() <= 150 && x.updatedAt == request.time;
+    }
+    match /fantasy/{uid} {
+      allow read: if true;
+      allow create: if signedIn() && request.auth.uid == uid && ftDocOk(request.resource.data, uid)
+        && request.resource.data.history.size() == 1 && ftEntryOk(request.resource.data.history[0]);
+      allow update: if signedIn() && request.auth.uid == uid && ftDocOk(request.resource.data, uid)
+        && (request.resource.data.history == resource.data.history
+          || (request.resource.data.history.size() == resource.data.history.size() + 1
+            && request.resource.data.history[0:resource.data.history.size()] == resource.data.history
+            && ftEntryOk(request.resource.data.history[resource.data.history.size()])));
+      allow delete: if canRunFantasy();
     }
 `;
 

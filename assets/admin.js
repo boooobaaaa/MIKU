@@ -22,7 +22,7 @@ function combo(path, val, options, ph = '') {
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'KIRA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['applications', 'Applications', '✍'], ['predictions', 'Predictions', '🔮'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'KIRA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['applications', 'Applications', '✍'], ['predictions', 'Predictions', '🔮'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['accounts', 'Accounts', '◎'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS', 'NS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -1169,10 +1169,98 @@ function secFantasy(d) {
       <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="ft-import">Add / update entries</button></div>
       <div id="ft-import-log"></div>
     </div>
-    <div class="a-card" style="overflow-x:auto"><h3>Entries (${f.entries.length})</h3>
+    ${ftAccountsCard(d, f)}
+    <div class="a-card" style="overflow-x:auto"><h3>Entries from codes (${f.entries.length})</h3>
       ${S.table.length ? `<table class="rtable"><thead><tr><th>#</th><th>Team</th><th>Manager</th><th>Discord</th><th>Picks now</th><th>Changes</th><th>Pts</th><th></th></tr></thead><tbody>${S.table.map(x => { const pk = x.picks || {}; const nm = id => (S.aById[id] || {}).name || '?'; const i = f.entries.indexOf(x.entry); return `<tr><td class="c-pos">${x.rank}</td><td><b>${esc(x.entry.team)}</b></td><td>${esc(x.entry.manager)}</td><td class="muted">${esc(x.entry.discord || '')}</td><td style="font-size:12.5px">${esc((pk.d || []).map(id => nm(id).split(' ').pop() + (id === pk.c ? '★' : '')).join(', '))}${pk.tp ? ' · TP ' + esc(nm(pk.tp).split(' ').pop()) : ''}</td><td class="mono">${(x.entry.history || []).length}</td><td class="c-pts">${LG.fmtPts(x.total)}</td><td class="c-act"><button class="iconbtn del" data-act="ft-del" data-i="${i}">✕</button></td></tr>`; }).join('')}</tbody></table>` : '<p class="muted">No entries yet.</p>'}
     </div>`;
 }
+function ftAccountsCard(d, f) {
+  const FT = window.Fantasy, s = window.Portal && window.Portal.store(d);
+  if (!s || !s.allFantasy) return `<div class="a-card"><h3>Teams saved to accounts</h3><p class="hint">Once Firebase is set up (Grid Draft ①–⑦), players sign in and save their team straight to their account — no codes needed.</p></div>`;
+  const docs = FT.accountDocs(d), AC = window.Accounts, appr = AC ? AC.approved(d) : null, need = AC && AC.cfg(d).fantasyApproved;
+  const S = FT.standings(d, docs.map(x => ({ id: 'u:' + x.uid, uid: x.uid, manager: x.manager, team: x.name, history: x.history.map(h => ({ from: FT.effectiveRoundFor(d, h.at), picks: h.picks })) })));
+  const A = S.aById;
+  const rows = S.table.filter(x => x.entry.uid).map(x => {
+    const doc = docs.find(z => z.uid === x.entry.uid), last = doc.history[doc.history.length - 1], v = FT.validate(d, last.picks);
+    const ok = appr && appr[x.entry.uid];
+    return `<tr><td><b>${esc(x.entry.team)}</b></td><td>${esc(x.entry.manager)}</td><td>${ok ? `<span class="ac-badge">${AC.dcFace(ok)}<span>${esc(ok.discordName)}</span><i>✓</i></span>` : `<span class="chip">${need ? 'Hidden · not approved' : 'Not linked'}</span>`}</td>
+      <td style="font-size:12.5px">${[...(last.picks.d || []), last.picks.tp].filter(Boolean).map(id => esc((A[id] || {}).name || '?')).join(' · ')}</td><td class="mono">${FT.money(FT.teamCost(last.picks, A))}${v.ok ? '' : `<div class="warn-sm" title="${esc(v.errs.join(', '))}">⚠ ${esc(v.errs[0])}</div>`}</td>
+      <td class="mono">${doc.history.length}</td><td class="c-pts">${LG.fmtPts(x.total)}</td><td class="c-act"><button class="iconbtn del" data-act="ft-delacct" data-uid="${esc(x.entry.uid)}" data-name="${esc(x.entry.team)}" title="Remove this team">✕</button></td></tr>`;
+  }).join('');
+  return `<div class="a-card" style="overflow-x:auto"><h3>Teams saved to accounts (${docs.length})</h3>
+    <p class="hint" style="margin:-4px 0 10px">Players sign in on the Fantasy page and save their team — every change is time-stamped and counts from the next race that hasn't started. ${need ? 'Only accounts you’ve approved under <a href="#/admin/accounts">Accounts</a> appear on the public leaderboard.' : ''} The ⚠ flags a team that breaks the rules at today's prices (for example after someone edited it outside the site).</p>
+    <div class="toolbar" style="margin-bottom:10px"><button class="btn sm" data-act="ft-reloadacct">Refresh</button></div>
+    ${rows ? `<table class="rtable"><thead><tr><th>Team</th><th>Manager</th><th>Discord</th><th>Picks now</th><th>Value</th><th>Saves</th><th>Pts</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="muted">No teams saved yet.</p>'}</div>`;
+}
+
+/* ---------------- accounts (Discord links) ---------------- */
+const ACA = { links: null, err: '', loading: false };
+window.addEventListener('hashchange', () => { if (!/^#\/admin\/accounts/.test(location.hash) && !ACA.loading) ACA.links = null; });
+function accReviewer(d, s) {
+  const adminList = String(window.GridDraft.cfg(d).admins || '').toLowerCase().split(/[\s,;]+/);
+  return s && s.user && (adminList.includes(s.user.email) || (s.siteAdmin && allowed('accounts')));
+}
+function secAccounts(d) {
+  const AC = window.Accounts, c = AC.cfg(d), s = window.Portal.store(d);
+  const top = head('Accounts', 'People sign in with Google and link their Discord. You approve every link here — approved accounts get a ✓ verified badge, can claim their driver profile, and can be the only ones shown on the Fantasy and Grid Draft leaderboards.', '<a class="btn" href="#/account">Open My account page</a>');
+  const setup = `<div class="a-card"><h3>Discord setup (one time, about 5 minutes)</h3>
+    <ol class="steps gd-steps">
+      <li>Open <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">discord.com/developers/applications</a> → <b>New Application</b> → name it after your league → Create.</li>
+      <li>Go to <b>OAuth2</b> → copy the <b>Client ID</b> → paste it below. <b>Don't</b> copy the Client Secret — it isn't needed and must never go on your site.</li>
+      <li>Still in <b>OAuth2</b> → <b>Redirects</b> → <b>Add Redirect</b> → paste exactly <code class="acc-uri">${esc(AC.redirectUri())}</code> → <b>Save Changes</b>. (Use your real site address when you're on it — if you open this console on GitHub Pages, the address above is already the right one.)</li>
+      <li>Re-copy the Firestore rules from <a href="#/admin/griddraft">Grid Draft ③</a> into Firebase → <b>Publish</b> (they now include accounts and fantasy teams).</li>
+      <li>Tick <b>Show “My account”</b> below and Publish the site.</li>
+    </ol>
+    <div class="fgrid">
+      ${F.text('Discord application Client ID', 'accounts.discordClientId', c.discordClientId || '', 'placeholder="e.g. 1234567890123456789" inputmode="numeric"')}
+      ${F.check('Show “My account” in the More menu', 'accounts.enabled', c.enabled)}
+      ${F.check('Fantasy leaderboard: only show approved accounts', 'accounts.fantasyApproved', c.fantasyApproved)}
+      ${F.check('Grid Draft leaderboard: only show approved accounts', 'accounts.gdApproved', c.gdApproved)}
+    </div>
+    <p class="hint">Players can always play and save; these switches only decide who appears on the public leaderboards. Existing entry-code fantasy teams are unaffected.</p></div>`;
+  if (!s) return top + `<div class="warn">Accounts use the same Firebase project as Grid Draft. Finish the setup in <a href="#/admin/griddraft">Grid Draft</a> first.</div>` + setup;
+  if (!s.ready) return top + '<p class="muted">Connecting…</p>' + setup;
+  if (!s.user) return top + `<div class="a-card"><p>Sign in with your admin Google account to review link requests.</p><button class="btn primary" data-act="pt-signin">Sign in with Google</button></div>` + setup;
+  if (!accReviewer(d, s)) return top + `<div class="warn">Signed in as ${esc(s.user.email)}, which isn't in the admin emails (Grid Draft ①) or on the admin team with Accounts access.</div>` + setup;
+  if (ACA.links === null && !ACA.loading) {
+    ACA.loading = true;
+    s.allLinks().then(x => { ACA.links = x.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)); ACA.err = ''; })
+      .catch(e => { ACA.links = []; ACA.err = (e.code || e.message) + (/permission/.test(e.code || e.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase.' : ''); })
+      .finally(() => { ACA.loading = false; rerender(); });
+  }
+  const L = ACA.links || [];
+  const pend = L.filter(x => x.status === 'pending'), ok = L.filter(x => x.status === 'approved'), no = L.filter(x => x.status === 'denied');
+  const when = t => t ? new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+  const claimedBy = drvId => ok.find(x => x.driverId === drvId);
+  const row = x => {
+    const warn = [];
+    const dup = L.filter(y => y.uid !== x.uid && y.discordId === x.discordId && y.status !== 'denied');
+    if (dup.length) warn.push(`This Discord account is also on ${dup.length} other request${dup.length > 1 ? 's' : ''}.`);
+    const cb = x.driverId && claimedBy(x.driverId); if (cb && cb.uid !== x.uid) warn.push(`${esc((byId(d.drivers, x.driverId) || {}).name || 'That driver')} is already claimed by ${esc(cb.discordName)}.`);
+    const drv = byId(d.drivers, x.driverId);
+    return `<div class="acc-row ${x.status}">
+      ${AC.dcFace(x, 'lg')}
+      <div class="acc-who"><b>${esc(x.discordName)}</b><span class="muted">@${esc(x.discordUser)} · ID <span class="mono">${esc(x.discordId)}</span></span><span class="muted" style="font-size:12px">${x.status === 'pending' ? 'Requested' : x.status === 'approved' ? 'Approved' : 'Denied'} ${when(x.status === 'pending' ? x.updatedAt : x.reviewedAt || x.updatedAt)}</span>
+        ${warn.map(w => `<span class="warn-sm">⚠ ${w}</span>`).join('')}${x.note ? `<span class="muted" style="font-size:12.5px">Note: ${esc(x.note)}</span>` : ''}</div>
+      <label class="fld acc-drv"><span>Driver profile${drv && x.status !== 'approved' ? ' (their pick)' : ''}</span><select id="acc-drv-${esc(x.uid)}">${AC.driverOptions(d, x.driverId, y => { const c2 = claimedBy(y.id); return c2 && c2.uid !== x.uid; })}</select></label>
+      <div class="acc-act">${x.status !== 'approved' ? `<button class="btn sm primary" data-act="acc-approve" data-uid="${esc(x.uid)}">✓ Approve</button>` : `<button class="btn sm" data-act="acc-approve" data-uid="${esc(x.uid)}">Save driver</button>`}
+        ${x.status === 'pending' ? `<button class="btn sm" data-act="acc-deny" data-uid="${esc(x.uid)}">Deny</button>` : ''}<button class="iconbtn del" data-act="acc-remove" data-uid="${esc(x.uid)}" title="Remove this link">✕</button></div>
+    </div>`;
+  };
+  return top + `${ACA.err ? `<div class="warn">${esc(ACA.err)}</div>` : ''}
+    <div class="a-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0">Waiting for approval (${pend.length})</h3><button class="btn sm" data-act="acc-reload">Refresh</button></div>
+      <p class="hint" style="margin:-4px 0 12px">Check the Discord name and ID against your server (Discord → User Settings → Advanced → Developer Mode, then right-click a member → Copy User ID).</p>
+      ${ACA.links === null ? '<p class="muted">Loading…</p>' : pend.map(row).join('') || '<p class="muted">No requests waiting. 🩵</p>'}</div>
+    <div class="a-card"><h3>Approved (${ok.length})</h3>${ok.map(row).join('') || '<p class="muted">Nobody approved yet.</p>'}
+      ${ok.length ? '<p class="hint">Changing a driver or removing a link updates the driver pages — Publish to make it live.</p>' : ''}</div>
+    ${no.length ? `<div class="a-card"><h3>Denied (${no.length})</h3>${no.map(row).join('')}</div>` : ''}` + setup;
+}
+function setDriverClaim(d, link, driverId) {
+  d.drivers.forEach(x => { if (x.discord && x.discord.uid === link.uid) delete x.discord; });
+  const drv = driverId && byId(d.drivers, driverId);
+  if (drv) drv.discord = { uid: link.uid, id: link.discordId, name: link.discordName, user: link.discordUser, avatar: link.discordAvatar };
+}
+
 function importFantasy(d) {
   const FT = window.Fantasy, f = FT.cfg(d);
   const codes = FT.readCodes(document.getElementById('ft-paste').value);
@@ -1293,15 +1381,22 @@ function render(sec) {
   if (!unlocked()) return lockHTML();
   loadTeamKey();
   const me = team(), lim = limited();
-  const fn = !allowed(A.section) ? noAccess : { access: secAccess, dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, applications: secApplications, predictions: secPredictions, seasons: secSeasons, gallery: secGallery }[A.section];
+  const fn = !allowed(A.section) ? noAccess : { access: secAccess, dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, accounts: secAccounts, applications: secApplications, predictions: secPredictions, seasons: secSeasons, gallery: secGallery }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${me ? `<div class="side-who"><b>${esc(me.name)}</b><span>${me.owner ? 'Owner' : lim ? 'Admin team' : 'Admin team · passcode'} · <a href="javascript:void 0" data-team="signout">sign out</a></span></div>` : ''}
-      ${sortedSections(d).filter(([k]) => allowed(k)).map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${k === 'stewards' ? esc(LG.rcName(d)) : l}</a>`).join('')}
+      ${(() => { const secs = sortedSections(d).filter(([k]) => allowed(k)), lbl = (k, l) => k === 'stewards' ? esc(LG.rcName(d)) : l, cur = secs.find(([k]) => k === A.section);
+        return `<button type="button" class="side-toggle" data-side-toggle aria-expanded="${A.sideOpen ? 'true' : 'false'}">${cur ? `<span class="ic">${cur[2]}</span><span class="st-l">${lbl(cur[0], cur[1])}</span>` : '<span class="st-l">Choose a section</span>'}<span class="st-n">${secs.length} sections</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <nav class="side-nav ${A.sideOpen ? 'open' : ''}">${secs.map(([k, l, ic]) => `<a class="side-link ${k === A.section ? 'active' : ''}" href="#/admin/${k}"><span class="ic">${ic}</span>${lbl(k, l)}</a>`).join('')}</nav>`; })()}
       <div class="status-pill ${LG.S.isDraft ? 'draft' : 'clean'}">${LG.S.isDraft ? '● Unpublished changes' : '✓ All changes live'}${LG.S.isDraft ? '<button class="btn sm primary" data-act="publish">Publish</button>' : ''}</div>
     </aside>
     <section class="admin-main">${fn(d)}</section></div>`;
 }
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-side-toggle]');
+  if (t) { A.sideOpen = !A.sideOpen; const side = t.closest('.admin-side'); t.setAttribute('aria-expanded', A.sideOpen); side.querySelector('.side-nav').classList.toggle('open', A.sideOpen); if (A.sideOpen) { const a = side.querySelector('.side-link.active'); if (a) a.scrollIntoView({ block: 'nearest' }); } return; }
+  if (A.sideOpen && e.target.closest && (e.target.closest('.side-link') || !e.target.closest('.admin-side'))) { A.sideOpen = false; const n = document.querySelector('.side-nav'); if (n) n.classList.remove('open'); const b = document.querySelector('[data-side-toggle]'); if (b) b.setAttribute('aria-expanded', 'false'); }
+});
 function noAccess() { return head('No access', 'The league owner hasn\'t given you access to this part of the console. Ask them to add it under <b>Admin team</b>.'); }
 function sortedSections(d) {
   const lbl = ([k, l]) => (k === 'stewards' ? LG.rcName(d) : l).toLowerCase();
@@ -1680,6 +1775,34 @@ document.addEventListener('click', async e => {
     case 'gd-loadplayers': { const s = window.GridDraft.store(d); GDA.err = ''; try { GDA.players = await s.players(); GDA.drafts = await s.allDrafts(); } catch (x) { GDA.err = 'Couldn\'t load: ' + (x.code || x.message); } return rerender(); }
     case 'gd-saveset': { const st = gdKeepSeasonBackup(d); if (!st) return toast('No cards yet — they appear once drivers have race results.', 'err'); toast(`${LG.seasonName(st.label)} cards saved (${st.drivers.length} drivers, ${st.constructors.length} teams)`); return commit(); }
     case 'gd-delset': { const k = b.dataset.key; if (!confirm('Delete this saved card set? Its cards leave the pool, and players who own them will show a missing card (0 pts). This can\'t be undone after you publish.')) return; d.gridDraft.sets = (d.gridDraft.sets || []).filter(x => x.key !== k); return commit(); }
+    case 'acc-reload': ACA.links = null; return rerender();
+    case 'acc-approve': case 'acc-deny': case 'acc-remove': {
+      const s = window.Portal.store(d), L = (ACA.links || []).find(x => x.uid === b.dataset.uid); if (!L) return;
+      const sel = document.getElementById('acc-drv-' + L.uid), drvId = sel ? sel.value : L.driverId;
+      try {
+        if (act === 'acc-approve') {
+          const other = drvId && (ACA.links || []).find(x => x.status === 'approved' && x.driverId === drvId && x.uid !== L.uid);
+          if (other && !confirm(`${(byId(d.drivers, drvId) || {}).name} is already claimed by ${other.discordName}. Move the claim to ${L.discordName}?`)) return;
+          if (other) { await s.reviewLink(other.uid, 'approved', other.note || '', ''); other.driverId = ''; }
+          await s.reviewLink(L.uid, 'approved', '', drvId); Object.assign(L, { status: 'approved', driverId: drvId, reviewedAt: Date.now(), note: '' });
+          setDriverClaim(d, L, drvId); toast(`${L.discordName} approved${drvId ? ' — Publish to show the badge on their driver page' : ''}`);
+        } else if (act === 'acc-deny') {
+          const note = prompt(`Deny ${L.discordName}'s link? Optional note they'll see:`, ''); if (note === null) return;
+          await s.reviewLink(L.uid, 'denied', note.slice(0, 500), L.driverId); Object.assign(L, { status: 'denied', note, reviewedAt: Date.now() });
+          setDriverClaim(d, L, ''); toast('Request denied');
+        } else {
+          if (!confirm(`Remove ${L.discordName}'s Discord link? Their badge and driver claim go away (they can request again).`)) return;
+          await s.deleteLink(L.uid); ACA.links = ACA.links.filter(x => x.uid !== L.uid); setDriverClaim(d, L, ''); toast('Link removed');
+        }
+        window.Accounts.refreshApproved(); return commit();
+      } catch (x) { toast('Couldn’t update: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase.' : ''), 'err'); return; }
+    }
+    case 'ft-reloadacct': window.Fantasy.AC.docs = null; return rerender();
+    case 'ft-delacct': {
+      if (!confirm(`Remove the fantasy team “${b.dataset.name}”? This deletes it from their account and the leaderboard.`)) return;
+      try { await window.Portal.store(d).deleteFantasy(b.dataset.uid); window.Fantasy.AC.docs = null; toast('Team removed'); } catch (x) { toast('Couldn’t remove: ' + (x.code || x.message), 'err'); }
+      return rerender();
+    }
     case 'gd-resetpick': case 'gd-wipepick': {
       const sel = document.getElementById('gd-pickp'); if (!sel || !sel.value) return toast('Pick a player first', 'err');
       const p = (GDA.players || []).find(x => x.uid === sel.value); if (!p) return;

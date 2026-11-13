@@ -116,7 +116,7 @@ function ui() {
    SEASON ARCHIVES
    ========================================================= */
 const AKEY = 'league.viewSeason';
-const LIVE_ROUTES = /^(admin|fantasy|griddraft|portal|seasons|search)/;
+const LIVE_ROUTES = /^(admin|fantasy|griddraft|portal|seasons|search|account)/;
 const seasonsIndex = d => (d.seasons || []).filter(x => x && x.id && x.file).sort((a, b) => String(b.label).localeCompare(String(a.label), undefined, { numeric: true }));
 async function openArchive(d, id, go) {
   const s = seasonsIndex(d).find(x => x.id === id);

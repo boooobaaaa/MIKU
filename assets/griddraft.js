@@ -667,13 +667,17 @@ document.addEventListener('pointerout', e => { const c = e.target.closest && e.t
 
 function leaderboardPage(d, s, cards) {
   if (G.lb === null || Date.now() - G.lbAt > 20000) loadLeaderboard(d, s, true).then(() => LG.render(false));
-  const rows = G.lb;
+  const AC = window.Accounts, onlyOk = AC && AC.cfg(d).gdApproved, appr = onlyOk ? AC.approved(d) : null;
+  let rows = G.lb;
+  if (rows && onlyOk) { rows = rows.filter(r => appr && appr[r.uid]); rows.forEach((r, i) => { r.vrank = i && rows[i - 1].score === r.score ? rows[i - 1].vrank : i + 1; }); }
+  const rk = r => onlyOk ? r.vrank : r.rank;
   const me = s.user && s.user.uid;
   const chip = id => { const x = cards.byId[id]; return x ? `<span class="gd-chip r-${x.rarity}" title="${R_LABEL[x.rarity]}"><i></i>${esc(x.type === 'driver' ? x.name.split(' ').pop() : x.name)}${x.type === 'driver' ? `<small>S${x.seasonNum}</small>` : ''}</span>` : '<span class="muted">—</span>'; };
   return `<div class="page gd">${head('Grid Draft', 'Global leaderboard', 'Ranked by each player’s latest completed team.')}
     <p><a class="btn sm" href="#/griddraft">← Back to Grid Draft</a></p>
+    ${onlyOk && s.user && !(appr && appr[s.user.uid]) ? '<p class="hint">Only verified accounts appear here — <a href="#/account">link your Discord</a> to join the board.</p>' : ''}
     ${rows === null ? '<div class="loading">Loading players…</div>' : !rows.length ? emptyBox('No completed drafts yet', '<p>Be the first on the board.</p>') : `<div class="table-wrap"><table class="tbl gd-lb"><thead><tr><th>Pos</th><th>Player</th><th class="hide-sm">Driver 1 ×${D1_MULT}</th><th class="hide-sm">Driver 2</th><th class="hide-sm">Constructor</th><th class="r">Score</th></tr></thead><tbody>
-      ${rows.map(r => `<tr class="${r.rank <= 3 ? 'top' + r.rank : ''} ${r.uid === me ? 'gd-me-row' : ''} gd-lbrow" data-gd-open="${esc(r.uid)}"><td class="pos">${r.rank}</td><td><b>${esc(r.name)}</b>${r.uid === me ? ' <span class="chip">you</span>' : ''}</td><td class="hide-sm">${chip(r.team.d1)}</td><td class="hide-sm">${chip(r.team.d2)}</td><td class="hide-sm">${chip(r.team.c)}</td><td class="pts">${fmtPts(r.score)}</td></tr>
+      ${rows.map(r => `<tr class="${rk(r) <= 3 ? 'top' + rk(r) : ''} ${r.uid === me ? 'gd-me-row' : ''} gd-lbrow" data-gd-open="${esc(r.uid)}"><td class="pos">${rk(r)}</td><td><b>${esc(r.name)}</b>${AC ? AC.badge(d, r.uid) : ''}${r.uid === me ? ' <span class="chip">you</span>' : ''}</td><td class="hide-sm">${chip(r.team.d1)}</td><td class="hide-sm">${chip(r.team.d2)}</td><td class="hide-sm">${chip(r.team.c)}</td><td class="pts">${fmtPts(r.score)}</td></tr>
         ${G.open === r.uid ? `<tr class="gd-open"><td colspan="6">${teamPanel(cards, r.team)}</td></tr>` : ''}`).join('')}
     </tbody></table></div><p class="hint">Tap a player to see their team.</p>`}
   </div>`;

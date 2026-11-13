@@ -120,7 +120,7 @@ function picksAt(entry, roundIdx, order) {
   (entry.history || []).forEach(h => { const i = h.from === '' || h.from === undefined ? 0 : order.indexOf(h.from); if (i >= 0 && i <= roundIdx) cur = h.picks; });
   return cur;
 }
-function standings(d) {
+function standings(d, extra) {
   const f = cfg(d);
   const rs = LG.rounds(d).filter(r => !r.cancelled);
   const order = rs.map(r => r.id);
@@ -158,7 +158,7 @@ function standings(d) {
     return v;
   };
   done.forEach(r => A.forEach(a => scoreAsset(r.id, a.id)));
-  const table = f.entries.map(en => {
+  const table = [...f.entries, ...(extra || [])].map(en => {
     let total = 0; const per = {}; let last = 0;
     done.forEach(r => {
       const p = picksAt(en, order.indexOf(r.id), order);
@@ -180,6 +180,45 @@ function standings(d) {
   return { table, done, order, assets: A, aById, assetPts, own, f };
 }
 function teamCost(p, aById) { return [...(p.d || []), p.tp, ...(p.re || []), p.rs].filter(Boolean).reduce((s, id) => s + (aById[id] ? aById[id].price : 0), 0); }
+
+/* ---------------- teams saved to accounts (Firebase) ---------------- */
+const AC = { docs: null, loading: false, at: 0, mine: undefined, mineFor: '', mineLoading: false };
+const pstore = d => window.Portal ? window.Portal.store(d) : null;
+const acctMode = d => { const s = pstore(d); return !!(s && !s.error && s.saveFantasy); };
+function accountDocs(d) {
+  const s = pstore(d); if (!s || !s.ready || s.error || !s.allFantasy) return [];
+  if ((AC.docs === null || Date.now() - AC.at > 30000) && !AC.loading) {
+    AC.loading = true;
+    s.allFantasy().then(x => { AC.docs = x; }).catch(() => { AC.docs = AC.docs || []; }).finally(() => { AC.loading = false; AC.at = Date.now(); LG.render(false); });
+  }
+  return AC.docs || [];
+}
+const toEntry = (d, x) => ({ id: 'u:' + x.uid, uid: x.uid, manager: x.manager, team: x.name, saved: x.history.length, history: (x.history || []).map(h => ({ from: effectiveRoundFor(d, h.at), picks: h.picks, at: h.at })) });
+function accountEntries(d, all) {
+  const A = window.Accounts, needs = !all && A && A.cfg(d).fantasyApproved, appr = needs ? A.approved(d) : null;
+  return accountDocs(d).filter(x => !needs || (appr && appr[x.uid])).map(x => toEntry(d, x));
+}
+function accountRow(d, uid) {
+  const S = standings(d, accountEntries(d));
+  const r = S.table.find(x => x.entry.uid === uid);
+  if (r) return r;
+  const doc = accountDocs(d).find(x => x.uid === uid); if (!doc) return null;
+  const only = standings(d, [toEntry(d, doc)]).table.find(x => x.entry.uid === uid);
+  if (only) only.rank = null;
+  return only;
+}
+function loadMine(s) {
+  if (!s.user) { AC.mine = undefined; AC.mineFor = ''; return; }
+  if (AC.mineFor === s.user.uid || AC.mineLoading) return;
+  AC.mineLoading = true;
+  s.myFantasy().then(x => {
+    AC.mine = x; AC.mineFor = s.user.uid;
+    const t = myTeam(), last = x && x.history.length ? x.history[x.history.length - 1].picks : null;
+    if (last && !(t.picks.d || []).filter(Boolean).length && !t.picks.tp) { saveMy({ manager: x.manager, name: x.name, discord: t.discord || '', picks: Object.assign({ d: [], c: '', tp: '', re: [], rs: '' }, JSON.parse(JSON.stringify(last))) }); }
+  }).catch(() => { AC.mine = null; AC.mineFor = s.user.uid; }).finally(() => { AC.mineLoading = false; LG.render(false); });
+}
+const normPicks = p => ({ d: (p.d || []).filter(Boolean), c: p.c || '', tp: p.tp || '', re: (p.re || []).filter(Boolean), rs: p.rs || '' });
+const samePicks = (a, b) => JSON.stringify(normPicks(a || {})) === JSON.stringify(normPicks(b || {}));
 
 /* ---------------- deadlines ---------------- */
 function nextLock(d) {
@@ -247,6 +286,7 @@ function builder(d, S) {
   const v = validate(d, Object.assign({}, p, { d: (p.d || []).filter(Boolean), re: (p.re || []).filter(Boolean) }));
   const lock = nextLock(d);
   const existing = f.entries.find(e => slug(e.manager) === slug(me.manager) && me.manager);
+  const acct = acctMode(d);
   const kindFor = slot => slot.startsWith('d') ? 'driver' : slot === 'tp' ? 'principal' : slot.startsWith('re') ? 'engineer' : 'reserve';
   let market = '';
   if (PICKER) {
@@ -269,7 +309,7 @@ function builder(d, S) {
     <div class="ft-budget card">
       <div class="ft-bud-top"><div><span class="ft-lbl">Budget remaining</span><b class="mono ${left < 0 ? 'neg' : ''}">${money(left)}</b></div><div style="text-align:right"><span class="ft-lbl">Team value</span><b class="mono">${money(cost)}</b></div></div>
       <div class="ft-bud-bar"><i style="width:${Math.min(100, cost / Number(f.budget) * 100)}%"></i></div>
-      ${lock ? `<p class="ft-lock">🔒 Picks lock at <b>R${esc(lock.round)} ${esc(lock.name)}</b> — ${esc(fmtDate(lock.start, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}. Codes sent after that count from the next round.</p>` : ''}
+      ${lock ? `<p class="ft-lock">🔒 Picks lock at <b>R${esc(lock.round)} ${esc(lock.name)}</b> — ${esc(fmtDate(lock.start, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}. ${acct ? 'Changes saved after that count from the next round.' : 'Codes sent after that count from the next round.'}</p>` : ''}
     </div>
     <div class="ft-slots">
       <div class="ft-group"><h4>Main drivers <small>tap ★ to make captain (${esc(f.captainMult)}× points)</small></h4><div class="ft-row2">
@@ -279,7 +319,7 @@ function builder(d, S) {
       <div class="ft-group"><h4>Reserve driver <small>optional · scores when they race</small></h4><div class="ft-row1">${slotCard(d, A[p.rs], 'rs', 'Reserve')}</div></div>
     </div>
     ${market}
-    <div class="ft-submit card">
+    ${acct ? acctSubmit(d, S, v) : `<div class="ft-submit card">
       <h3>Enter the league</h3>
       <div class="pform">
         <label class="fld"><span>Your name or nickname</span><input id="ft-m" type="text" value="${esc(me.manager)}" placeholder="Name or nickname"></label>
@@ -290,12 +330,37 @@ function builder(d, S) {
       <div class="toolbar" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="btn primary" data-ft="code" ${v.ok ? '' : 'disabled'}>Get my entry code</button>${f.submitUrl || (d.league.links || {}).discord ? `<a class="btn" href="${esc(f.submitUrl || d.league.links.discord)}" target="_blank" rel="noopener">Open Discord ↗</a>` : ''}<button class="btn ghost" data-ft="reset">Clear team</button></div>
       <div id="ft-code" hidden><p class="hint">Copied! Paste this whole code in the fantasy channel on Discord — an admin adds it to the leaderboard.</p><textarea readonly rows="3" class="ft-codebox"></textarea></div>
       ${existing ? `<p class="hint">You're on the leaderboard as <b>${esc(existing.team || existing.manager)}</b>. Sending a new code replaces your picks from the next round.</p>` : ''}
+    </div>`}
+  </div>`;
+}
+function acctSubmit(d, S, v) {
+  const s = pstore(d);
+  if (!s.ready) return '<div class="ft-submit card"><p class="muted">Connecting…</p></div>';
+  if (!s.user) return `<div class="ft-submit card"><h3>Enter the league</h3><p>Sign in to save this team to your account. It's scored automatically after every race — no codes to send.</p><button class="btn primary" data-ft="signin">Sign in with Google</button><p class="hint">Only your manager and team names are shown — never your email.</p></div>`;
+  loadMine(s);
+  if (AC.mineFor !== s.user.uid) return '<div class="ft-submit card"><p class="muted">Loading your saved team…</p></div>';
+  const mine = AC.mine, me = myTeam();
+  const last = mine && mine.history.length ? mine.history[mine.history.length - 1] : null;
+  const cur = normPicks(me.picks), changed = !last || !samePicks(last.picks, cur);
+  const fromId = last ? effectiveRoundFor(d, last.at) : '', fromR = LG.rounds(d).find(r => r.id === fromId);
+  const A = window.Accounts, needs = A && A.cfg(d).fantasyApproved, ok = A && A.isApproved(d, s.user.uid);
+  const man = me.manager || (mine && mine.manager) || String(s.user.displayName || '').split(' ')[0], tn = me.name || (mine && mine.name) || '';
+  return `<div class="ft-submit card">
+    <h3>${mine ? 'Your saved team' : 'Enter the league'}</h3>
+    <div class="pform">
+      <label class="fld"><span>Manager name (shown on the leaderboard)</span><input id="ft-m" type="text" maxlength="40" value="${esc(man)}" placeholder="Name or nickname"></label>
+      <label class="fld"><span>Fantasy team name</span><input id="ft-t" type="text" maxlength="40" value="${esc(tn)}" placeholder="e.g. Leek Speed Racing"></label>
     </div>
+    ${v.ok ? (changed ? `<p class="ok-note" style="margin:14px 0 0">✓ Team is valid${last ? ' — you have unsaved changes.' : '.'}</p>` : '') : `<p class="warn" style="margin:14px 0 0">To finish: ${esc(v.errs.join(' · '))}</p>`}
+    ${last && !changed ? `<p class="ok-note ft-saved" style="margin:14px 0 0">✓ Saved to your account${fromR ? ` · these picks count from <b>R${esc(fromR.round)} ${esc(fromR.name)}</b>` : fromId === '__after__' ? ' · the season is over' : ''}.</p>` : ''}
+    <div class="toolbar" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="btn primary" data-ft="save" ${v.ok ? '' : 'disabled'}>${last ? (changed ? 'Save changes' : 'Save names') : 'Save my team'}</button><button class="btn ghost" data-ft="reset">Clear picks</button></div>
+    ${needs && !ok ? `<p class="hint ft-needlink">🔗 Your team shows on the leaderboard once your Discord is linked and approved — <a href="#/account">link it in My account</a>.</p>` : ''}
+    ${mine && mine.history.length > 1 ? `<p class="hint">${mine.history.length} saves so far. Each change counts from the next race that hasn't started.</p>` : ''}
   </div>`;
 }
 
 function leaderboard(d, S) {
-  if (!S.table.length) return emptyBox('No teams yet', '<p>Be the first — build your team in <b>My team</b> and send your entry code.</p>');
+  if (!S.table.length) return emptyBox('No teams yet', `<p>Be the first — build your team in <b>My team</b>${acctMode(d) ? ' and save it' : ' and send your entry code'}.</p>`);
   const open = PICKER && PICKER.startsWith('lb:') ? PICKER.slice(3) : '';
   return `<div class="table-wrap"><table class="tbl ft-lb"><thead><tr><th>Rank</th><th>Team</th><th class="hide-sm">Manager</th><th class="r hide-sm">Last rd</th><th class="r hide-sm">Value</th><th class="r">Pts</th></tr></thead><tbody>
     ${S.table.map(x => {
@@ -303,7 +368,7 @@ function leaderboard(d, S) {
       const det = open === x.entry.id ? `<tr class="ft-det"><td colspan="6"><div class="ft-det-in">
         ${[...(p.d || []).map(id => [id, id === p.c ? 'Captain' : 'Driver']), [p.tp, 'Principal'], ...(p.re || []).map(id => [id, 'Engineer']), [p.rs, 'Reserve']].filter(([id]) => id).map(([id, r]) => { const a = S.aById[id]; return `<span class="ft-chip" style="--tc:${esc(teamColor(a && a.team))}">${assetFace(a)}<span><small>${r}</small>${esc(a ? a.name : 'Unavailable')}</span><b class="mono">${fmtPts((S.assetPts[id] || {}).total || 0)}</b>${(() => { const mm = (S.assetPts[id] || {}).mult || {}; const last = S.done.slice().reverse().find(r => mm[r.id]); return last ? `<em class="ft-x" title="Last race: ${esc(mm[last.id].why)}">${fmtX(mm[last.id].x)}</em>` : ''; })()}</span>`; }).join('')}
         <div class="ft-per">${S.done.map(r => `<span title="${esc(r.name)}"><small>R${esc(r.round)}</small><b class="mono">${x.per[r.id] === null ? '–' : fmtPts(x.per[r.id])}</b></span>`).join('')}</div></div></td></tr>` : '';
-      return `<tr class="${x.rank <= 3 ? 'top' + x.rank : ''} ft-lbrow" data-ft-open="${esc(x.entry.id)}"><td class="pos">${x.rank}</td><td><b>${esc(x.entry.team || 'Unnamed team')}</b><small class="muted ft-sm-m"> · ${esc(x.entry.manager || '')}</small></td><td class="hide-sm muted">${esc(x.entry.manager || '')}</td><td class="r mono hide-sm">${fmtPts(x.last)}</td><td class="r mono hide-sm">${money(x.value)}</td><td class="pts">${fmtPts(x.total)}</td></tr>${det}`;
+      return `<tr class="${x.rank <= 3 ? 'top' + x.rank : ''} ft-lbrow" data-ft-open="${esc(x.entry.id)}"><td class="pos">${x.rank}</td><td><b>${esc(x.entry.team || 'Unnamed team')}</b>${x.entry.uid && window.Accounts ? window.Accounts.badge(d, x.entry.uid) : ''}<small class="muted ft-sm-m"> · ${esc(x.entry.manager || '')}</small></td><td class="hide-sm muted">${esc(x.entry.manager || '')}</td><td class="r mono hide-sm">${fmtPts(x.last)}</td><td class="r mono hide-sm">${money(x.value)}</td><td class="pts">${fmtPts(x.total)}</td></tr>${det}`;
     }).join('')}</tbody></table></div><p class="hint" style="margin-top:10px">Tap a team to see its picks and round-by-round score.</p>`;
 }
 
@@ -354,10 +419,11 @@ let TAB = null;
 function page(d, tab) {
   const f = cfg(d);
   if (!f.enabled) return `<div class="page">${head('Fantasy', 'Fantasy league', '')}${emptyBox('Fantasy is coming soon', '<p>Check back once the admins open the market.</p>')}</div>`;
-  const S = standings(d);
+  const S = standings(d, accountEntries(d));
   tab = ['leaderboard', 'team', 'market', 'scoring'].includes(tab) ? tab : (TAB || 'leaderboard');
   TAB = tab;
-  const me = myTeam(), mine = S.table.find(x => me.manager && slug(x.entry.manager) === slug(me.manager));
+  const ps = pstore(d), uid = ps && ps.user ? ps.user.uid : '';
+  const me = myTeam(), mine = (uid && S.table.find(x => x.entry.uid === uid)) || (!acctMode(d) && S.table.find(x => me.manager && slug(x.entry.manager) === slug(me.manager)));
   const tabs = [['leaderboard', 'Leaderboard'], ['team', 'My team'], ['market', 'Driver market'], ['scoring', 'Scoring']];
   const lock = nextLock(d);
   return `<div class="page ft">
@@ -395,6 +461,20 @@ document.addEventListener('click', e => {
   if (act) {
     const k = act.dataset.ft;
     if (k === 'close') { PICKER = null; return rerender(); }
+    if (k === 'signin') { const s = pstore(d); if (s) s.signIn().catch(x => toast('Sign-in failed: ' + (x.code || x.message), 'err')); return; }
+    if (k === 'save') {
+      const s = pstore(d); if (!s || !s.user) return;
+      const t = myTeam(); t.manager = document.getElementById('ft-m').value.trim().slice(0, 40); t.name = document.getElementById('ft-t').value.trim().slice(0, 40);
+      if (!t.manager || !t.name) return toast('Add a manager name and a team name first', 'err');
+      saveMy(t);
+      const p = normPicks(t.picks), v = validate(d, p); if (!v.ok) return toast('Team not valid: ' + v.errs.join(', '), 'err');
+      const last = AC.mine && AC.mine.history.length ? AC.mine.history[AC.mine.history.length - 1] : null;
+      act.disabled = true;
+      s.saveFantasy({ name: t.name, manager: t.manager, picks: p }, !last || !samePicks(last.picks, p))
+        .then(async () => { AC.mine = await s.myFantasy(); AC.docs = null; const l = AC.mine.history[AC.mine.history.length - 1], r = LG.rounds(d).find(x => x.id === effectiveRoundFor(d, l.at)); toast(r ? `Saved! Your picks count from R${r.round} ${r.name}.` : 'Saved!'); rerender(); })
+        .catch(x => { act.disabled = false; toast('Couldn’t save: ' + (x.code || x.message) + (/permission/i.test(x.code || x.message) ? ' — the league admin may need to update the Firebase rules.' : ''), 'err'); });
+      return;
+    }
     if (k === 'reset') { if (confirm('Clear your fantasy team in this browser?')) { saveMy({ manager: '', name: '', discord: '', picks: { d: [], c: '', tp: '', re: [], rs: '' } }); rerender(); } return; }
     if (k === 'code') {
       const t = myTeam(); t.manager = document.getElementById('ft-m').value.trim(); t.name = document.getElementById('ft-t').value.trim(); t.discord = document.getElementById('ft-dc').value.trim();
@@ -410,8 +490,9 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   if (!['ft-m', 'ft-t', 'ft-dc'].includes(e.target.id)) return;
-  const t = myTeam(); t.manager = document.getElementById('ft-m').value; t.name = document.getElementById('ft-t').value; t.discord = document.getElementById('ft-dc').value; saveMy(t);
+  const t = myTeam(), v = id => { const el = document.getElementById(id); return el ? el.value : null; };
+  if (v('ft-m') !== null) t.manager = v('ft-m'); if (v('ft-t') !== null) t.name = v('ft-t'); if (v('ft-dc') !== null) t.discord = v('ft-dc'); saveMy(t);
 });
 
-window.Fantasy = { page, standings, fmtX, assets, cfg, readCodes, validate, effectiveRoundFor, money, DEFAULTS, KIND_LABEL, slug };
+window.Fantasy = { page, standings, accountEntries, accountRow, accountDocs, teamCost, AC, fmtX, assets, cfg, readCodes, validate, effectiveRoundFor, money, DEFAULTS, KIND_LABEL, slug };
 })();
