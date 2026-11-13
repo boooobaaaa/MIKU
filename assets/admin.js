@@ -24,7 +24,7 @@ const SECTIONS = [
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
   ['stewards', 'KIRA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['applications', 'Applications', '✍'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['publish', 'Publish & backup', '⇪']
 ];
-const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS'];
+const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS', 'NS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
 const IMG_SPECS = {
   logo: { w: 512, h: 512, fmt: 'square PNG, transparent background', note: 'shown whole inside a rounded square, so leave a little empty space around the artwork' },
@@ -223,6 +223,7 @@ function secDrivers(d) {
         ${F.text('Gamertag / PSN / Steam', p + '.gamertag', x.gamertag)}
         ${F.num('Fantasy value (millions)', p + '.fantasyValue', x.fantasyValue, 'placeholder="auto"')}
         ${F.check('Active on the grid', p + '.active', x.active !== false)}
+        ${F.check('Reserve driver (shows under Reserves, not a race seat)', p + '.reserve', !!x.reserve, 'data-reload')}
         ${F.image('Driver photo (driver cards, team page & profile)', p + '.photo', x.photo, 'drivers', 1400, 'driverPhoto')}
         ${F.image('Headshot for the small circles (optional — the photo is used if empty)', p + '.headshot', x.headshot, 'drivers', 500, 'headshot')}
         ${F.area('Biography — shown on their profile (# headings, **bold**, - lists, [links](https://…))', p + '.bio', x.bio)}
@@ -389,7 +390,7 @@ function secResults(d) {
   }).join('');
 
   const sessions = [['race', 'Race'], ['sprint', 'Sprint'], ...(r.sprint || ((d.results[r.id] || {}).sprintQuali || []).length || sess === 'sprintQuali' ? [['sprintQuali', 'Sprint Qualifying']] : []), ['quali', 'Qualifying']];
-  return head('Results', 'Put drivers in finishing order (top = winner). Set DNF/DSQ/DNS for non-finishers — they score nothing and drop to the bottom automatically. Points are calculated from your scoring system; type a number in <b>Override</b> only for special cases.') + `
+  return head('Results', 'Put drivers in finishing order (top = winner). Set DNF/DSQ/DNS/NS (no show) for non-finishers — they score nothing and drop to the bottom automatically. Points are calculated from your scoring system; type a number in <b>Override</b> only for special cases.') + `
     <div class="a-card">
       <div class="toolbar" style="justify-content:space-between">
         <label class="fld" style="min-width:260px"><span>Round</span><select data-ctl="round">${rs.map(x => opt(x.id, `R${x.round} · ${x.name}${LG.isDone(d, x) ? ' ✓' : ''}`, r.id)).join('')}</select></label>
@@ -405,6 +406,7 @@ function secResults(d) {
       <div class="toolbar" style="margin-top:16px">
         ${avail.length ? `<select id="add-entry-sel" style="max-width:260px">${avail.map(x => opt(x.id, `${x.name}${x.active === false ? ' (inactive)' : ''}`, '')).join('')}</select><button class="btn sm" data-act="add-entry">+ Add driver</button>` : ''}
         <button class="btn sm" data-act="fill-all">Add all active drivers</button>
+        <button class="btn sm" data-act="ns-rest" title="Adds every active race driver who isn't in this session yet, marked NS (no show)">NS rest of grid</button>
         ${!isQ && list.length ? '<button class="btn sm" data-act="fl-auto" title="Ticks FL for the quickest best lap">⏱ Set fastest lap from best laps</button>' : ''}
         ${sess === 'race' && ((d.results[r.id] || {}).quali || []).length ? '<button class="btn sm" data-act="copy-quali" data-from="quali">Copy qualifying order</button>' : ''}${sess === 'sprint' && ((d.results[r.id] || {}).sprintQuali || []).length ? '<button class="btn sm" data-act="copy-quali" data-from="sprintQuali">Copy sprint qualifying order</button>' : ''}${sess === 'sprint' && !((d.results[r.id] || {}).sprintQuali || []).length && ((d.results[r.id] || {}).quali || []).length ? '<button class="btn sm" data-act="copy-quali" data-from="quali">Copy qualifying order</button>' : ''}
         ${list.length ? '<button class="btn sm danger" data-act="clear-session">Clear session</button>' : ''}
@@ -821,6 +823,7 @@ function secSeasons(d) {
   const n = parseInt(d.league.season, 10), nextGuess = !isNaN(n) && String(n) === String(d.league.season).trim() ? String(n + 1) : '';
   return head('Seasons', 'Every archived season keeps its full calendar, results, standings, drivers, teams and race control decisions. Visitors browse them from <b>More → Seasons</b>.', '<a class="btn" href="#/seasons">View Seasons page</a>') + `
     <div class="a-card"><h3>Current season · ${esc(d.league.season)}</h3>
+      <div class="fgrid">${F.text('Season name', 'league.season', d.league.season, 'data-reload placeholder="e.g. 2026 or Season 1"')}</div>
       <p class="muted" style="margin:-4px 0 14px">${done}/${total} rounds completed${saved ? ` · a copy was saved ${saved.savedAt ? LG.fmtDate(saved.savedAt) : ''}` : ''}</p>
       <div class="toolbar"><button class="btn sm" data-act="sea-save">💾 Save a full copy now</button></div>
       <p class="hint">Saves the season as it stands (doesn't clear anything). Handy after the final race, or as a checkpoint. Saving again replaces the earlier copy.</p>
@@ -832,7 +835,7 @@ function secSeasons(d) {
       <p class="hint">Needs your GitHub connection (Publish & backup) to save the archive file. Nothing goes live until you press Publish.</p>
     </div>
     <div class="a-card"><h3>Archived seasons (${list.length})</h3>
-      ${list.length ? list.map(s => `<div class="sea-row"><b class="mono">${esc(s.label)}</b><span class="muted">${s.champion ? '🏆 ' + esc(s.champion) + ' · ' : ''}${s.rounds || 0} rounds · saved ${s.savedAt ? LG.fmtDate(s.savedAt) : ''}</span><a class="btn xs" href="#/seasons/view/${esc(s.id)}">View</a><button class="btn xs danger" data-act="sea-rm" data-id="${esc(s.id)}">Remove</button></div>`).join('') : '<p class="muted">None yet.</p>'}
+      ${list.length ? list.map(s => `<div class="sea-row"><input class="sea-name" data-sea-rename="${esc(s.id)}" value="${esc(s.label)}" title="Rename this season" autocomplete="off"><span class="muted">${s.champion ? '🏆 ' + esc(s.champion) + ' · ' : ''}${s.rounds || 0} rounds · saved ${s.savedAt ? LG.fmtDate(s.savedAt) : ''}</span><a class="btn xs" href="#/seasons/view/${esc(s.id)}">View</a><button class="btn xs danger" data-act="sea-rm" data-id="${esc(s.id)}">Remove</button></div>`).join('') : '<p class="muted">None yet.</p>'}
       <div class="toolbar" style="margin-top:14px"><label class="btn sm">⬆ Add a past season from a backup file<input type="file" accept=".json,application/json" data-ctl="sea-import" hidden></label></div>
       <p class="hint">Got an old <code>league-….json</code> backup (from "Download" or an earlier "Start a new season")? Import it here to make that season browsable.</p>
     </div>`;
@@ -1114,7 +1117,7 @@ function secHistory(d) {
   const items = d.history.map((h, i) => {
     const key = 'hist-' + h.id, p = `history.${i}`;
     return `<details class="item" data-key="${key}" ${A.open[key] ? 'open' : ''}>
-      <summary><b class="mono" style="min-width:60px">${esc(h.season || '????')}</b><span class="swatch" style="--tc:${esc(h.driverColor || '#39c5bb')}"></span><b>${esc(h.driverChampion || 'No champion set')}</b><span class="muted" style="font-size:13px">${esc(h.teamChampion || '')}</span>${h.standings ? '<span class="chip">full standings</span>' : ''}</summary>
+      <summary><b class="mono" style="min-width:60px">${esc(h.season || '????')}</b>${h.hidden ? '<span class="chip">Hidden</span>' : ''}<span class="swatch" style="--tc:${esc(h.driverColor || '#39c5bb')}"></span><b>${esc(h.driverChampion || 'No champion set')}</b><span class="muted" style="font-size:13px">${esc(h.teamChampion || '')}</span>${h.standings ? '<span class="chip">full standings</span>' : ''}</summary>
       <div class="body"><div class="fgrid">
         ${F.text('Season', p + '.season', h.season, 'data-reload')}
         ${F.text("Drivers' champion", p + '.driverChampion', h.driverChampion, 'data-reload')}
@@ -1125,12 +1128,13 @@ function secHistory(d) {
         ${F.num('Team points', p + '.teamPoints', h.teamPoints)}
         ${F.color('Team colour', p + '.teamColor', h.teamColor)}
         ${F.area('Notes (season story, records, shout-outs)', p + '.notes', h.notes)}
+        ${F.check('Hide this season from the Hall of Fame', p + '.hidden', !!h.hidden)}
       </div><div class="item-actions">${h.standings ? `<a class="btn sm ghost" href="#/history/${esc(h.id)}">View final standings</a><button class="btn sm" data-act="drop-snapshot" data-i="${i}">Remove standings snapshot</button>` : ''}<button class="btn sm danger" data-act="del-hist" data-i="${i}">Delete season</button></div></div>
     </details>`;
   }).join('');
   return head('Hall of fame', 'Past champions. "Start a new season" archives automatically; you can also archive now or type in seasons from before this website existed.',
     `<button class="btn" data-act="add-hist">+ Add past season</button><button class="btn primary" data-act="archive-now">♛ Archive season ${esc(d.league.season)} now</button>`) +
-    `<div class="a-card"><h3>Hall of Fame look</h3><div class="fgrid">${F.select('Page style', 'theme.hofStyle', (d.theme || {}).hofStyle || 'sakura', [['sakura', '🌸 Sakura night (cherry blossoms)'], ['classic', '🏆 Classic gold']])}</div></div>
+    `<div class="a-card"><h3>Hall of Fame look</h3><div class="fgrid">${F.select('Page style', 'theme.hofStyle', (d.theme || {}).hofStyle || 'sakura', [['sakura', '🌸 Sakura night (cherry blossoms)'], ['classic', '🏆 Classic gold']])}${F.check(`Show the current season's leader (Season ${esc(d.league.season)}) before it's archived`, 'theme.hofCurrent', (d.theme || {}).hofCurrent !== false)}</div></div>
     <div class="a-card">${items || '<p class="muted">No seasons archived yet.</p>'}</div>
     <p class="hint">"Archive now" saves a snapshot of the current final standings and race winners without clearing anything — handy right after the last race.</p>`;
 }
@@ -1303,6 +1307,13 @@ document.addEventListener('click', async e => {
       if (best < 0) return toast('Type some best lap times first (e.g. 1:31.456)', 'err');
       L.forEach((e, k) => { e.fastestLap = k === best; });
       toast(`Fastest lap: ${(byId(d.drivers, L[best].driverId) || {}).name || 'driver'} · ${L[best].bestLap}`); return commit();
+    }
+    case 'ns-rest': {
+      const L = sessList(), have = new Set(L.map(e => e.driverId));
+      const add = d.drivers.filter(x => x.active !== false && !x.reserve && !have.has(x.id));
+      if (!add.length) return toast('Every active driver is already in this session');
+      add.forEach(x => L.push({ driverId: x.id, teamId: x.teamId || '', status: 'NS', time: '', laps: '' }));
+      toast(`${add.length} driver${add.length === 1 ? '' : 's'} marked NS (no show)`); return commit();
     }
     case 'clear-session': if (confirm('Remove every entry from this session?')) { d.results[A.roundId][A.session] = []; commit(); } return;
     case 'move': { const l = sessList(), j = i + Number(b.dataset.dir); if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; return commit(); }
@@ -1935,6 +1946,15 @@ document.addEventListener('input', e => {
   const none = document.querySelector('#drv-list .drv-none'); if (none) none.hidden = n > 0;
 });
 document.addEventListener('change', e => {
+  if (e.target.dataset && e.target.dataset.seaRename) {
+    const d = D(), s = (d.seasons || []).find(x => x.id === e.target.dataset.seaRename), v = e.target.value.trim();
+    if (s && v && v !== s.label) {
+      const old = s.label; s.label = v;
+      (d.history || []).forEach(h => { if (String(h.season) === String(old)) h.season = v; });
+      LG.saveDraft(); toast(`Renamed to "${v}" — Publish to update the site`); return rerender();
+    }
+    return;
+  }
   if (e.target.id === 'drv-team') { ADS.team = e.target.value; saveADS(); return rerender(); }
   if (e.target.id === 'drv-show') { ADS.show = e.target.value; saveADS(); return rerender(); }
   if (e.target.id === 'ap-form-filter') { APA.form = e.target.value; return rerender(); }

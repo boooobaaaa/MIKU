@@ -2239,3 +2239,8 @@ input.fl-time { border-color: #b46cff !important; color: #c79bff; }
 .fl-banner .fl-ic { font-size: 20px; }
 .fl-banner .fl-lbl { font: 700 11px var(--f-head); letter-spacing: .18em; text-transform: uppercase; color: #c79bff; }
 .fl-banner .fl-time { margin-left: auto; font-size: 20px; font-weight: 700; color: #c79bff; }
+
+/* tyre chips always sit under the box */
+.rtable td.c-ty .ty-prev { display: flex; margin: 4px 0 0; flex-wrap: wrap; }
+.rtable td.c-ty .ty-prev:empty { display: none; }
+.rtable td.c-ty input { width: 100%; min-width: 92px; }

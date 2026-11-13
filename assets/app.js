@@ -478,7 +478,7 @@ function computeStandings(d) {
         if (tr) { const tt = tr.rounds[r.id] || (tr.rounds[r.id] = { pts: 0 }); tt.pts += e.pts; }
         if (type === 'race') {
           if (e.teamId) dr.lastTeam = e.teamId;
-          if (e.status !== 'DNS') dr.starts++;
+          if (e.status !== 'DNS' && e.status !== 'NS') dr.starts++;
           if (e.status === 'DNF') dr.dnfs++;
           if (e.fastestLap) dr.fls++;
           if (e.pos) {
@@ -821,7 +821,7 @@ function pageStandings(d, view) {
       </tbody></table></div>` : empty('No drivers yet');
   } else if (view === 'teams') {
     body = st.teams.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Team</th><th class="hide-sm">Drivers</th><th class="r hide-sm">Wins</th><th class="r hide-sm">Podiums</th><th class="r">Pts</th></tr></thead><tbody>
-      ${st.teams.map(x => { const t = teamLabel(d, x.id); const drs = d.drivers.filter(p => p.teamId === x.id && p.active !== false).map(p => esc(p.name.split(' ').pop())).join(' / '); return `<tr class="${x.position <= 3 ? 'top' + x.position : ''}"><td class="pos">${x.position}</td><td><a href="#/team/${esc(x.id)}">${teamCell(t)}</a>${x.adj ? `<span class="adj-note">(${x.adj > 0 ? '+' : ''}${fmtPts(x.adj)})</span>` : ''}</td><td class="muted hide-sm">${drs}</td><td class="r mono hide-sm">${x.wins}</td><td class="r mono hide-sm">${x.podiums}</td><td class="pts">${fmtPts(x.points)}</td></tr>`; }).join('')}
+      ${st.teams.map(x => { const t = teamLabel(d, x.id); const drs = d.drivers.filter(p => p.teamId === x.id && p.active !== false && !p.reserve).map(p => esc(p.name.split(' ').pop())).join(' / '); return `<tr class="${x.position <= 3 ? 'top' + x.position : ''}"><td class="pos">${x.position}</td><td><a href="#/team/${esc(x.id)}">${teamCell(t)}</a>${x.adj ? `<span class="adj-note">(${x.adj > 0 ? '+' : ''}${fmtPts(x.adj)})</span>` : ''}</td><td class="muted hide-sm">${drs}</td><td class="r mono hide-sm">${x.wins}</td><td class="r mono hide-sm">${x.podiums}</td><td class="pts">${fmtPts(x.points)}</td></tr>`; }).join('')}
       </tbody></table></div>` : empty('No teams yet');
   } else if (view === 'progress') {
     body = progressChart(d, st);
@@ -858,23 +858,25 @@ function pageDrivers(d) {
   const sorter = sortBy === 'number' ? (a, b) => num(a) - num(b) || lastName(a).localeCompare(lastName(b))
     : sortBy === 'name' ? (a, b) => lastName(a).localeCompare(lastName(b)) || String(a.name).localeCompare(String(b.name))
     : custom ? null : (a, b) => ((st.D[a.id] || {}).position || 999) - ((st.D[b.id] || {}).position || 999);
-  const active = d.drivers.filter(x => x.active !== false); if (sorter) active.sort(sorter);
+  const active = d.drivers.filter(x => x.active !== false && !x.reserve); if (sorter) active.sort(sorter);
+  const reserves = d.drivers.filter(x => x.active !== false && x.reserve); if (sortBy !== 'default') reserves.sort(sorter);
   const former = d.drivers.filter(x => x.active === false); if (sortBy !== 'default') former.sort(sorter);
   const sortBar = `<div class="tabs drv-sort" role="group" aria-label="Sort drivers">${[['default', custom ? 'Default' : 'Championship'], ['number', 'Number'], ['name', 'Last name']].map(([k, l]) => `<button data-drv-sort="${k}" class="${sortBy === k ? 'active' : ''}">${l}</button>`).join('')}</div>`;
   const card = drv => {
     const s = st.D[drv.id] || { points: 0 }, t = driverTeam(d, drv, s);
     return `<a class="driver-card${drv.photo ? ' has-photo' : ''}" href="#/driver/${esc(drv.id)}" style="--tc:${esc(teamColor(t))}">
-      <div class="dc-pos">${s.position ? 'P' + s.position + ' in championship' : 'Driver'}</div>
+      <div class="dc-pos">${drv.reserve && drv.active !== false ? `Reserve${t ? ' · ' + esc(t.name) : ''}` : s.position ? 'P' + s.position + ' in championship' : 'Driver'}</div>
       <div class="dc-pts"><b>${fmtPts(s.points)}</b><span>PTS</span></div>
       ${drv.photo ? `<img class="dc-photo" src="${esc(asset(drv.photo))}" alt="" loading="lazy" onerror="this.remove()">` : `<div class="dc-num">${esc(drv.number ?? '')}</div>`}
       <div class="dc-name">${nameHTML(drv.name)}</div>
-      <div class="dc-team">${flag(drv.country)} <span>${esc(t ? t.name : 'Free agent')}</span></div>
+      <div class="dc-team">${flag(drv.country)} <span>${esc(t ? t.name : drv.reserve ? 'League reserve' : 'Free agent')}</span></div>
     </a>`;
   };
   return `<div class="page">${head('Season ' + d.league.season, 'Drivers', `${active.length} drivers on the grid.`)}
     ${active.length > 1 ? `<div class="drv-sortbar"><span class="muted">Sort by</span>${sortBar}</div>` : ''}
     ${active.length ? `<div class="driver-grid">${active.map(card).join('')}</div>` : empty('No drivers yet', '<p>Add drivers from the admin console.</p>')}
-    ${former.length ? `<section><div class="section-title"><h2>Former / reserve drivers</h2></div><div class="driver-grid">${former.map(card).join('')}</div></section>` : ''}
+    ${reserves.length ? `<section><div class="section-title"><h2>Reserves</h2><span class="muted">${reserves.length} reserve driver${reserves.length === 1 ? '' : 's'}</span></div><div class="driver-grid">${reserves.map(card).join('')}</div></section>` : ''}
+    ${former.length ? `<section><div class="section-title"><h2>Retired</h2></div><div class="driver-grid">${former.map(card).join('')}</div></section>` : ''}
   </div>`;
 }
 
@@ -972,7 +974,7 @@ function pageTeams(d) {
   const list = [...d.teams]; if ((d.theme || {}).listOrder !== 'custom') list.sort((a, b) => ((st.T[a.id] || {}).position || 999) - ((st.T[b.id] || {}).position || 999));
   const cards = list.map(t => {
     const s = st.T[t.id] || { points: 0 };
-    const drs = d.drivers.filter(x => x.teamId === t.id && x.active !== false);
+    const drs = d.drivers.filter(x => x.teamId === t.id && x.active !== false && !x.reserve);
     return `<a class="team-card" href="#/team/${esc(t.id)}" style="--tc:${esc(teamColor(t))}">
       <div class="tc-head"><div><div class="tc-pos">${s.position ? 'P' + s.position : 'Team'}</div><h3>${esc(t.name)}</h3><div class="muted" style="font-size:14px">${esc(t.car || t.base || '')}</div></div>
       <div style="display:flex;gap:12px;align-items:center">${t.logo ? `<img class="tc-logo" src="${esc(asset(t.logo))}" alt="" onerror="this.remove()">` : ''}<div class="tc-pts"><b>${fmtPts(s.points)}</b><span>PTS</span></div></div></div>
@@ -1166,7 +1168,7 @@ function staffCard(d, x, role, T) {
 }
 function teamLineup(d, T, st) {
   const S2 = T.staff || {};
-  const drs = d.drivers.filter(p => p.teamId === T.id && p.active !== false);
+  const drs = d.drivers.filter(p => p.teamId === T.id && p.active !== false && !p.reserve);
   const named = x => x && (x.name || x.driverId);
   const people = [];
   if (named(S2.exec)) people.push([S2.exec, (S2.exec.title || 'Executive officer')]);
@@ -1175,7 +1177,8 @@ function teamLineup(d, T, st) {
   (S2.race || []).filter(named).forEach(x => people.push([x, 'Race engineer']));
   (S2.perf || []).filter(named).forEach(x => people.push([x, 'Performance engineer']));
   const resolve = x => { const r = x.driverId ? byId(d.drivers, x.driverId) : null; return r ? { ...r } : { id: '', name: x.name, number: x.number, country: x.country, photo: x.photo }; };
-  const bench = [...(S2.reserves || []).filter(named).map(x => [resolve(x), 'Reserve driver']), ...(S2.academy || []).filter(named).slice(0, 1).map(x => [resolve(x), 'Academy driver'])];
+  const benchIds = new Set((S2.reserves || []).map(x => x && x.driverId).filter(Boolean));
+  const bench = [...(S2.reserves || []).filter(named).map(x => [resolve(x), 'Reserve driver']), ...d.drivers.filter(p => p.reserve && p.active !== false && p.teamId === T.id && !benchIds.has(p.id)).map(p => [{ ...p }, 'Reserve driver']), ...(S2.academy || []).filter(named).slice(0, 1).map(x => [resolve(x), 'Academy driver'])];
   return `<div class="dw-grid">${drs.length ? drs.map(p => wideDriverCard(d, p, T, st)).join('') : empty('No drivers signed')}</div>
     ${people.length ? `<div class="section-title" style="margin-top:34px"><h2>Team personnel</h2></div><div class="st-grid">${people.map(([x, r]) => staffCard(d, x, r, T)).join('')}</div>` : ''}
     ${bench.length ? `<div class="section-title" style="margin-top:34px"><h2>Reserve & academy</h2></div><div class="dw-grid three">${bench.map(([p, r]) => wideDriverCard(d, p, T, st, r)).join('')}</div>` : ''}
@@ -1639,10 +1642,10 @@ function champCard(d, h, current) {
   </article>`;
 }
 function pageHistory(d) {
-  const list = [...d.history].sort(seasonSort);
+  const list = d.history.filter(h => !h.hidden).sort(seasonSort);
   const st = computeStandings(d);
   const started = rounds(d).some(r => isDone(d, r));
-  const cur = started && !d.history.some(h => String(h.season) === String(d.league.season)) && st.drivers[0] ? (() => {
+  const cur = started && (d.theme || {}).hofCurrent !== false && !d.history.some(h => String(h.season) === String(d.league.season)) && st.drivers[0] ? (() => {
     const p = driverLabel(d, st.drivers[0].id), t = driverTeam(d, p, st.drivers[0]), ct = st.teams[0] && teamLabel(d, st.teams[0].id);
     return champCard(d, { season: d.league.season, driverChampion: p.name, driverTeam: t ? t.name : '', driverColor: teamColor(t), driverPoints: st.drivers[0].points, teamChampion: ct ? ct.name : '', teamColor: teamColor(ct), teamPoints: st.teams[0] ? st.teams[0].points : '' }, true);
   })() : '';
@@ -1755,7 +1758,7 @@ function pageStewardsBody(d, rid) {
 /* ---------------- sign-ups ---------------- */
 function pageJoin(d, sub) {
   const s = d.signups, per = Number(s.seatsPerTeam) || 2;
-  const seats = d.teams.map(t => ({ t, n: per - d.drivers.filter(x => x.teamId === t.id && x.active !== false).length })).filter(x => x.n > 0);
+  const seats = d.teams.map(t => ({ t, n: per - d.drivers.filter(x => x.teamId === t.id && x.active !== false && !x.reserve).length })).filter(x => x.n > 0);
   const total = seats.reduce((a, b) => a + b.n, 0);
   const discord = d.league.links && d.league.links.discord;
   const hub = window.Apps ? window.Apps.hub(d, sub) : '';
