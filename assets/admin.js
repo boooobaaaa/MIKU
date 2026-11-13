@@ -1195,7 +1195,7 @@ function readVal(el) {
   if (el.type === 'checkbox') return el.checked;
   if (el.hasAttribute('data-num')) return el.value === '' ? '' : Number(el.value);
   if (el.hasAttribute('data-lines')) return el.value.split('\n').map(x => x.trim()).filter(Boolean);
-  if (el.hasAttribute('data-dt')) return el.value ? new Date(el.value).toISOString() : '';
+  if (el.hasAttribute('data-dt')) { if (!el.value) return ''; const t = new Date(el.value); return isNaN(t) || t.getFullYear() > 9999 ? getPath(D(), el.dataset.path) : t.toISOString(); }
   if (el.hasAttribute('data-list')) return el.value.split(/[,\s]+/).filter(Boolean).map(Number).filter(n => !isNaN(n));
   if (el.dataset.path.endsWith('.country')) return el.value.trim().toUpperCase();
   return el.value;
@@ -1238,7 +1238,18 @@ document.addEventListener('change', e => {
   if (el.dataset.path.startsWith('calendar.') && el.dataset.path.endsWith('.round')) sortRounds();
   { const m = el.dataset.path.match(/^calendar\.(\d+)\.sessions\.(\d+)\.start$/); if (m) { const r = D().calendar[+m[1]], x = r.sessions[+m[2]]; if (/^race$/i.test(String(x.name || '').trim()) && x.start) r.start = x.start; } }
   LG.saveDraft();
-  if (el.hasAttribute('data-reload') || el.tagName === 'SELECT') rerender();
+  if (el.hasAttribute('data-reload') || el.tagName === 'SELECT') {
+    // date/time boxes fire "change" after every part you type (month, day, hour…) — wait until you leave the box
+    if (/^(datetime-local|date|time|month|week)$/.test(el.type)) {
+      clearTimeout(el._rt);
+      const done = () => { if (el._done) return; el._done = true; clearTimeout(el._rt); setTimeout(() => { const act = document.activeElement, path = act && act.dataset && act.dataset.path; rerender(); if (path && act !== el) { const again = document.querySelector(`[data-path="${CSS.escape(path)}"]`); if (again) again.focus(); } }, 0); };
+      if (!el._watch) { el._watch = true; el.addEventListener('blur', done, { once: true }); }
+      const check = () => { if (document.activeElement === el) el._rt = setTimeout(check, 1500); else done(); };
+      el._rt = setTimeout(check, 1500);
+      return;
+    }
+    rerender();
+  }
 });
 document.addEventListener('toggle', e => {
   const el = e.target;
