@@ -8,7 +8,16 @@
 const LG = window.LG;
 const { esc, clone, uid, byId, fmtPts, toast } = LG;
 const K = { token: 'league.gh.token', cfg: 'league.gh.cfg', auth: 'league.admin.auth' };
-const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, open: {} };
+const A = { section: 'dashboard', roundId: null, session: 'race', newsId: null, open: {}, typing: {} };
+/* a real dropdown with an "✎ Type my own…" escape hatch (instead of the browser's autofill-style suggestions) */
+function combo(path, val, options, ph = '') {
+  val = val == null ? '' : String(val);
+  if (A.typing[path]) {
+    return `<span class="combo-typing"><input type="text" data-path="${path}" value="${esc(val)}" placeholder="${esc(ph)}" autocomplete="off" data-combo-input autofocus><button type="button" class="iconbtn" data-act="combo-list" data-path-k="${esc(path)}" title="Pick from the list">▾</button></span>`;
+  }
+  const list = val && !options.includes(val) ? [val, ...options] : options;
+  return `<select data-path="${path}" data-combo>${val ? '' : `<option value="" selected>${esc(ph || '— choose —')}</option>`}${list.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}<option value="__type">✎ Type my own…</option></select>`;
+}
 
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
@@ -189,6 +198,12 @@ function driverOrder(d, st) {
   const idx = d.drivers.map((x, i) => i);
   return by ? idx.sort((i, j) => by(d.drivers[i], d.drivers[j])) : idx;
 }
+function seasonOpts(d) {
+  const s = new Set([String(d.league.season)]);
+  (d.history || []).forEach(h => h && h.season != null && s.add(String(h.season)));
+  (d.drivers || []).forEach(x => (x.history || []).forEach(h => { if (h) { if (h.fromSeason) s.add(String(h.fromSeason)); if (h.toSeason) s.add(String(h.toSeason)); } }));
+  return [...s].filter(Boolean).sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0) || a.localeCompare(b));
+}
 function secDrivers(d) {
   const st = LG.computeStandings(d);
   const custom = ADS.sort === 'custom';
@@ -215,9 +230,9 @@ function secDrivers(d) {
           ${(x.history || []).length ? `<div style="overflow-x:auto"><table class="rtable"><thead><tr><th>Team</th><th>Role</th><th>From season</th><th>Round</th><th>To season</th><th>Round</th><th></th></tr></thead><tbody>${(x.history || []).map((h, k) => `<tr>
             <td><select data-path="${p}.history.${k}.teamId" data-reload>${[['', '— other team (type) —'], ...d.teams.map(t => [t.id, t.name])].map(([v, l]) => opt(v, l, h.teamId)).join('')}</select>${h.teamId ? '' : `<input type="text" data-path="${p}.history.${k}.team" value="${esc(h.team || '')}" placeholder="Team name" style="margin-top:4px">`}</td>
             <td class="c-md"><select data-path="${p}.history.${k}.role">${[...LG.HIST_ROLES, ...(h.role && !LG.HIST_ROLES.includes(h.role) ? [h.role] : [])].map(r => `<option value="${esc(r)}" ${r === (h.role || 'Race Driver') ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></td>
-            <td class="c-sm"><input type="text" data-path="${p}.history.${k}.fromSeason" value="${esc(h.fromSeason || '')}" placeholder="${esc(d.league.season)}"></td>
+            <td class="c-sm">${combo(`${p}.history.${k}.fromSeason`, h.fromSeason || '', seasonOpts(d), 'Season')}</td>
             <td class="c-sm"><input type="number" data-num data-path="${p}.history.${k}.fromRound" value="${esc(h.fromRound ?? '')}" placeholder="1"></td>
-            <td class="c-sm"><input type="text" data-path="${p}.history.${k}.toSeason" value="${esc(h.toSeason || '')}" placeholder="(current)"></td>
+            <td class="c-sm">${combo(`${p}.history.${k}.toSeason`, h.toSeason || '', seasonOpts(d), 'Current')}</td>
             <td class="c-sm"><input type="number" data-num data-path="${p}.history.${k}.toRound" value="${esc(h.toRound ?? '')}"></td>
             <td class="c-act"><button class="iconbtn del" data-act="th-del" data-i="${i}" data-k="${k}">✕</button></td></tr>`).join('')}</tbody></table></div>` : ''}
           <div class="toolbar" style="margin-top:8px"><button class="btn sm" data-act="th-add" data-i="${i}">+ Add team spell</button><button class="btn sm" data-act="th-auto" data-i="${i}">Fill from this season's results</button></div>
@@ -320,7 +335,7 @@ function secCalendar(d) {
         ${F.area('Round notes (shown under results)', p + '.notes', r.notes)}
         <div class="wide"><div class="fld"><span>Weekend schedule (shown on the round page; leave empty to just show the race start)</span></div>
           ${(r.sessions || []).length ? `<table class="rtable sess"><thead><tr><th>Session</th><th>Start (your local time)</th><th>End (optional)</th><th></th></tr></thead><tbody>${(r.sessions || []).map((x, k) => `<tr>
-            <td><input type="text" list="sess-presets" data-path="${p}.sessions.${k}.name" value="${esc(x.name || '')}"></td>
+            <td>${combo(`${p}.sessions.${k}.name`, x.name || '', LG.SESSION_PRESETS, 'Session')}</td>
             <td><input type="datetime-local" data-dt data-path="${p}.sessions.${k}.start" data-reload value="${toLocalInput(x.start)}"></td>
             <td><input type="datetime-local" data-dt data-path="${p}.sessions.${k}.end" value="${toLocalInput(x.end)}"></td>
             <td class="c-act"><button class="iconbtn del" data-act="del-sess" data-i="${i}" data-k="${k}">✕</button></td></tr>`).join('')}</tbody></table>` : ''}
@@ -336,7 +351,7 @@ function secCalendar(d) {
   }).join('');
   return head('Calendar', 'Times are entered in your local time and shown to each visitor in theirs. The site is always ordered by round number.',
     `<button class="btn" data-act="sort-rounds">Sort by round</button><button class="btn primary" data-act="add-round">+ Add round</button>`) +
-    `<div class="a-card">${items || '<p class="muted">No rounds yet.</p>'}</div><datalist id="sess-presets">${LG.SESSION_PRESETS.map(x => `<option value="${esc(x)}">`).join('')}</datalist>`;
+    `<div class="a-card">${items || '<p class="muted">No rounds yet.</p>'}</div>`;
 }
 
 function secResults(d) {
@@ -906,9 +921,9 @@ function secPortal(d) {
       <div class="fgrid" style="margin-top:14px">
         <label class="fld"><span>Their Google email</span><input type="text" id="pt-m-email" placeholder="principal@gmail.com"></label>
         <label class="fld"><span>Name shown on articles</span><input type="text" id="pt-m-name"></label>
-        <label class="fld"><span>Role</span><input type="text" id="pt-m-role" list="pt-roles" value="Team principal"></label>
+        <label class="fld"><span>Role</span><select id="pt-m-role">${window.Portal.ROLES.map(r => `<option ${r === 'Team principal' ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></label>
         <label class="fld"><span>Team</span><select id="pt-m-team">${d.teams.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}<option value="">— None (press / media) —</option></select></label>
-      </div><datalist id="pt-roles">${window.Portal.ROLES.map(r => `<option value="${esc(r)}">`).join('')}</datalist>
+      </div>
       <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="pt-add">+ Give access</button></div>
     </div>` + onBox;
 }
@@ -1328,6 +1343,7 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'combo-list': A.typing[b.dataset.pathK] = false; return rerender();
     case 'drv-sort': ADS.sort = b.dataset.s; saveADS(); return rerender();
     case 'drv-save-order': { const st = LG.computeStandings(d); const order = driverOrder(d, st); d.drivers = order.map(k => d.drivers[k]); ADS.sort = 'custom'; saveADS(); toast('Saved as your order — Publish to use it on the site'); return commit(); }
     case 'drv-expand': case 'drv-collapse': document.querySelectorAll('#drv-list details.item').forEach(el => { if (!el.hidden) { el.open = b.dataset.act === 'drv-expand'; A.open[el.dataset.key] = el.open; } }); return;
@@ -1887,6 +1903,11 @@ document.addEventListener('click', async e => {
   if (b.dataset.team === 'signout') { await s.signOut(); TEAMKEY.key = undefined; ACT.members = null; }
   rerender();
 });
+document.addEventListener('change', e => {
+  const el = e.target; if (!el.matches || !el.matches('select[data-combo]') || el.value !== '__type') return;
+  e.stopImmediatePropagation(); A.typing[el.dataset.path] = true; rerender();
+  setTimeout(() => { const i = document.querySelector(`[data-combo-input][data-path="${CSS.escape(el.dataset.path)}"]`); if (i) i.focus(); }, 30);
+}, true);
 document.addEventListener('input', e => {
   if (e.target.id !== 'drv-q') return;
   const q = e.target.value.trim().toLowerCase(); let n = 0;

@@ -2054,6 +2054,8 @@ function render(resetScroll) {
   if (window.Extras) window.Extras.afterRender(path);
   ssApply();
   setFavicon(S.data);
+  // no browser autofill / history suggestions on the site's own fields
+  document.querySelectorAll('#app input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]):not([autocomplete]), #app textarea:not([autocomplete])').forEach(el => el.setAttribute('autocomplete', 'off'));
   applyTitleCase(document.getElementById('app')); applyTitleCase(document.querySelector('.topbar')); applyTitleCase(document.getElementById('foot'));
   if (resetScroll) window.scrollTo({ top: 0, behavior: 'instant' });
 }
