@@ -123,6 +123,23 @@ function ensure(scope) {
   return false;
 }
 
+/* sakura sprigs in the leader's team colour */
+const PETAL = 'M0 0C-7.5-5-9-14.5-4.2-20.5L0-17.2L4.2-20.5C9-14.5 7.5-5 0 0Z';
+const flower = (x, y, sc, rot, op) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${sc})" opacity="${op}">${[0, 72, 144, 216, 288].map(a => `<path d="${PETAL}" transform="rotate(${a})"/>`).join('')}<circle r="3.2" class="c"/></g>`;
+const blossoms = () => `<svg class="rec-sakura" viewBox="0 0 140 110" aria-hidden="true"><path class="br" d="M140 8C112 14 96 30 78 48S44 78 20 84" /><path class="br" d="M98 30c-4-12-2-20 6-26"/>${flower(118, 18, 1.1, 12, .95)}${flower(86, 40, .85, -20, .8)}${flower(52, 66, .7, 30, .6)}${flower(104, 2, .55, 40, .6)}${flower(26, 82, .5, 0, .45)}</svg>`;
+
+/* rotate tied leaders */
+setInterval(() => {
+  document.querySelectorAll('[data-rec-rot]').forEach(box => {
+    const sl = [...box.children], n = sl.length, cur = sl.findIndex(x => x.classList.contains('on')), nx = (cur + 1) % n;
+    sl[cur].classList.remove('on'); sl[cur].classList.add('out'); setTimeout(() => sl[cur].classList.remove('out'), 600);
+    sl[nx].classList.add('on');
+    const card = box.closest('.rec-card'); card.style.setProperty('--tc', sl[nx].dataset.tc);
+    const b = card.querySelector('.rec-tie b'); if (b) b.textContent = nx + 1;
+    card.querySelectorAll('.rec-dots i').forEach((d, k) => d.classList.toggle('on', k === nx));
+  });
+}, 3500);
+
 /* ---------- view ---------- */
 function block() {
   const live = LG.S.data;
@@ -142,13 +159,19 @@ function block() {
   if (!pool.length) return head + (R.err ? `<div class="warn">${esc(R.err)}</div>` : '') + '<div class="card"><p class="muted">No results yet for this selection.</p></div>';
   const maxStarts = Math.max(...pool.map(x => x.starts)), minRate = Math.max(1, Math.ceil(maxStarts * 0.25));
   const card = ([title, fn, fmt, unit, extra, rate]) => {
-    const rows = pool.filter(x => !rate || x.starts >= minRate).map(x => ({ x, v: fn(x) })).filter(o => o.v > 0 || (rate && o.v > -999 && o.v !== 0)).sort((a, b) => b.v - a.v).slice(0, 5);
-    if (!rows.length) return `<div class="rec-card empty"><h4>${esc(title)}</h4><p class="muted">—</p></div>`;
-    const top = rows[0], w = top.x.who;
-    const pic = R.kind === 'teams' ? (w.logo ? `<img src="${esc(LG.asset(w.logo))}" alt="" onerror="this.remove()">` : `<i>${esc(w.name[0])}</i>`) : (w.photo ? `<img src="${esc(LG.asset(w.photo))}" alt="" onerror="this.remove()">` : `<i>${esc(w.number ?? w.name[0])}</i>`);
-    return `<div class="rec-card" style="--tc:${esc(w.color)}"><h4>${esc(title)}</h4>
-      <div class="rec-top"><span class="rec-pic">${pic}</span><div class="rec-who"><b>${R.kind === 'teams' ? esc(w.name) : LG.nameHTML(w.name)}</b>${extra && extra(top.x) ? `<small>${esc(extra(top.x))}</small>` : ''}</div><div class="rec-val"><b class="mono">${esc(fmt(top.v))}</b>${unit ? `<small>${esc(unit)}</small>` : ''}</div></div>
-      ${rows.length > 1 ? `<ol class="rec-rest" start="2">${rows.slice(1).map(o => `<li style="--tc:${esc(o.x.who.color)}"><span>${esc(o.x.who.name)}${extra && extra(o.x) ? ` <small class="muted">${esc(extra(o.x))}</small>` : ''}</span><b class="mono">${esc(fmt(o.v))}</b></li>`).join('')}</ol>` : ''}</div>`;
+    const all = pool.filter(x => !rate || x.starts >= minRate).map(x => ({ x, v: fn(x) })).filter(o => o.v > 0 || (rate && o.v > -999 && o.v !== 0)).sort((a, b) => b.v - a.v);
+    if (!all.length) return `<div class="rec-card empty"><h4>${esc(title)}</h4>${blossoms()}<p class="muted">No record yet</p></div>`;
+    const best = all[0].v, leaders = all.filter(o => Math.abs(o.v - best) < 1e-9), rest = all.slice(leaders.length, leaders.length + 4);
+    const slide = (o, k) => {
+      const w = o.x.who;
+      const pic = R.kind === 'teams' ? (w.logo ? `<img src="${esc(LG.asset(w.logo))}" alt="" onerror="this.remove()">` : `<i>${esc(w.name[0])}</i>`) : (w.photo ? `<img src="${esc(LG.asset(w.photo))}" alt="" onerror="this.remove()">` : `<i>${esc(w.number ?? w.name[0])}</i>`);
+      return `<div class="rec-top ${k === 0 ? 'on' : ''}" style="--tc:${esc(w.color)}" data-tc="${esc(w.color)}"><span class="rec-pic">${pic}</span><div class="rec-who"><b>${R.kind === 'teams' ? esc(w.name) : LG.nameHTML(w.name)}</b>${extra && extra(o.x) ? `<small>${esc(extra(o.x))}</small>` : ''}</div><div class="rec-val"><b class="mono">${esc(fmt(o.v))}</b>${unit ? `<small>${esc(unit)}</small>` : ''}</div></div>`;
+    };
+    const tie = leaders.length > 1;
+    return `<div class="rec-card ${tie ? 'tied' : ''}" style="--tc:${esc(leaders[0].x.who.color)}">${blossoms()}<h4>${esc(title)}${tie ? `<span class="rec-tie">Tied · <b>1</b>/${leaders.length}</span>` : ''}</h4>
+      <div class="rec-tops" ${tie ? `data-rec-rot="${leaders.length}"` : ''}>${leaders.map(slide).join('')}</div>
+      ${tie ? `<div class="rec-dots">${leaders.map((_, k) => `<i class="${k === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+      ${rest.length ? `<ol class="rec-rest">${rest.map((o, k) => `<li style="--tc:${esc(o.x.who.color)}" data-n="${leaders.length + k + 1}"><span>${esc(o.x.who.name)}${extra && extra(o.x) ? ` <small class="muted">${esc(extra(o.x))}</small>` : ''}</span><b class="mono">${esc(fmt(o.v))}</b></li>`).join('')}</ol>` : ''}</div>`;
   };
   return head + (R.err ? `<div class="warn">${esc(R.err)}</div>` : '') + defs(R.kind, R.scope === 'all' ? 'all' : 'one').map(([cat, list]) => `<section class="rec-cat"><div class="section-title"><h2>${esc(cat)}</h2></div><div class="rec-grid">${list.map(card).join('')}</div></section>`).join('')
     + `<p class="hint rec-note">Percentages and averages only count ${R.kind === 'teams' ? 'teams' : 'drivers'} with at least ${minRate} race start${minRate === 1 ? '' : 's'}. ${R.kind === 'teams' ? 'Team podium % and points finishes count every car; win, pole % and starts count races entered.' : ''} Streaks count consecutive race starts.</p>`;

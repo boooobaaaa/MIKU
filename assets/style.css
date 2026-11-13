@@ -2393,3 +2393,35 @@ input.fl-time { border-color: #b46cff !important; color: #c79bff; }
 .rec-who b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .rec-rest { grid-template-columns: minmax(0, 1fr); } .rec-top { grid-template-columns: 52px minmax(0, 1fr) auto; }
 .rec-card.empty { --tc: var(--line-strong); }
+/* records v2: bigger leaders, tie slideshow, coloured sakura */
+.rec-card { padding: 18px 18px 14px; transition: border-color .6s, background .6s; }
+.rec-card h4 { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; }
+.rec-tie { margin-left: auto; padding: 2px 8px; border-radius: 99px; background: color-mix(in srgb, var(--tc) 25%, transparent); color: var(--text); font-size: 10px; letter-spacing: .1em; }
+.rec-tops { position: relative; display: grid; perspective: 900px; z-index: 1; }
+.rec-top { grid-area: 1 / 1; grid-template-columns: 68px minmax(0, 1fr) auto; gap: 14px; padding: 6px 0 4px; transition: transform .6s cubic-bezier(.3,.7,.3,1), opacity .45s; backface-visibility: hidden; }
+.rec-tops[data-rec-rot] .rec-top { opacity: 0; transform: rotateX(-90deg); pointer-events: none; }
+.rec-tops[data-rec-rot] .rec-top.on { opacity: 1; transform: none; pointer-events: auto; }
+.rec-tops[data-rec-rot] .rec-top.out { opacity: 0; transform: rotateX(90deg); }
+.rec-pic { width: 68px; height: 68px; border-radius: 18px; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tc) 70%, transparent), 0 8px 22px -10px var(--tc); }
+.rec-pic i { font-size: 24px; }
+.rec-who b { font-size: 19px; }
+.rec-val b { font-size: 34px; }
+.rec-dots { display: flex; gap: 5px; justify-content: center; margin-top: 6px; position: relative; z-index: 1; }
+.rec-dots i { width: 6px; height: 6px; border-radius: 99px; background: var(--line-strong); transition: width .3s, background .3s; }
+.rec-dots i.on { width: 18px; background: var(--tc); }
+.rec-rest { position: relative; z-index: 1; font-size: 13px; }
+.rec-rest li { counter-increment: none; }
+.rec-rest li::before { content: attr(data-n); }
+.rec-rest li span, .rec-rest li b { opacity: .85; }
+.rec-sakura { position: absolute; top: -6px; right: -8px; width: 150px; height: 118px; pointer-events: none; z-index: 0; transition: opacity .6s; }
+.rec-sakura path:not(.br) { fill: color-mix(in srgb, var(--tc) 55%, #fff); stroke: color-mix(in srgb, var(--tc) 80%, #fff); stroke-width: .8; transition: fill .6s, stroke .6s; }
+.rec-sakura .c { fill: color-mix(in srgb, var(--tc) 85%, #000); transition: fill .6s; }
+.rec-sakura .br { fill: none; stroke: color-mix(in srgb, var(--tc) 30%, #2a1720); stroke-width: 3; stroke-linecap: round; opacity: .7; }
+.rec-card::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: .5;
+  background: radial-gradient(4px 3px at 22% 78%, color-mix(in srgb, var(--tc) 60%, #fff), transparent), radial-gradient(3px 2.5px at 60% 88%, color-mix(in srgb, var(--tc) 50%, #fff), transparent), radial-gradient(3px 2px at 88% 70%, color-mix(in srgb, var(--tc) 50%, #fff), transparent); }
+.rec-card.empty .rec-sakura { opacity: .35; }
+@media (prefers-reduced-motion: reduce) { .rec-top { transition: none; } }
+.rec-sakura { width: 112px; height: 88px; top: -8px; right: -10px; opacity: .8; }
+.rec-tie { background: color-mix(in srgb, var(--tc) 30%, var(--card-solid, #17141a)); position: relative; z-index: 2; margin-right: 46px; }
+.rec-val { position: relative; z-index: 2; }
+.rec-val b { text-shadow: 0 2px 12px rgba(0,0,0,.55); }
