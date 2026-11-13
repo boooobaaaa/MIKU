@@ -821,7 +821,7 @@ function pageStandings(d, view) {
       </tbody></table></div>` : empty('No drivers yet');
   } else if (view === 'teams') {
     body = st.teams.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Team</th><th class="hide-sm">Drivers</th><th class="r hide-sm">Wins</th><th class="r hide-sm">Podiums</th><th class="r">Pts</th></tr></thead><tbody>
-      ${st.teams.map(x => { const t = teamLabel(d, x.id); const drs = d.drivers.filter(p => p.teamId === x.id && p.active !== false && !p.reserve).map(p => esc(p.name.split(' ').pop())).join(' / '); return `<tr class="${x.position <= 3 ? 'top' + x.position : ''}"><td class="pos">${x.position}</td><td><a href="#/team/${esc(x.id)}">${teamCell(t)}</a>${x.adj ? `<span class="adj-note">(${x.adj > 0 ? '+' : ''}${fmtPts(x.adj)})</span>` : ''}</td><td class="muted hide-sm">${drs}</td><td class="r mono hide-sm">${x.wins}</td><td class="r mono hide-sm">${x.podiums}</td><td class="pts">${fmtPts(x.points)}</td></tr>`; }).join('')}
+      ${st.teams.map(x => { const t = teamLabel(d, x.id); const drs = (t ? raceLineup(d, t).main : []).map(p => esc(p.name.split(' ').pop())).join(' / '); return `<tr class="${x.position <= 3 ? 'top' + x.position : ''}"><td class="pos">${x.position}</td><td><a href="#/team/${esc(x.id)}">${teamCell(t)}</a>${x.adj ? `<span class="adj-note">(${x.adj > 0 ? '+' : ''}${fmtPts(x.adj)})</span>` : ''}</td><td class="muted hide-sm">${drs}</td><td class="r mono hide-sm">${x.wins}</td><td class="r mono hide-sm">${x.podiums}</td><td class="pts">${fmtPts(x.points)}</td></tr>`; }).join('')}
       </tbody></table></div>` : empty('No teams yet');
   } else if (view === 'progress') {
     body = progressChart(d, st);
@@ -974,7 +974,7 @@ function pageTeams(d) {
   const list = [...d.teams]; if ((d.theme || {}).listOrder !== 'custom') list.sort((a, b) => ((st.T[a.id] || {}).position || 999) - ((st.T[b.id] || {}).position || 999));
   const cards = list.map(t => {
     const s = st.T[t.id] || { points: 0 };
-    const drs = d.drivers.filter(x => x.teamId === t.id && x.active !== false && !x.reserve);
+    const drs = raceLineup(d, t).main;
     return `<a class="team-card" href="#/team/${esc(t.id)}" style="--tc:${esc(teamColor(t))}">
       <div class="tc-head"><div><div class="tc-pos">${s.position ? 'P' + s.position : 'Team'}</div><h3>${esc(t.name)}</h3><div class="muted" style="font-size:14px">${esc(t.car || t.base || '')}</div></div>
       <div style="display:flex;gap:12px;align-items:center">${t.logo ? `<img class="tc-logo" src="${esc(asset(t.logo))}" alt="" onerror="this.remove()">` : ''}<div class="tc-pts"><b>${fmtPts(s.points)}</b><span>PTS</span></div></div></div>
@@ -986,6 +986,18 @@ function pageTeams(d) {
     ${list.length ? `<div class="team-grid">${cards}</div>` : empty('No teams yet', '<p>Add constructors from the admin console.</p>')}</div>`;
 }
 
+/* a team's race drivers: never more than the seats per team (default 2). Drivers ticked as reserve, or listed in the
+   team's Reserve / Academy staff, don't count; if more are left, the ones who've raced most for the team win the seats. */
+function raceLineup(d, t) {
+  const S2 = t.staff || {}, per = Number((d.signups || {}).seatsPerTeam) || 2;
+  const benchIds = new Set([...(S2.reserves || []), ...(S2.academy || [])].map(x => x && x.driverId).filter(Boolean));
+  const pool = d.drivers.filter(x => x.teamId === t.id && x.active !== false);
+  const races = id => rounds(d).reduce((n, r) => n + (session(d, r.id, 'race').some(e => e.driverId === id && e.teamId === t.id) ? 1 : 0), 0);
+  const cand = pool.filter(x => !x.reserve && !benchIds.has(x.id)).map((x, k) => ({ x, k, n: races(x.id) }));
+  const main = cand.slice().sort((a, b) => b.n - a.n || a.k - b.k).slice(0, per).sort((a, b) => a.k - b.k).map(o => o.x);
+  const mainIds = new Set(main.map(x => x.id));
+  return { main, extra: pool.filter(x => !mainIds.has(x.id) && !benchIds.has(x.id)) };
+}
 function pageTeam(d, id) {
   const t = byId(d.teams, id);
   const st = computeStandings(d);
@@ -1168,7 +1180,7 @@ function staffCard(d, x, role, T) {
 }
 function teamLineup(d, T, st) {
   const S2 = T.staff || {};
-  const drs = d.drivers.filter(p => p.teamId === T.id && p.active !== false && !p.reserve);
+  const lineup = raceLineup(d, T), drs = lineup.main;
   const named = x => x && (x.name || x.driverId);
   const people = [];
   if (named(S2.exec)) people.push([S2.exec, (S2.exec.title || 'Executive officer')]);
@@ -1178,7 +1190,7 @@ function teamLineup(d, T, st) {
   (S2.perf || []).filter(named).forEach(x => people.push([x, 'Performance engineer']));
   const resolve = x => { const r = x.driverId ? byId(d.drivers, x.driverId) : null; return r ? { ...r } : { id: '', name: x.name, number: x.number, country: x.country, photo: x.photo }; };
   const benchIds = new Set((S2.reserves || []).map(x => x && x.driverId).filter(Boolean));
-  const bench = [...(S2.reserves || []).filter(named).map(x => [resolve(x), 'Reserve driver']), ...d.drivers.filter(p => p.reserve && p.active !== false && p.teamId === T.id && !benchIds.has(p.id)).map(p => [{ ...p }, 'Reserve driver']), ...(S2.academy || []).filter(named).slice(0, 1).map(x => [resolve(x), 'Academy driver'])];
+  const bench = [...(S2.reserves || []).filter(named).map(x => [resolve(x), 'Reserve driver']), ...lineup.extra.filter(p => !benchIds.has(p.id)).map(p => [{ ...p }, 'Reserve driver']), ...(S2.academy || []).filter(named).slice(0, 1).map(x => [resolve(x), 'Academy driver'])];
   return `<div class="dw-grid">${drs.length ? drs.map(p => wideDriverCard(d, p, T, st)).join('') : empty('No drivers signed')}</div>
     ${people.length ? `<div class="section-title" style="margin-top:34px"><h2>Team personnel</h2></div><div class="st-grid">${people.map(([x, r]) => staffCard(d, x, r, T)).join('')}</div>` : ''}
     ${bench.length ? `<div class="section-title" style="margin-top:34px"><h2>Reserve & academy</h2></div><div class="dw-grid three">${bench.map(([p, r]) => wideDriverCard(d, p, T, st, r)).join('')}</div>` : ''}
