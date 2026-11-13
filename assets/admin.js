@@ -1240,7 +1240,7 @@ function secAccounts(d) {
     const drv = byId(d.drivers, x.driverId);
     return `<div class="acc-row ${x.status}">
       ${AC.dcFace(x, 'lg')}
-      <div class="acc-who"><b>${esc(x.discordName)}</b><span class="muted">@${esc(x.discordUser)} · ID <span class="mono">${esc(x.discordId)}</span></span><span class="muted" style="font-size:12px">${x.status === 'pending' ? 'Requested' : x.status === 'approved' ? 'Approved' : 'Denied'} ${when(x.status === 'pending' ? x.updatedAt : x.reviewedAt || x.updatedAt)}</span>
+      <div class="acc-who"><b>${esc(x.discordName)}</b><span class="muted">@${esc(x.discordUser)}</span><span class="muted acc-id-line">ID <span class="mono">${esc(x.discordId)}</span></span><span class="muted" style="font-size:12px">${x.status === 'pending' ? 'Requested' : x.status === 'approved' ? 'Approved' : 'Denied'} ${when(x.status === 'pending' ? x.updatedAt : x.reviewedAt || x.updatedAt)}</span>
         ${warn.map(w => `<span class="warn-sm">⚠ ${w}</span>`).join('')}${x.note ? `<span class="muted" style="font-size:12.5px">Note: ${esc(x.note)}</span>` : ''}</div>
       <label class="fld acc-drv"><span>Driver profile${drv && x.status !== 'approved' ? ' (their pick)' : ''}</span><select id="acc-drv-${esc(x.uid)}">${AC.driverOptions(d, x.driverId, y => { const c2 = claimedBy(y.id); return c2 && c2.uid !== x.uid; })}</select></label>
       <div class="acc-act">${x.status !== 'approved' ? `<button class="btn sm primary" data-act="acc-approve" data-uid="${esc(x.uid)}">✓ Approve</button>` : `<button class="btn sm" data-act="acc-approve" data-uid="${esc(x.uid)}">Save driver</button>`}

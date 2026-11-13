@@ -2592,3 +2592,14 @@ select option { background: var(--card-solid); color: var(--text); }
 .acc-opts .chk { display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--miku) 4%, transparent); line-height: 1.35; cursor: pointer; min-height: 64px; }
 .acc-opts .chk:hover { border-color: var(--line-strong); }
 .acc-opts .chk input { flex: none; margin: 0; }
+/* account rows: buttons line up with the driver dropdown */
+.acc-row .acc-drv select { height: 44px; }
+.acc-row .acc-act { align-self: end; height: 44px; align-items: center; flex-wrap: nowrap; }
+.acc-row .acc-who .mono { font-size: .92em; }
+@media (max-width: 760px) { .acc-row .acc-act { height: auto; align-self: start; flex-wrap: wrap; } }
+.acc-row { grid-template-columns: 56px minmax(0, 1fr) minmax(200px, 260px) 230px; }
+@media (max-width: 760px) { .acc-row { grid-template-columns: 56px 1fr; } }
+.acc-row .acc-drv { align-self: end; }
+.acc-row .acc-who .mono { white-space: nowrap; }
+@media (max-width: 760px) { .acc-row .acc-drv { align-self: start; } }
+.acc-id-line { font-size: 13px; }
