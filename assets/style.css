@@ -2603,3 +2603,11 @@ select option { background: var(--card-solid); color: var(--text); }
 .acc-row .acc-who .mono { white-space: nowrap; }
 @media (max-width: 760px) { .acc-row .acc-drv { align-self: start; } }
 .acc-id-line { font-size: 13px; }
+/* account page: driver claim row + closer header buttons */
+.ac-claim { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 14px; }
+.ac-claim a { display: inline-flex; align-items: center; gap: 0; line-height: 1; }
+.ac-claim a .avatar { margin-right: 8px; }
+.ac-claim a .dname, .ac-claim a span { line-height: 1.2; }
+.acct-btn { margin-right: -16px; }
+@media (max-width: 760px) { .acct-btn { margin-right: -2px; } }
+.acc-id { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; max-width: 640px; }
