@@ -22,7 +22,7 @@ function combo(path, val, options, ph = '') {
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'KIRA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['applications', 'Applications', '✍'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'KIRA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['applications', 'Applications', '✍'], ['predictions', 'Predictions', '🔮'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS', 'NS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -87,6 +87,7 @@ const F = {
   num: (label, path, val, extra = '') => `<label class="fld"><span>${label}</span><input type="number" step="any" data-num data-path="${path}" value="${esc(val ?? '')}" ${extra}></label>`,
   color: (label, path, val) => `<label class="fld"><span>${label}</span><input type="color" data-path="${path}" data-reload value="${esc(/^#[0-9a-f]{6}$/i.test(val || '') ? val : '#39c5bb')}"></label>`,
   area: (label, path, val, cls = '') => `<label class="fld wide"><span>${label}</span><textarea class="${cls}" data-path="${path}">${esc(val)}</textarea></label>`,
+  country: (label, path, val) => `<div class="fld cpick-fld"><span>${label}</span><input type="hidden" data-path="${path}" value="${esc(val || '')}" data-reload><button type="button" class="cpick" data-cpick="${path}">${val ? `${cpFlag(val)}<span>${esc(LG.countryName(val))}</span><small class="mono">${esc(String(val).toUpperCase())}</small>` : '<span class="muted">Choose a country…</span>'}<i>▾</i></button></div>`,
   check: (label, path, val) => `<label class="chk"><input type="checkbox" data-path="${path}" data-reload ${val ? 'checked' : ''}><span>${label}</span></label>`,
   select: (label, path, val, opts, extra = 'data-reload') => `<label class="fld"><span>${label}</span><select data-path="${path}" ${extra}>${opts.map(([v, l]) => opt(v, l, val)).join('')}</select></label>`,
   dt: (label, path, val) => `<label class="fld"><span>${label}</span><input type="datetime-local" data-dt data-path="${path}" value="${toLocalInput(val)}"></label>`,
@@ -218,7 +219,7 @@ function secDrivers(d) {
       <div class="body"><div class="fgrid">
         ${F.text('Full name', p + '.name', x.name, 'data-reload')}
         ${F.num('Car number', p + '.number', x.number, 'data-reload')}
-        ${F.text('Country code (e.g. GB, JP, US)', p + '.country', x.country, 'maxlength="2" data-reload')}
+        ${F.country('Country', p + '.country', x.country)}
         ${F.select('Team', p + '.teamId', x.teamId, teamOpts(d))}
         ${F.text('Gamertag / PSN / Steam', p + '.gamertag', x.gamertag)}
         ${F.num('Fantasy value (millions)', p + '.fantasyValue', x.fantasyValue, 'placeholder="auto"')}
@@ -294,7 +295,7 @@ function personRow(d, path, x, kind, del) {
       ${kind === 'reserve' || kind === 'academy' ? F.select('Driver from your roster', path + '.driverId', x.driverId, drvOpts) : ''}
       ${linked ? `<div class="hint" style="align-self:end;padding-bottom:10px">Uses ${esc((byId(d.drivers, x.driverId) || {}).name || 'that driver')}'s profile & photo.</div>` : `
         ${F.text('Name', path + '.name', x.name || '', 'data-reload')}
-        ${F.text('Country code', path + '.country', x.country || '', 'maxlength="2" data-reload')}
+        ${F.country('Country', path + '.country', x.country || '')}
         ${kind === 'reserve' || kind === 'academy' ? F.num('Car number', path + '.number', x.number) : ''}
         ${kind === 'eng' ? F.select('Works with', path + '.driverId', x.driverId, drvOpts) : ''}
         ${F.text('Photo link (or use ⬆ Photo)', path + '.photo', x.photo || '', 'data-reload')}`}
@@ -327,7 +328,7 @@ function secCalendar(d) {
         ${F.num('Round #', p + '.round', r.round, 'data-reload')}
         ${F.text('Grand Prix name', p + '.name', r.name, 'data-reload')}
         ${F.text('Circuit', p + '.track', r.track)}
-        ${F.text('Country code', p + '.country', r.country, 'maxlength="2" data-reload')}
+        ${F.country('Country', p + '.country', r.country)}
         ${F.dt('Race start (your local time)', p + '.start', r.start)}
         ${F.select('Track time zone', p + '.tz', r.tz || '', TZ_OPTS)}
         ${F.num('Laps', p + '.laps', r.laps)}
@@ -659,6 +660,39 @@ async function postToDiscord(x, d) {
   } catch (err) { toast('Discord refused it: ' + err.message, 'err'); return false; }
 }
 
+/* ---------------- predictions ---------------- */
+const PRA = { rounds: null, all: null, loading: false, err: '' };
+window.addEventListener('hashchange', () => { if (/^#\/admin\/predictions/.test(location.hash) && !PRA.loading) { PRA.rounds = null; setTimeout(rerender, 0); } });
+function secPredictions(d) {
+  const PR = window.Predictions, s = teamStore(), C = d.predictions;
+  const top = head('Predictions', 'Fans predict the podium, fastest lap and pole for the next round. You open each round; picks lock automatically when qualifying starts (or the race, if there\'s no qualifying session). Points are worked out from your results.', '<a class="btn" href="#/predictions">View page</a>');
+  const settings = `<div class="a-card"><h3>Settings</h3><div class="fgrid">${F.check('Predictions page is on (shows in More)', 'predictions.enabled', !!C.enabled)}</div>
+    <div class="fgrid">${F.num('Exact podium spot', 'predictions.points.exact', C.points.exact)}${F.num('Right driver, wrong spot', 'predictions.points.podium', C.points.podium)}${F.num('Fastest lap', 'predictions.points.fl', C.points.fl)}${F.num('Pole', 'predictions.points.pole', C.points.pole)}</div>
+    <div class="fgrid">${F.area('Intro text (optional)', 'predictions.intro', C.intro || '')}</div><p class="hint">Publish after changing these.</p></div>`;
+  if (!s) return top + `<div class="warn">Predictions use the same Firebase project as Grid Draft. Finish the setup in <a href="#/admin/griddraft">Grid Draft</a> first, then re-copy the rules.</div>` + settings;
+  if (!s.ready) return top + '<p class="muted">Connecting…</p>' + settings;
+  if (!s.user) return top + `<div class="a-card"><p>Sign in with your admin Google account to open rounds.</p><button class="btn primary" data-team="signin">Sign in with Google</button></div>` + settings;
+  if (PRA.rounds === null && !PRA.loading) {
+    PRA.loading = true;
+    Promise.all([s.predRounds(), s.allPreds()]).then(([r, a]) => { PRA.rounds = r; PRA.all = a; PRA.err = ''; })
+      .catch(e => { PRA.rounds = {}; PRA.all = []; PRA.err = (e.code || e.message) + (/permission/.test(e.code || e.message) ? ' — re-copy the security rules from Grid Draft ③ into Firebase (they now include predictions).' : ''); })
+      .finally(() => { PRA.loading = false; rerender(); });
+  }
+  const now = Date.now(), fmt = t => t ? `${LG.fmtDate(t)} · ${LG.fmtTime(t)}` : '—';
+  const rs = LG.rounds(d).filter(r => !r.cancelled);
+  const rows = rs.map(r => {
+    const R = (PRA.rounds || {})[r.id], auto = PR.lockFor(r), lock = (R && R.lockAt) || auto, n = (PRA.all || []).filter(p => p.roundId === r.id).length;
+    const st = !R || !R.open ? (LG.isDone(d, r) ? '<span class="muted">—</span>' : '<span class="chip">Not open</span>') : lock > now ? '<span class="chip on">● Open</span>' : '<span class="chip">🔒 Locked</span>';
+    const act = !R || !R.open
+      ? (!LG.isDone(d, r) && auto > now ? `<button class="btn xs primary" data-act="pr-open" data-r="${esc(r.id)}">Open</button>` : !auto ? '<span class="hint" style="margin:0">Set a start time</span>' : '')
+      : `${lock > now ? `<button class="btn xs" data-act="pr-lock" data-r="${esc(r.id)}">Lock now</button>` : ''}${lock !== auto && auto > now ? `<button class="btn xs" data-act="pr-open" data-r="${esc(r.id)}" title="Use the session time again">Reset lock time</button>` : ''}<button class="btn xs ghost" data-act="pr-hide" data-r="${esc(r.id)}">Hide</button>`;
+    return `<tr><td class="mono">R${esc(r.round)}</td><td>${esc(r.name)}</td><td class="mono" style="font-size:13px">${esc(fmt(lock))}</td><td>${st}</td><td class="r mono">${n}</td><td style="white-space:nowrap">${act}</td></tr>`;
+  }).join('');
+  return top + (PRA.err ? `<div class="warn">${esc(PRA.err)}</div>` : '') + `<div class="a-card" style="overflow-x:auto"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0">Rounds</h3><button class="btn sm" data-act="pr-reload">Refresh</button></div>
+    ${PRA.rounds === null ? '<p class="muted">Loading…</p>' : `<table class="rtable"><thead><tr><th>Rnd</th><th>Grand Prix</th><th>Locks at</th><th>Status</th><th class="r">Entries</th><th></th></tr></thead><tbody>${rows}</tbody></table>`}
+    <p class="hint">Open the next round once the weekend schedule is set — the lock time comes from its <b>Qualifying</b> session (or race start). Opening works right away, no Publish needed.</p></div>` + settings;
+}
+
 /* ---------------- applications ---------------- */
 const APA = { list: null, loading: false, err: '', filter: 'pending', hook: undefined, form: '' };
 window.addEventListener('hashchange', () => { if (/^#\/admin\/applications/.test(location.hash) && !APA.loading) { APA.list = null; APA.hook = undefined; setTimeout(rerender, 0); } });
@@ -829,7 +863,7 @@ function secSeasons(d) {
       <p class="hint">Saves the season as it stands (doesn't clear anything). Handy after the final race, or as a checkpoint. Saving again replaces the earlier copy.</p>
     </div>
     <div class="a-card"><h3>Start a new season</h3>
-      <ol class="steps"><li>Saves a full copy of Season ${esc(d.league.season)} and adds its champions to the Hall of fame.</li><li>Downloads a backup file to your computer.</li><li>Clears results, penalties, race control decisions and the calendar. Drivers, teams, scoring, news, rules and fantasy settings are kept.</li></ol>
+      <ol class="steps"><li>Saves a full copy of ${esc(LG.seasonName(d.league.season))} and adds its champions to the Hall of fame.</li><li>Downloads a backup file to your computer.</li><li>Clears results, penalties, race control decisions and the calendar. Drivers, teams, scoring, news, rules and fantasy settings are kept.</li></ol>
       <div class="fgrid"><label class="fld"><span>New season label</span><input type="text" id="sea-next" value="${esc(nextGuess)}" placeholder="e.g. 2027 or Season 3"></label></div>
       <div class="toolbar" style="margin-top:10px"><button class="btn sm danger" data-act="sea-new">Archive ${esc(d.league.season)} & start the new season</button></div>
       <p class="hint">Needs your GitHub connection (Publish & backup) to save the archive file. Nothing goes live until you press Publish.</p>
@@ -871,7 +905,7 @@ async function seasonArchive(d, startNew, btn) {
     next = (document.getElementById('sea-next').value || '').trim();
     if (!next) return toast('Type the new season label first', 'err');
     if (String(next) === String(d.league.season)) return toast('The new season needs a different label', 'err');
-    if (!confirm(`Archive Season ${d.league.season} and start ${next}?\n\nA backup downloads first. Results, penalties, race control decisions and the calendar will be cleared (nothing goes live until you publish).`)) return;
+    if (!confirm(`Archive ${LG.seasonName(d.league.season)} and start ${next}?\n\nA backup downloads first. Results, penalties, race control decisions and the calendar will be cleared (nothing goes live until you publish).`)) return;
   }
   if (!ghReady()) return;
   btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving…';
@@ -882,8 +916,8 @@ async function seasonArchive(d, startNew, btn) {
       if (!d.history.some(h => String(h.season) === String(d.league.season))) d.history.push(LG.snapshotSeason(d));
       d.results = {}; d.adjustments = []; d.stewards = []; d.calendar = [];
       d.league.season = next;
-      toast(`Season ${e.label} archived — Season ${next} is ready. Set up the calendar, then Publish.`);
-    } else toast(`Saved a full copy of Season ${e.label} — Publish to show it on the Seasons page`);
+      toast(`${LG.seasonName(e.label)} archived — ${LG.seasonName(next)} is ready. Set up the calendar, then Publish.`);
+    } else toast(`Saved a full copy of ${LG.seasonName(e.label)} — Publish to show it on the Seasons page`);
     commit();
   } catch (err) { btn.disabled = false; btn.textContent = old; toast('Couldn’t save the season: ' + err.message, 'err'); }
 }
@@ -1134,7 +1168,7 @@ function secHistory(d) {
   }).join('');
   return head('Hall of fame', 'Past champions. "Start a new season" archives automatically; you can also archive now or type in seasons from before this website existed.',
     `<button class="btn" data-act="add-hist">+ Add past season</button><button class="btn primary" data-act="archive-now">♛ Archive season ${esc(d.league.season)} now</button>`) +
-    `<div class="a-card"><h3>Hall of Fame look</h3><div class="fgrid">${F.select('Page style', 'theme.hofStyle', (d.theme || {}).hofStyle || 'sakura', [['sakura', '🌸 Sakura night (cherry blossoms)'], ['classic', '🏆 Classic gold']])}${F.check(`Show the current season's leader (Season ${esc(d.league.season)}) before it's archived`, 'theme.hofCurrent', (d.theme || {}).hofCurrent !== false)}</div></div>
+    `<div class="a-card"><h3>Hall of Fame look</h3><div class="fgrid">${F.select('Page style', 'theme.hofStyle', (d.theme || {}).hofStyle || 'sakura', [['sakura', '🌸 Sakura night (cherry blossoms)'], ['classic', '🏆 Classic gold']])}${F.check(`Show the current season's leader (${esc(LG.seasonName(d.league.season))}) before it's archived`, 'theme.hofCurrent', (d.theme || {}).hofCurrent !== false)}</div></div>
     <div class="a-card">${items || '<p class="muted">No seasons archived yet.</p>'}</div>
     <p class="hint">"Archive now" saves a snapshot of the current final standings and race winners without clearing anything — handy right after the last race.</p>`;
 }
@@ -1173,7 +1207,7 @@ function render(sec) {
   if (!unlocked()) return lockHTML();
   loadTeamKey();
   const me = team(), lim = limited();
-  const fn = !allowed(A.section) ? noAccess : { access: secAccess, dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, applications: secApplications, seasons: secSeasons, gallery: secGallery }[A.section];
+  const fn = !allowed(A.section) ? noAccess : { access: secAccess, dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, applications: secApplications, predictions: secPredictions, seasons: secSeasons, gallery: secGallery }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${me ? `<div class="side-who"><b>${esc(me.name)}</b><span>${me.owner ? 'Owner' : lim ? 'Admin team' : 'Admin team · passcode'} · <a href="javascript:void 0" data-team="signout">sign out</a></span></div>` : ''}
@@ -1225,8 +1259,8 @@ document.addEventListener('change', e => {
     const fr = new FileReader();
     fr.onload = async () => {
       let src; try { src = LG.normalize(JSON.parse(fr.result)); } catch (x) { return toast('That isn\'t a league backup file', 'err'); }
-      if (String(src.league.season) === String(D().league.season) && !confirm(`That file is labelled Season ${src.league.season}, the same as your current season. Import it as an archive anyway?`)) return;
-      try { const e = await saveArchive(D(), src); if (!e) return; const h = D().history; if (!h.some(x => String(x.season) === String(e.label))) h.push(Object.assign(LG.snapshotSeason(src), { season: e.label })); toast(`Season ${e.label} added — Publish to show it`); commit(); }
+      if (String(src.league.season) === String(D().league.season) && !confirm(`That file is labelled ${LG.seasonName(src.league.season)}, the same as your current season. Import it as an archive anyway?`)) return;
+      try { const e = await saveArchive(D(), src); if (!e) return; const h = D().history; if (!h.some(x => String(x.season) === String(e.label))) h.push(Object.assign(LG.snapshotSeason(src), { season: e.label })); toast(`${LG.seasonName(e.label)} added — Publish to show it`); commit(); }
       catch (x) { toast('Couldn\'t import: ' + x.message, 'err'); }
     };
     fr.readAsText(f); return;
@@ -1348,8 +1382,8 @@ document.addEventListener('click', async e => {
     case 'add-sd': { const x = newSD(d); d.stewards.push(x); A.open['sd-' + x.id] = true; return commit(); }
     case 'del-sd': if (confirm('Delete this report?')) { d.stewards.splice(i, 1); commit(); } return;
     case 'archive-now': {
-      if (d.history.some(h => String(h.season) === String(d.league.season)) && !confirm(`Season ${d.league.season} is already in the Hall of fame. Add another entry anyway?`)) return;
-      d.history.push(LG.snapshotSeason(d)); toast(`Season ${d.league.season} saved to the Hall of fame`); return commit();
+      if (d.history.some(h => String(h.season) === String(d.league.season)) && !confirm(`${LG.seasonName(d.league.season)} is already in the Hall of fame. Add another entry anyway?`)) return;
+      d.history.push(LG.snapshotSeason(d)); toast(`${LG.seasonName(d.league.season)} saved to the Hall of fame`); return commit();
     }
     case 'add-hist': { const h = { id: uid('season'), season: '', driverChampion: '', driverTeam: '', driverColor: '#39c5bb', driverPoints: '', teamChampion: '', teamColor: '#39c5bb', teamPoints: '', notes: '' }; d.history.push(h); A.open['hist-' + h.id] = true; return commit(); }
     case 'del-hist': if (confirm('Remove this season from the Hall of fame?')) { d.history.splice(i, 1); commit(); } return;
@@ -1374,6 +1408,16 @@ document.addEventListener('click', async e => {
       r.sessions = P[b.dataset.k]; A.open['rnd-' + r.id] = true; return commit();
     }
     case 'adjust': return adjustExisting(b);
+    case 'pr-reload': PRA.rounds = null; return rerender();
+    case 'pr-open': case 'pr-lock': case 'pr-hide': {
+      const r = byId(d.calendar, b.dataset.r), s = teamStore(); if (!r || !s) return;
+      const x = b.dataset.act === 'pr-open' ? { open: true, lockAt: window.Predictions.lockFor(r) } : b.dataset.act === 'pr-lock' ? { open: true, lockAt: Date.now() } : { open: false, lockAt: window.Predictions.lockFor(r) || Date.now() };
+      if (b.dataset.act === 'pr-hide' && !confirm('Hide predictions for this round? Picks already made are kept.')) return;
+      b.disabled = true;
+      try { await s.setPredRound(r.id, x); PRA.rounds = Object.assign({}, PRA.rounds, { [r.id]: x }); toast({ 'pr-open': `Predictions open for R${r.round} — they lock ${LG.fmtDate(x.lockAt)} ${LG.fmtTime(x.lockAt)}`, 'pr-lock': 'Locked — everyone\'s picks are now visible', 'pr-hide': 'Hidden' }[b.dataset.act]); }
+      catch (e2) { toast('Could not save: ' + (e2.code || e2.message) + (/permission/.test(e2.code || e2.message) ? ' — re-copy the rules from Grid Draft ③' : ''), 'err'); }
+      b.disabled = false; return rerender();
+    }
     case 'combo-list': A.typing[b.dataset.pathK] = false; return rerender();
     case 'drv-sort': ADS.sort = b.dataset.s; saveADS(); return rerender();
     case 'drv-save-order': { const st = LG.computeStandings(d); const order = driverOrder(d, st); d.drivers = order.map(k => d.drivers[k]); ADS.sort = 'custom'; saveADS(); toast('Saved as your order — Publish to use it on the site'); return commit(); }
@@ -1599,7 +1643,7 @@ function secAbout(d) {
       <p class="hint">Use ↑ ↓ to set the order people appear in — the first person is shown first.</p>
       <div style="margin-top:12px">${team.map((x, k) => `<div class="prow">
         <div class="prow-pic"><span class="thumb-frame round">${x.photo ? `<img src="${esc(LG.asset(x.photo))}" alt="" style="object-fit:cover" onerror="this.remove()">` : ''}</span><button class="btn xs" data-act="upload" data-mode="set" data-target="about.team.${k}.photo" data-folder="about" data-max="600" data-spec="headshot">⬆ Photo</button></div>
-        <div class="prow-fields">${F.text('Name', `about.team.${k}.name`, x.name || '', 'data-reload')}${F.text('Role', `about.team.${k}.role`, x.role || '', 'placeholder="League director"')}${F.text('Country code', `about.team.${k}.country`, x.country || '', 'maxlength="2"')}${F.text('Photo link', `about.team.${k}.photo`, x.photo || '', 'data-reload')}${F.area('Short bio (shown on the big profile slides)', `about.team.${k}.bio`, x.bio || '')}${F.text('Discord / handle (optional)', `about.team.${k}.handle`, x.handle || '')}</div>
+        <div class="prow-fields">${F.text('Name', `about.team.${k}.name`, x.name || '', 'data-reload')}${F.text('Role', `about.team.${k}.role`, x.role || '', 'placeholder="League director"')}${F.country('Country', `about.team.${k}.country`, x.country || '')}${F.text('Photo link', `about.team.${k}.photo`, x.photo || '', 'data-reload')}${F.area('Short bio (shown on the big profile slides)', `about.team.${k}.bio`, x.bio || '')}${F.text('Discord / handle (optional)', `about.team.${k}.handle`, x.handle || '')}</div>
         <div class="prow-act">${mvBtns('about.team', k, team.length)}<button class="iconbtn del" data-act="del-person" data-list="about.team" data-k="${k}" title="Remove">✕</button></div></div>`).join('')}
       <button class="btn sm" data-act="add-person" data-list="about.team">+ Add staff member</button></div></div>`;
 }
@@ -1939,6 +1983,38 @@ document.addEventListener('change', e => {
   e.stopImmediatePropagation(); A.typing[el.dataset.path] = true; rerender();
   setTimeout(() => { const i = document.querySelector(`[data-combo-input][data-path="${CSS.escape(el.dataset.path)}"]`); if (i) i.focus(); }, 30);
 }, true);
+/* ---- country picker (flags + names, searchable) ---- */
+function cpFlag(c) { const e = LG.flagEmoji(c.slice(0, 2)); return `<img class="flag" src="https://flagcdn.com/w40/${c.toLowerCase()}.png" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cp-emo',textContent:'${e}'}))">`; }
+let CP = null;
+function closeCP() { if (CP) { CP.el.remove(); CP = null; } }
+function openCP(btn) {
+  closeCP();
+  const path = btn.dataset.cpick, cur = (document.querySelector(`input[type=hidden][data-path="${CSS.escape(path)}"]`) || {}).value || '';
+  const el = document.createElement('div'); el.className = 'cpick-pop';
+  el.innerHTML = `<input type="search" placeholder="Search countries…" autocomplete="off"><div class="cpick-list">${LG.countries().map(([c, n]) => `<button type="button" data-cc="${c}" class="${c === cur.toUpperCase() ? 'on' : ''}" data-s="${esc((n + ' ' + c).toLowerCase())}">${cpFlag(c)}<span>${esc(n)}</span><small class="mono">${c}</small></button>`).join('')}</div>${cur ? '<button type="button" class="cpick-clear" data-cc="">Clear</button>' : ''}`;
+  document.body.appendChild(el);
+  const r = btn.getBoundingClientRect(), w = Math.max(r.width, 300);
+  el.style.width = w + 'px'; el.style.left = Math.min(r.left, innerWidth - w - 10) + 'px';
+  const below = innerHeight - r.bottom > 340; el.style.top = (below ? r.bottom + 6 : Math.max(10, r.top - 346)) + 'px';
+  CP = { el, path };
+  const q = el.querySelector('input'); q.focus();
+  const on = el.querySelector('.on'); if (on) on.scrollIntoView({ block: 'center' });
+  q.addEventListener('input', () => { const t = q.value.trim().toLowerCase(); el.querySelectorAll('.cpick-list button').forEach(b => { b.hidden = !!t && !b.dataset.s.includes(t); }); });
+  q.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); const f = [...el.querySelectorAll('.cpick-list button')].find(b => !b.hidden); if (f) f.click(); } if (ev.key === 'Escape') closeCP(); });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-cpick]');
+  if (b) { e.preventDefault(); return CP && CP.path === b.dataset.cpick ? closeCP() : openCP(b); }
+  const c = e.target.closest && e.target.closest('.cpick-pop [data-cc]');
+  if (c && CP) {
+    const inp = document.querySelector(`input[type=hidden][data-path="${CSS.escape(CP.path)}"]`);
+    closeCP(); if (inp) { inp.value = c.dataset.cc; inp.dispatchEvent(new Event('change', { bubbles: true })); }
+    return;
+  }
+  if (CP && !(e.target.closest && e.target.closest('.cpick-pop'))) closeCP();
+});
+window.addEventListener('hashchange', closeCP);
+document.addEventListener('scroll', e => { if (CP && !(e.target.closest && e.target.closest('.cpick-pop'))) closeCP(); }, true);
 document.addEventListener('input', e => {
   if (e.target.id !== 'drv-q') return;
   const q = e.target.value.trim().toLowerCase(); let n = 0;

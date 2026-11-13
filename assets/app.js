@@ -56,6 +56,7 @@ function normalize(x) {
   const d = Object.assign(base, x || {});
   d.league = Object.assign(emptyLeague().league, d.league || {});
   d.league.links = d.league.links || {};
+  d.predictions = Object.assign({ enabled: false, intro: '', points: { exact: 3, podium: 1, fl: 2, pole: 2 } }, d.predictions || {});
   d.applications = Object.assign({ forms: [] }, d.applications || {}); if (!Array.isArray(d.applications.forms)) d.applications.forms = [];
   d.settings = Object.assign({ adminHash: '' }, d.settings || {});
   if (!d.league.rcKira) { if (!d.league.raceControl || /^\s*fia\s*$/i.test(d.league.raceControl)) d.league.raceControl = 'KIRA'; d.league.rcKira = true; }
@@ -98,8 +99,20 @@ function applyTheme(d) {
   if (mt) { mt.hidden = t.allowToggle === false; mt.textContent = mode === 'light' ? '☾' : '☀'; mt.title = mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'; }
 }
 
+const COUNTRY_CODES = 'AF AX AL DZ AS AD AO AI AQ AG AR AM AW AU AT AZ BS BH BD BB BY BE BZ BJ BM BT BO BQ BA BW BV BR IO BN BG BF BI CV KH CM CA KY CF TD CL CN CX CC CO KM CG CD CK CR CI HR CU CW CY CZ DK DJ DM DO EC EG SV GQ ER EE SZ ET FK FO FJ FI FR GF PF TF GA GM GE DE GH GI GR GL GD GP GU GT GG GN GW GY HT HM VA HN HK HU IS IN ID IR IQ IE IM IL IT JM JP JE JO KZ KE KI KP KR XK KW KG LA LV LB LS LR LY LI LT LU MO MG MW MY MV ML MT MH MQ MR MU YT MX FM MD MC MN ME MS MA MZ MM NA NR NP NL NC NZ NI NE NG NU NF MK MP NO OM PK PW PS PA PG PY PE PH PN PL PT PR QA RE RO RU RW BL SH KN LC MF PM VC WS SM ST SA SN RS SC SL SG SX SK SI SB SO ZA GS SS ES LK SD SR SJ SE CH SY TW TJ TZ TH TL TG TK TO TT TN TR TM TC TV UG UA AE GB US UM UY UZ VU VE VN VG VI WF EH YE ZM ZW EU'.split(' ');
+const EXTRA_FLAGS = { 'GB-ENG': 'England', 'GB-SCT': 'Scotland', 'GB-WLS': 'Wales', 'GB-NIR': 'Northern Ireland' };
+let _countries = null;
+function countries() {
+  if (_countries) return _countries;
+  let dn = null; try { dn = new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) { }
+  _countries = [...COUNTRY_CODES.map(c => [c, (dn && dn.of(c)) || c]), ...Object.entries(EXTRA_FLAGS)]
+    .sort((a, b) => a[1].localeCompare(b[1]));
+  return _countries;
+}
+const countryName = cc => { if (!cc) return ''; const c = String(cc).toUpperCase(); const f = countries().find(x => x[0] === c); return f ? f[1] : c; };
+const flagEmoji = cc => /^[a-z]{2}$/i.test(cc || '') ? String(cc).toUpperCase().replace(/./g, ch => String.fromCodePoint(127397 + ch.charCodeAt(0))) : '🏳️';
 function flag(cc, cls = '') {
-  if (!cc || !/^[a-z]{2}$/i.test(cc)) return '';
+  if (!cc || !/^[a-z]{2}(-[a-z]{3})?$/i.test(cc)) return '';
   return `<img class="flag ${cls}" src="https://flagcdn.com/w80/${cc.toLowerCase()}.png" alt="${esc(cc.toUpperCase())}" loading="lazy" onerror="this.remove()">`;
 }
 
@@ -541,6 +554,7 @@ function lapSecs(t) {
   if (p.some(isNaN)) { const m = s.match(/^(\d+)\.(\d{1,2})\.(\d+)$/); return m ? Number(m[1]) * 60 + Number(m[2] + '.' + m[3]) : null; }
   return p.reduce((a, v) => a * 60 + v, 0);
 }
+const seasonName = s => { const t = String(s ?? '').trim(); return !t ? 'Season' : /season|saison|temporada/i.test(t) ? t : 'Season ' + t; };
 const sessionName = s => ({ race: 'Race', sprint: 'Sprint', quali: 'Qualifying', sprintQuali: 'Sprint Qualifying' }[s] || s);
 
 function roundStatus(d, r) {
@@ -613,7 +627,7 @@ function pageHome(d) {
   return `<div class="page">
     <section class="hero">
       <div class="hero-text">
-        <div class="eyebrow">Season ${esc(d.league.season)}${total ? ` · Round ${Math.min(done + (nx ? 1 : 0), total)} of ${total}` : ''}</div>
+        <div class="eyebrow">${esc(seasonName(d.league.season))}${total ? ` · Round ${Math.min(done + (nx ? 1 : 0), total)} of ${total}` : ''}</div>
         <h1>${title}</h1>
         ${d.league.tagline ? `<p>${esc(d.league.tagline)}</p>` : ''}
         <div class="hero-cta"><a class="btn primary" href="#/standings">Championship standings</a><a class="btn ghost" href="#/results">Latest results</a>${d.signups.open ? '<a class="btn ghost" href="#/join">✦ Join the league</a>' : ''}</div>
@@ -661,7 +675,7 @@ function pageSchedule(d) {
       ${winner}
     </a>`;
   }).join('');
-  return `<div class="page">${head('Season ' + d.league.season, 'Calendar', 'Every round of the season. Times are shown in your local time zone.')}
+  return `<div class="page">${head(seasonName(d.league.season), 'Calendar', 'Every round of the season. Times are shown in your local time zone.')}
     ${rs.length ? `<div class="round-grid">${cards}</div>` : empty('No rounds scheduled yet')}</div>`;
 }
 
@@ -688,7 +702,7 @@ function pageResultsIndex(d) {
       <td class="mono hide-sm">${esc((w && w.laps) || r.laps || '')}</td>
     </tr>`;
   }).join('');
-  return `<div class="page">${head('Season ' + d.league.season, 'Race results', 'Pick a round for the full classification, sprint and qualifying.')}
+  return `<div class="page">${head(seasonName(d.league.season), 'Race results', 'Pick a round for the full classification, sprint and qualifying.')}
     ${roundPicker(d, null)}
     ${rs.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Rd</th><th>Grand Prix</th><th class="hide-sm">Date</th><th>Winner</th><th class="hide-sm">Team</th><th class="hide-sm">Pole</th><th class="hide-sm">Fastest lap</th><th class="hide-sm">DOTD</th><th class="hide-sm">Laps</th></tr></thead><tbody>${rows}</tbody></table></div>` : empty('No rounds yet')}
   </div>`;
@@ -841,7 +855,7 @@ function pageStandings(d, view) {
       </tbody></table></div>
       <div class="legend"><span><span class="cell p1">1</span>Win</span><span><span class="cell p2">2</span><span class="cell p3">3</span>Podium</span><span><span class="cell pts">7</span>Points</span><span><span class="cell nopts">14</span>No points</span><span><span class="cell dnf">DNF</span>Retired</span><span>• fastest lap</span><span>S = sprint finish</span></div>` : empty('No drivers yet');
   }
-  return `<div class="page">${head('Season ' + d.league.season, 'Championship standings', '')}${tabs}${body}</div>`;
+  return `<div class="page">${head(seasonName(d.league.season), 'Championship standings', '')}${tabs}${body}</div>`;
 }
 
 document.addEventListener('click', e => {
@@ -872,11 +886,11 @@ function pageDrivers(d) {
       <div class="dc-team">${flag(drv.country)} <span>${esc(t ? t.name : drv.reserve ? 'League reserve' : 'Free agent')}</span></div>
     </a>`;
   };
-  return `<div class="page">${head('Season ' + d.league.season, 'Drivers', `${active.length} drivers on the grid.`)}
+  return `<div class="page">${head(seasonName(d.league.season), 'Drivers', `${active.length} drivers on the grid.`)}
     ${active.length > 1 ? `<div class="drv-sortbar"><span class="muted">Sort by</span>${sortBar}</div>` : ''}
     ${active.length ? `<div class="driver-grid">${active.map(card).join('')}</div>` : empty('No drivers yet', '<p>Add drivers from the admin console.</p>')}
-    ${reserves.length ? `<section><div class="section-title"><h2>Reserves</h2><span class="muted">${reserves.length} reserve driver${reserves.length === 1 ? '' : 's'}</span></div><div class="driver-grid">${reserves.map(card).join('')}</div></section>` : ''}
-    ${former.length ? `<section><div class="section-title"><h2>Retired</h2></div><div class="driver-grid">${former.map(card).join('')}</div></section>` : ''}
+    ${reserves.length ? `<section class="drv-section"><div class="section-title"><h2>Reserves</h2><span class="muted">${reserves.length} reserve driver${reserves.length === 1 ? '' : 's'}</span></div><div class="driver-grid">${reserves.map(card).join('')}</div></section>` : ''}
+    ${former.length ? `<section class="drv-section"><div class="section-title"><h2>Retired</h2></div><div class="driver-grid">${former.map(card).join('')}</div></section>` : ''}
   </div>`;
 }
 
@@ -900,7 +914,7 @@ function careerStints(d, D) {
     return { h, k, t, cur, fs, fr, ts, tr, len, startKey, endKey, name: t ? t.name : h.team, color: t ? teamColor(t) : (h.color || '#8a9aa0'), logo: t && t.logo, role: h.role || '' };
   }).sort((x, y) => (y.endKey - x.endKey) || (y.startKey - x.startKey) || (y.k - x.k)); // current first, then most recent finish
 }
-const stintPt = (s, r) => `${s ? 'Season ' + esc(s) : ''}${r ? `${s ? ' · ' : ''}R${esc(r)}` : ''}`;
+const stintPt = (s, r) => `${s ? esc(seasonName(s)) : ''}${r ? `${s ? ' · ' : ''}R${esc(r)}` : ''}`;
 const stintWhen = x => `<span class="nw">${stintPt(x.fs, x.h.fromRound) || 'Start'}</span> <span class="nw">→ ${x.cur ? '<b class="th-now">Present</b>' : stintPt(x.h.toSeason || x.fs, x.h.toRound)}</span>`;
 const stintLen = x => `${x.len} round${x.len === 1 ? '' : 's'}${x.cur ? ' so far' : ''}`;
 const teamLink = x => x.t ? `<a href="#/team/${esc(x.t.id)}">${esc(x.name)}</a>` : esc(x.name);
@@ -982,7 +996,7 @@ function pageTeams(d) {
       <div class="tc-car-slot">${t.carImage ? `<img class="tc-car" src="${esc(asset(t.carImage))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
     </a>`;
   }).join('');
-  return `<div class="page">${head('Season ' + d.league.season, 'Teams', `${d.teams.length} constructors fighting for the title.`)}
+  return `<div class="page">${head(seasonName(d.league.season), 'Teams', `${d.teams.length} constructors fighting for the title.`)}
     ${list.length ? `<div class="team-grid">${cards}</div>` : empty('No teams yet', '<p>Add constructors from the admin console.</p>')}</div>`;
 }
 
@@ -1095,7 +1109,7 @@ function rulebookData(d) {
 }
 function pageRules(d, chId, secId) {
   const R = rulebookData(d);
-  if (!R) return `<div class="page">${head('Season ' + d.league.season, 'Rules & scoring', '')}${scoringHTML(d)}
+  if (!R) return `<div class="page">${head(seasonName(d.league.season), 'Rules & scoring', '')}${scoringHTML(d)}
     ${d.league.rules ? `<section class="card" style="margin-top:24px"><div class="prose">${md(d.league.rules)}</div></section>` : ''}</div>`;
   const chs = R.chapters;
   const ci = Math.max(0, chs.findIndex(c => c.id === chId));
@@ -1117,7 +1131,7 @@ function pageRules(d, chId, secId) {
     </article>`).join('')}`;
   const prev = chs[ci - 1], next = chs[ci + 1];
   return `<div class="page rb">
-    <div class="page-head"><div class="eyebrow">${esc(R.rb.version ? 'Version ' + R.rb.version : 'Season ' + d.league.season)}${R.rb.updated ? ' · Updated ' + esc(fmtDate(R.rb.updated + 'T12:00:00')) : ''}</div>
+    <div class="page-head"><div class="eyebrow">${esc(R.rb.version ? 'Version ' + R.rb.version : seasonName(d.league.season))}${R.rb.updated ? ' · Updated ' + esc(fmtDate(R.rb.updated + 'T12:00:00')) : ''}</div>
       <h1>${esc(R.rb.title || R.title || 'Rulebook')}</h1></div>
     ${ci === 0 && R.intro ? `<div class="prose rb-docintro">${md(R.intro)}</div>` : ''}
     ${mobileNav}
@@ -1391,7 +1405,7 @@ function searchIndex(d) {
   if (R) R.chapters.forEach(c => c.sections.forEach(x => add('Rules', `${x.num} ${x.title || x.label || ''}`.trim(), c.title, `#/rules/${c.id}/${x.id}`, plain(x.body).slice(0, 400))));
   d.stewards.forEach(x => { const r = byId(d.calendar, x.roundId); add(rcName(d), x.title || 'Decision', `${r ? 'R' + r.round + ' · ' : ''}${x.status || ''}`, '#/stewards' + (r ? '/' + r.id : ''), `${x.penalty || ''} ${plain(x.decision)} ${(byId(d.drivers, x.driverId) || {}).name || ''}`); });
   fiaNewsList(d).forEach(x => add(rcName(d), x.title, `Announcement${x.date ? ' · ' + fmtDate(x.date) : ''}`, '#/fia/announcements', plain(x.body).slice(0, 400)));
-  d.history.forEach(h => add('Hall of fame', `Season ${h.season}`, `${h.driverChampion || ''}${h.teamChampion ? ' · ' + h.teamChampion : ''}`, h.standings ? '#/history/' + h.id : '#/history', ''));
+  d.history.forEach(h => add('Hall of fame', `${seasonName(h.season)}`, `${h.driverChampion || ''}${h.teamChampion ? ' · ' + h.teamChampion : ''}`, h.standings ? '#/history/' + h.id : '#/history', ''));
   return items;
 }
 function runSearch(d, q) {
@@ -1690,8 +1704,8 @@ function pageHistorySeason(d, id) {
   return `<div class="page hof ${sk ? 'hof-sakura' : ''}">${sk ? skFall(14) : ''}<a class="back" href="#/history">← Hall of fame</a>
     <header class="hof-hero sm">${sk ? skHeroDeco() : ''}
       <div class="hof-crest">${sk ? skIcon() : TROPHY}</div>
-      <div class="hof-eyebrow">Season ${esc(h.season)} · Final standings</div>
-      <h1 class="hof-title">${h.driverChampion ? esc(h.driverChampion) : 'Season ' + esc(h.season)}</h1>
+      <div class="hof-eyebrow">${esc(seasonName(h.season))} · Final standings</div>
+      <h1 class="hof-title">${h.driverChampion ? esc(h.driverChampion) : esc(seasonName(h.season))}</h1>
       <p class="hof-subtitle">${h.driverChampion ? "Drivers' Champion" : ''}${h.teamChampion ? ` · ${esc(h.teamChampion)}, Constructors' Champion` : ''}</p>
     </header>
     <div class="grid grid-2">
@@ -1778,7 +1792,7 @@ function pageJoin(d, sub) {
   const applyBtn = hub ? (open.length === 1 ? `<a class="btn primary" href="#/apply/${esc(open[0].id)}">Apply now →</a>` : '')
     : s.formUrl ? `<a class="btn primary" href="${esc(s.formUrl)}" target="_blank" rel="noopener">Apply now →</a>` : discord ? `<a class="btn primary" href="${esc(discord)}" target="_blank" rel="noopener">Apply on Discord →</a>` : '';
   const seatList = seats.length ? `<ul class="seat-list">${seats.map(x => `<li style="--tc:${esc(teamColor(x.t))}">${x.t.logo ? `<img src="${esc(asset(x.t.logo))}" alt="" onerror="this.remove()">` : '<span class="swatch"></span>'}<a class="grow" href="#/team/${esc(x.t.id)}">${esc(x.t.name)}</a><span class="seat-pips">${Array.from({ length: per }, (_, k) => `<i class="${k < per - x.n ? 'taken' : ''}"></i>`).join('')}</span><span class="v">${x.n} open</span></li>`).join('')}</ul>` : '<p class="muted">Every race seat is filled — you can still apply as a reserve driver.</p>';
-  return `<div class="page">${head('Season ' + d.league.season, esc(s.title || 'Join the grid'), '')}
+  return `<div class="page">${head(seasonName(d.league.season), esc(s.title || 'Join the grid'), '')}
     <div class="card" style="margin-bottom:20px"><div class="join-status"><span class="badge ${s.open ? 'next' : 'cancel'}" style="${s.open ? '' : 'text-decoration:none'}">${s.open ? 'Sign-ups open' : 'Sign-ups closed'}</span>${s.open && total ? `<span class="muted">${total} seat${total > 1 ? 's' : ''} available</span>` : ''}<span style="margin-left:auto">${s.open ? applyBtn : ''}</span></div>
       ${s.intro ? `<div class="prose" style="margin-top:16px">${md(s.intro)}</div>` : `<p class="muted" style="margin:14px 0 0">${s.open ? 'We\'re looking for drivers! Pick an application below and send it in.' : 'Sign-ups are closed right now — keep an eye on the news page or Discord for the next window.'}</p>`}
     </div>
@@ -1944,7 +1958,7 @@ const notFound = () => `<div class="page">${empty('Page not found', '<p><a href=
 
 /* ---------------- router & chrome ---------------- */
 const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News']];
-const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['seasons', 'Seasons'], ['gallery', 'Gallery'], ['griddraft', 'Grid Draft'], ['join', 'Join the league']];
+const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['seasons', 'Seasons'], ['gallery', 'Gallery'], ['griddraft', 'Grid Draft'], ['predictions', 'Predictions'], ['join', 'Join the league']];
 const ROUTES = [
   [/^$/, d => pageHome(d)],
   [/^schedule$/, d => pageSchedule(d)],
@@ -1967,6 +1981,7 @@ const ROUTES = [
   [/^gallery$/, d => pageGallery(d)],
   [/^seasons(?:\/(view)\/([^/]+))?$/, (d, m) => window.Extras ? window.Extras.pageSeasons(d, m[1], m[2]) : notFound()],
   [/^portal$/, d => window.Portal ? window.Portal.page(d) : notFound()],
+  [/^predictions$/, d => window.Predictions ? window.Predictions.page(d) : notFound()],
   [/^apply(?:\/([^/]+))?(?:\/(sign))?$/, (d, m) => !m[1] || m[1] === 'status' ? pageJoin(d, m[1]) : window.Apps ? window.Apps.page(d, m[1], m[2]) : notFound()],
   [/^griddraft(?:\/(\w+))?$/, (d, m) => window.GridDraft ? window.GridDraft.page(d, m[1]) : notFound()],
   [/^fantasy(?:\/(\w+))?$/, (d, m) => window.Fantasy ? window.Fantasy.page(d, m[1]) : notFound()],
@@ -2014,7 +2029,7 @@ function chrome() {
   applyTheme(d);
   document.title = (L.name || 'F1 League') + (L.season ? ` · ${L.season}` : '');
   document.getElementById('brand-name').textContent = L.name || 'F1 League';
-  document.getElementById('brand-season').textContent = L.season ? 'Season ' + L.season : '';
+  document.getElementById('brand-season').textContent = L.season ? seasonName(L.season) : '';
   const mark = document.getElementById('brand-mark');
   mark.innerHTML = L.logo ? `<img src="${esc(asset(L.logo))}" alt="" onerror="this.remove()">` : esc((L.name || 'F1').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase());
   const top = location.hash.replace(/^#\/?/, '').split('/')[0];
@@ -2024,10 +2039,10 @@ function chrome() {
   const moreOn = MORE.some(([k]) => k === cur);
   const navItems = d.fantasy && d.fantasy.enabled ? [...NAV, ['fantasy', 'Fantasy']] : NAV;
   document.getElementById('nav').innerHTML = navItems.map(link).join('') +
-    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => (k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)) && (k !== 'gallery' || (d.gallery || []).length) && (k !== 'apply' || ((d.applications || {}).forms || []).length)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
+    `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => (k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)) && (k !== 'predictions' || (d.predictions && d.predictions.enabled)) && (k !== 'gallery' || (d.gallery || []).length) && (k !== 'apply' || ((d.applications || {}).forms || []).length)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a href="${esc(links[k])}" target="_blank" rel="noopener">${l}</a>`).join('');
-  document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · Season ${esc(L.season)}<br><span style="font-size:12px">${esc(L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.')}</span></div>
+  document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · ${esc(seasonName(L.season))}<br><span style="font-size:12px">${esc(L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.')}</span></div>
     <div class="links">${ext}<a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}<a href="#/admin">Admin</a></div></div>`;
 }
 
@@ -2136,7 +2151,7 @@ window.addEventListener('hashchange', () => render(true));
 
 /* expose helpers for the admin console */
 window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
-  rcName, HIST_ROLES, lapSecs, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
+  rcName, HIST_ROLES, lapSecs, seasonName, countries, countryName, flagEmoji, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
   DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, titleCaseText, applyTitleCase, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 
 load().then(() => render(false));

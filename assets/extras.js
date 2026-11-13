@@ -129,7 +129,7 @@ async function openArchive(d, id, go) {
     ssSet(AKEY, s.id);
     if (go) location.hash = go; else LG.render(false);
     return true;
-  } catch (e) { toast(`Couldn’t open Season ${s.label}: ${e.message}`, 'err'); return false; }
+  } catch (e) { toast(`Couldn’t open ${LG.seasonName(s.label)}: ${e.message}`, 'err'); return false; }
 }
 function closeArchive(go) { LG.S.archive = null; ssSet(AKEY, null); if (go) location.hash = go; else LG.render(false); }
 function banner(path) {
@@ -139,9 +139,9 @@ function banner(path) {
   if (!el) { el = document.createElement('div'); el.id = 'season-banner'; el.className = 'season-banner'; document.querySelector('.topbar').after(el); }
   const list = seasonsIndex(LG.S.data);
   el.hidden = false;
-  el.innerHTML = `<span>📁 You're viewing the <b>Season ${esc(A.label)}</b> archive</span>
-    ${list.length > 1 ? `<select data-sb="switch" aria-label="Switch season">${list.map(s => `<option value="${esc(s.id)}" ${s.id === A.id ? 'selected' : ''}>Season ${esc(s.label)}</option>`).join('')}</select>` : ''}
-    <button class="btn xs primary" data-sb="exit">Back to Season ${esc(LG.S.data.league.season)}</button>`;
+  el.innerHTML = `<span>📁 You're viewing the <b>${esc(LG.seasonName(A.label))}</b> archive</span>
+    ${list.length > 1 ? `<select data-sb="switch" aria-label="Switch season">${list.map(s => `<option value="${esc(s.id)}" ${s.id === A.id ? 'selected' : ''}>${esc(LG.seasonName(s.label))}</option>`).join('')}</select>` : ''}
+    <button class="btn xs primary" data-sb="exit">Back to ${esc(LG.seasonName(LG.S.data.league.season))}</button>`;
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-sb="exit"]'); if (b) closeArchive(); const o = e.target.closest('[data-season-open]'); if (o) { e.preventDefault(); openArchive(LG.S.data, o.dataset.seasonOpen, '#/standings'); } const c = e.target.closest('[data-season-current]'); if (c) { e.preventDefault(); closeArchive('#/standings'); } });
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.sb === 'switch') openArchive(LG.S.data, e.target.value); });

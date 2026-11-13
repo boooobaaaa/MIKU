@@ -70,12 +70,18 @@ function fbStore(conf) {
     async allApps() { const q = await F.getDocs(F.collection(db, 'applications')); return q.docs.map(conv); },
     async reviewApp(id, status, note, reviewer, clearSig) { await F.updateDoc(F.doc(db, 'applications', id), Object.assign({ status, note: note || '', reviewer: reviewer || '', reviewedAt: F.serverTimestamp() }, clearSig ? { signature: '', contract: '', signedAt: null } : {})); },
     async signApp(id, signature, contract) { await F.updateDoc(F.doc(db, 'applications', id), { status: 'signed', signature, contract, signedAt: F.serverTimestamp() }); },
-    async deleteApp(id) { await F.deleteDoc(F.doc(db, 'applications', id)); }
+    async deleteApp(id) { await F.deleteDoc(F.doc(db, 'applications', id)); },
+    /* predictions */
+    async predRounds() { const q = await F.getDocs(F.collection(db, 'pred_rounds')); const o = {}; q.docs.forEach(x => { const v = x.data(); o[x.id] = { open: !!v.open, lockAt: ts(v.lockAt) }; }); return o; },
+    async setPredRound(rid, x) { await F.setDoc(F.doc(db, 'pred_rounds', rid), { open: !!x.open, lockAt: new Date(x.lockAt) }); },
+    async allPreds() { const q = await F.getDocs(F.collection(db, 'predictions')); return q.docs.map(x => Object.assign({ id: x.id }, x.data(), { at: ts(x.data().at) })); },
+    async savePred(rid, x) { await F.setDoc(F.doc(db, 'predictions', rid + '_' + s.user.uid), { uid: s.user.uid, name: x.name, roundId: rid, podium: x.podium, fl: x.fl, pole: x.pole, at: F.serverTimestamp() }); },
+    async deletePred(id) { await F.deleteDoc(F.doc(db, 'predictions', id)); }
   });
   return s;
 }
 let STORE = null, KEY = '';
-function hook(s) { if (s && !s.__hooked) { s.__hooked = true; s.on(() => { P.subs = null; if (/^#\/(portal|admin|apply|join)/.test(location.hash)) LG.render(false); }); } return s; }
+function hook(s) { if (s && !s.__hooked) { s.__hooked = true; s.on(() => { P.subs = null; if (/^#\/(portal|admin|apply|join|predictions)/.test(location.hash)) LG.render(false); }); } return s; }
 function store(d) {
   if (window.PT_TEST_STORE) return hook(window.PT_TEST_STORE);
   const conf = d.gridDraft && d.gridDraft.firebase && d.gridDraft.firebase.apiKey ? d.gridDraft.firebase : null;
@@ -178,6 +184,32 @@ const RULES = `
           && request.resource.data.note is string && request.resource.data.note.size() <= 2000
           && request.resource.data.reviewer is string && request.resource.data.reviewer.size() <= 80);
       allow delete: if canReviewApps() || (signedIn() && resource.data.uid == request.auth.uid && resource.data.status in ['pending', 'denied']);
+    }
+
+    // ---------------- Predictions ----------------
+    function canRunPreds() { return isAdmin() || (isCoAdmin() && ('*' in coSections() || 'predictions' in coSections())); }
+    function predOpen(rid) {
+      return exists(/databases/$(db)/documents/pred_rounds/$(rid))
+        && get(/databases/$(db)/documents/pred_rounds/$(rid)).data.open == true
+        && request.time < get(/databases/$(db)/documents/pred_rounds/$(rid)).data.lockAt;
+    }
+    match /pred_rounds/{rid} {
+      allow read: if true;
+      allow write: if canRunPreds();
+    }
+    match /predictions/{id} {
+      allow read: if true;
+      allow create, update: if signedIn() && request.auth.token.email_verified == true
+        && id == request.resource.data.roundId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'roundId', 'podium', 'fl', 'pole', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
+        && request.resource.data.podium is list && request.resource.data.podium.size() == 3
+        && request.resource.data.fl is string && request.resource.data.fl.size() <= 60
+        && request.resource.data.pole is string && request.resource.data.pole.size() <= 60
+        && request.resource.data.at == request.time
+        && predOpen(request.resource.data.roundId);
+      allow delete: if canRunPreds();
     }
 `;
 
