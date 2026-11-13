@@ -2208,3 +2208,12 @@ textarea.ct-area { min-height: 220px; }
 .mu-more:hover { color: var(--miku); border-color: var(--miku); }
 .mu-more.open { transform: rotate(180deg); }
 @media (max-width: 760px) { .mu-more { left: 34px; bottom: 32px; } }
+
+/* drivers sort bar */
+.drv-sortbar { display: flex; align-items: center; gap: 12px; margin: -6px 0 18px; flex-wrap: wrap; font-size: 13px; }
+.drv-sortbar .tabs { margin: 0; }
+/* calendar cards: badges wrap instead of clipping */
+.round-card .rc-top { flex-wrap: wrap; align-items: flex-start; row-gap: 6px; }
+.round-card .rc-round { white-space: nowrap; }
+.round-card .rc-top > span:last-child { flex-wrap: wrap; justify-content: flex-end; }
+.round-card .badge { white-space: nowrap; }

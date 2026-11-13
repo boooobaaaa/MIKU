@@ -831,11 +831,23 @@ function pageStandings(d, view) {
   return `<div class="page">${head('Season ' + d.league.season, 'Championship standings', '')}${tabs}${body}</div>`;
 }
 
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-drv-sort]'); if (!b) return;
+  try { localStorage.setItem('league.driverSort', b.dataset.drvSort); } catch (x) { }
+  render(false);
+});
 function pageDrivers(d) {
   const st = computeStandings(d);
   const custom = (d.theme || {}).listOrder === 'custom';
-  const active = d.drivers.filter(x => x.active !== false); if (!custom) active.sort((a, b) => ((st.D[a.id] || {}).position || 999) - ((st.D[b.id] || {}).position || 999));
-  const former = d.drivers.filter(x => x.active === false);
+  let sortBy = 'default'; try { sortBy = localStorage.getItem('league.driverSort') || 'default'; } catch (e) { }
+  const lastName = x => { const p = String(x.name || '').trim().split(/\s+/); return (p[p.length - 1] || '').toLowerCase(); };
+  const num = x => { const n = parseInt(x.number, 10); return isNaN(n) ? 999 : n; };
+  const sorter = sortBy === 'number' ? (a, b) => num(a) - num(b) || lastName(a).localeCompare(lastName(b))
+    : sortBy === 'name' ? (a, b) => lastName(a).localeCompare(lastName(b)) || String(a.name).localeCompare(String(b.name))
+    : custom ? null : (a, b) => ((st.D[a.id] || {}).position || 999) - ((st.D[b.id] || {}).position || 999);
+  const active = d.drivers.filter(x => x.active !== false); if (sorter) active.sort(sorter);
+  const former = d.drivers.filter(x => x.active === false); if (sortBy !== 'default') former.sort(sorter);
+  const sortBar = `<div class="tabs drv-sort" role="group" aria-label="Sort drivers">${[['default', custom ? 'Default' : 'Championship'], ['number', 'Number'], ['name', 'Last name']].map(([k, l]) => `<button data-drv-sort="${k}" class="${sortBy === k ? 'active' : ''}">${l}</button>`).join('')}</div>`;
   const card = drv => {
     const s = st.D[drv.id] || { points: 0 }, t = driverTeam(d, drv, s);
     return `<a class="driver-card${drv.photo ? ' has-photo' : ''}" href="#/driver/${esc(drv.id)}" style="--tc:${esc(teamColor(t))}">
@@ -847,6 +859,7 @@ function pageDrivers(d) {
     </a>`;
   };
   return `<div class="page">${head('Season ' + d.league.season, 'Drivers', `${active.length} drivers on the grid.`)}
+    ${active.length > 1 ? `<div class="drv-sortbar"><span class="muted">Sort by</span>${sortBar}</div>` : ''}
     ${active.length ? `<div class="driver-grid">${active.map(card).join('')}</div>` : empty('No drivers yet', '<p>Add drivers from the admin console.</p>')}
     ${former.length ? `<section><div class="section-title"><h2>Former / reserve drivers</h2></div><div class="driver-grid">${former.map(card).join('')}</div></section>` : ''}
   </div>`;
