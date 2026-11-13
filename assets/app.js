@@ -1727,8 +1727,10 @@ function pageHistory(d) {
         <div><b>${ranked[0] ? esc(ranked[0][0].split(' ').pop()) : '—'}</b><span>Most titles${ranked[0] ? ' · ' + ranked[0][1] : ''}</span></div>
       </div>
     </header>
+    ${window.Records ? `<div class="hof-tabs"><button data-hof-view="champions" class="${window.Records.state.view !== 'records' ? 'on' : ''}">🏆 Champions</button><button data-hof-view="records" class="${window.Records.state.view === 'records' ? 'on' : ''}">📊 Records</button></div>` : ''}
+    ${window.Records && window.Records.state.view === 'records' ? `<div class="hof-records">${window.Records.block()}</div>` : `
     ${multi.length ? `<div class="hof-multi">${multi.map(([nm, n]) => `<span class="hof-chip">${sk ? skIcon().repeat(Math.min(n, 7)) : '★'.repeat(Math.min(n, 7))} ${esc(nm)} <b>×${n}</b></span>`).join('')}</div>` : ''}
-    ${cur || list.length ? `<div class="hof-grid">${cur}${list.map(h => champCard(d, h)).join('')}</div>` : empty('No champions crowned yet', '<p>When a season ends, the admin archives it here.</p>')}
+    ${cur || list.length ? `<div class="hof-grid">${cur}${list.map(h => champCard(d, h)).join('')}</div>` : empty('No champions crowned yet', '<p>When a season ends, the admin archives it here.</p>')}`}
   </div>`;
 }
 function pageHistorySeason(d, id) {

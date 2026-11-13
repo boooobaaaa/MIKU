@@ -222,7 +222,8 @@ service cloud.firestore {
         && request.resource.data.period == '' && request.resource.data.attempts == 0
         && request.resource.data.lastStart == request.time && request.resource.data.seen == request.time
         && request.resource.data.active == '' && request.resource.data.team == null && request.resource.data.teamAt == null;
-      allow update: if signedIn() && request.auth.uid == uid && (renameOnly() || seenOnly() || startDraft() || completeDraft());
+      allow update: if (signedIn() && request.auth.uid == uid && (renameOnly() || seenOnly() || startDraft() || completeDraft()))
+        || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attempts']) && request.resource.data.attempts == 0);
       allow delete: if isAdmin();
     }
 
@@ -355,6 +356,7 @@ function firebaseStore(conf) {
     async myDrafts() { const q = await F.getDocs(F.query(F.collection(db, 'gd_drafts'), F.where('uid', '==', s.user.uid))); return q.docs.map(x => convD(x.id, x.data())); },
     async players() { const q = await F.getDocs(F.collection(db, 'gd_users')); return q.docs.map(x => Object.assign({ uid: x.id }, conv(x.data()))); },
     async allDrafts() { const q = await F.getDocs(F.collection(db, 'gd_drafts')); return q.docs.map(x => convD(x.id, x.data())); },
+    async resetPlayer(uid) { await F.updateDoc(F.doc(db, 'gd_users', uid), { attempts: 0 }); },
     async adminReset() { await F.setDoc(F.doc(db, 'gd_meta', 'state'), { reset: (Number(s.meta.reset) || 0) + 1 }, { merge: true }); },
     async test() { await F.getDoc(F.doc(db, 'gd_meta', 'state')); return true; }
   });

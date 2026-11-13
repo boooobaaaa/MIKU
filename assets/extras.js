@@ -100,7 +100,7 @@ function ui() {
   const vol = Math.round((p.vol === null ? (Number(M.cfg.volume) || 35) / 100 : p.vol) * 100);
   const hint = M.waiting && !playing && !muted && !p.off && !M.open ? `<button class="mu-hint" data-mu="fab">🎵 Tap anywhere for music</button>` : '';
   const html = `${hint}<button class="mu-fab ${playing && !muted ? 'on' : ''} ${muted ? 'muted' : ''}" data-mu="fab" aria-label="${muted ? 'Unmute music' : playing ? 'Mute music' : 'Play music'}" title="${muted ? 'Unmute music' : playing ? 'Mute music' : 'Play music'}">
-      ${playing && !muted ? '<span class="mu-eq"><i></i><i></i><i></i><i></i></span>' : muted ? ICON.mute : '<span class="mu-note">♪</span>'}</button><button class="mu-more ${M.open ? 'open' : ''}" data-mu="more" aria-label="Music options" title="Volume & tracks">⌃</button>
+      ${playing && !muted ? '<span class="mu-eq"><i></i><i></i><i></i><i></i></span>' : muted ? ICON.mute : '<span class="mu-note">♪</span>'}</button>
     <div class="mu-panel" ${M.open ? '' : 'hidden'}>
       <div class="mu-h"><span class="mu-lbl">${esc(M.cfg.label || 'Now playing')}</span><b class="mu-t">${esc(t.title || 'Untitled track')}</b>${M.tracks.length > 1 ? `<small class="muted">${M.idx + 1} / ${M.tracks.length}</small>` : ''}</div>
       ${M.tracks.length > 1 ? `<div class="mu-ctl"><button data-mu="prev" aria-label="Previous track">${ICON.prev}</button><button data-mu="next" aria-label="Next track">${ICON.next}</button></div>` : ''}
