@@ -1213,7 +1213,7 @@ function secAccounts(d) {
     </ol>
     <div class="fgrid">
       ${F.text('Discord application Client ID', 'accounts.discordClientId', c.discordClientId || '', 'placeholder="e.g. 1234567890123456789" inputmode="numeric"')}
-      ${F.check('Show “My account” in the More menu', 'accounts.enabled', c.enabled)}
+      ${F.check('Show the 👤 My account button in the top bar', 'accounts.enabled', c.enabled)}
       ${F.check('Fantasy leaderboard: only show approved accounts', 'accounts.fantasyApproved', c.fantasyApproved)}
       ${F.check('Grid Draft leaderboard: only show approved accounts', 'accounts.gdApproved', c.gdApproved)}
     </div>

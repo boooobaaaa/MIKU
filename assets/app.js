@@ -2002,7 +2002,7 @@ const notFound = () => `<div class="page">${empty('Page not found', '<p><a href=
 
 /* ---------------- router & chrome ---------------- */
 const NAV = [['', 'Home'], ['schedule', 'Calendar'], ['results', 'Results'], ['standings', 'Standings'], ['drivers', 'Drivers'], ['teams', 'Teams'], ['news', 'News']];
-const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['gallery', 'Gallery'], ['fantasy', 'Fantasy'], ['predictions', 'Predictions'], ['griddraft', 'Grid Draft'], ['join', 'Join the league'], ['account', 'My account']];
+const MORE = [['about', 'About'], ['rules', 'Rules'], ['stewards', 'Stewards'], ['h2h', 'Head to head'], ['history', 'Hall of fame'], ['gallery', 'Gallery'], ['fantasy', 'Fantasy'], ['predictions', 'Predictions'], ['griddraft', 'Grid Draft'], ['join', 'Join the league']];
 const ROUTES = [
   [/^$/, d => pageHome(d)],
   [/^schedule$/, d => pageSchedule(d)],
@@ -2118,12 +2118,13 @@ function chrome() {
   const moreOn = MORE.some(([k]) => k === cur);
   const navItems = NAV;
   seasonSwitch(d);
+  { const ab = document.getElementById('acct-btn'); if (ab) { ab.hidden = !(d.accounts && d.accounts.enabled); ab.classList.toggle('active', cur === 'account'); } }
   document.getElementById('nav').innerHTML = navItems.map(link).join('') +
     `<div class="more"><button class="more-btn ${moreOn ? 'active' : ''}" data-act="more" aria-haspopup="true">More<span class="caret">▾</span>${d.signups.open ? '<span class="dot"></span>' : ''}</button><div class="more-menu">${MORE.filter(([k]) => (k !== 'griddraft' || (d.gridDraft && d.gridDraft.enabled)) && (k !== 'fantasy' || (d.fantasy && d.fantasy.enabled)) && (k !== 'predictions' || (d.predictions && d.predictions.enabled)) && (k !== 'gallery' || (d.gallery || []).length) && (k !== 'account' || (d.accounts && d.accounts.enabled)) && (k !== 'apply' || ((d.applications || {}).forms || []).length)).map(([k, l]) => [k, k === 'stewards' ? esc(rcName(d)) : l]).map(link).join('')}</div></div>`;
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a class="soc soc-${k}" href="${esc(links[k])}" target="_blank" rel="noopener" aria-label="${l}" title="${l}">${SOCIAL_ICONS[k]}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · ${esc(seasonName(L.season))}<br><span style="font-size:12px">${esc(L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.')}</span></div>
-    <div class="foot-r">${ext ? `<div class="socials">${ext}</div>` : ''}<div class="links"><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}</div><a class="btn sm foot-console" href="#/admin"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Console</a></div></div>`;
+    <div class="foot-r">${ext ? `<div class="socials">${ext}</div>` : ''}<div class="links"><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}</div><a class="btn sm foot-console" href="#/admin" aria-label="Console" title="Console"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></a></div></div>`;
 }
 
 /* Title Case for UI labels (menus, tabs, buttons, headings). Only capitalises — never lowercases names like FIA or R5. */

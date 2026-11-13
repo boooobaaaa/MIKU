@@ -2574,3 +2574,15 @@ select option { background: var(--card-solid); color: var(--text); }
 .warn-sm { color: var(--pink-soft); font-size: 12.5px; }
 .acc-uri { user-select: all; word-break: break-all; }
 @media (max-width: 760px) { .acc-row { grid-template-columns: auto 1fr; } .acc-drv, .acc-act { grid-column: 1 / -1; } .acc-act { justify-content: flex-start; } }
+
+/* ===== Header account button / icon-only console button / account cards aligned ===== */
+.acct-btn { display: grid; place-items: center; text-decoration: none; margin-right: 8px; }
+.acct-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.acct-btn.active { border-color: var(--miku); color: var(--accent-text); background: color-mix(in srgb, var(--miku) 12%, transparent); }
+.acct-btn[hidden] { display: none; }
+@media (max-width: 980px) { .acct-btn { margin-left: auto; } .acct-btn:not([hidden]) + .mode-toggle { margin-left: 0; } }
+.site-foot .foot-console { width: 36px; height: 36px; padding: 0; justify-content: center; }
+.site-foot .foot-console svg { width: 17px; height: 17px; }
+.ac-grid { align-items: stretch; }
+.ac-grid > section, .ac-grid > section + section { margin: 0; }
+.ac-grid > .card { display: block; }
