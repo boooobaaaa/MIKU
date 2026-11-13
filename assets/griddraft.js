@@ -418,6 +418,15 @@ function firebaseStore(conf) {
     async players() { const q = await F.getDocs(F.collection(db, 'gd_users')); return q.docs.map(x => Object.assign({ uid: x.id }, conv(x.data()))); },
     async allDrafts() { const q = await F.getDocs(F.collection(db, 'gd_drafts')); return q.docs.map(x => convD(x.id, x.data())); },
     async resetPlayer(uid) { await F.updateDoc(F.doc(db, 'gd_users', uid), { attempts: 0 }); },
+    /* full reset: deletes the player's drafts and profile — they start fresh (new username, no team) next time they open Grid Draft */
+    async wipePlayer(uid) {
+      const q = await F.getDocs(F.query(F.collection(db, 'gd_drafts'), F.where('uid', '==', uid)));
+      const ids = q.docs.map(x => x.id);
+      for (let i = 0; i < ids.length; i += 400) { const b = F.writeBatch(db); ids.slice(i, i + 400).forEach(id => b.delete(F.doc(db, 'gd_drafts', id))); await b.commit(); }
+      await F.deleteDoc(F.doc(db, 'gd_users', uid));
+      if (s.user && s.user.uid === uid) { await loadProfile(); emit(); }
+      return ids.length;
+    },
     async adminReset() { await F.setDoc(F.doc(db, 'gd_meta', 'state'), { reset: (Number(s.meta.reset) || 0) + 1 }, { merge: true }); },
     async test() { await F.getDoc(F.doc(db, 'gd_meta', 'state')); return true; }
   });

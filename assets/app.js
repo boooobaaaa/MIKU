@@ -547,6 +547,8 @@ const teamLabel = (d, id) => byId(d.teams, id) || { id, name: id ? 'Unknown team
 /* ---------------- shared snippets ---------------- */
 const head = (eyebrow, title, sub) => `<div class="page-head"><div class="eyebrow">${esc(eyebrow)}</div><h1>${title}</h1>${sub ? `<p class="sub">${sub}</p>` : ''}</div>`;
 const empty = (t, s) => `<div class="empty"><b>${esc(t)}</b>${s || ''}</div>`;
+/* team logo chip (falls back to the colour swatch when a team has no logo) */
+const teamLogo = (t, cls = '') => t && t.logo ? `<span class="tlogo ${cls}" style="--tc:${esc(teamColor(t))}"><img src="${esc(asset(t.logo))}" alt="" loading="lazy" onerror="this.parentNode.classList.add('nologo');this.remove()"></span>` : `<span class="swatch" style="--tc:${esc(teamColor(t))}"></span>`;
 const teamCell = t => `<span class="swatch" style="--tc:${esc(teamColor(t))}"></span><span class="team-name">${esc(t ? t.name : '—')}</span>`;
 /* "1:31.456" / "91.456" / "1.31.456" → seconds */
 function lapSecs(t) {
@@ -836,7 +838,7 @@ function pageStandings(d, view) {
       </tbody></table></div>` : empty('No drivers yet');
   } else if (view === 'teams') {
     body = st.teams.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Team</th><th class="hide-sm">Drivers</th><th class="r hide-sm">Wins</th><th class="r hide-sm">Podiums</th><th class="r">Pts</th></tr></thead><tbody>
-      ${st.teams.map(x => { const t = teamLabel(d, x.id); const drs = (t ? raceLineup(d, t).main : []).map(p => esc(p.name.split(' ').pop())).join(' / '); return `<tr class="${x.position <= 3 ? 'top' + x.position : ''}"><td class="pos">${x.position}</td><td><a href="#/team/${esc(x.id)}">${teamCell(t)}</a>${x.adj ? `<span class="adj-note">(${x.adj > 0 ? '+' : ''}${fmtPts(x.adj)})</span>` : ''}</td><td class="muted hide-sm">${drs}</td><td class="r mono hide-sm">${x.wins}</td><td class="r mono hide-sm">${x.podiums}</td><td class="pts">${fmtPts(x.points)}</td></tr>`; }).join('')}
+      ${st.teams.map(x => { const t = teamLabel(d, x.id); const drs = (t ? raceLineup(d, t).main : []).map(p => esc(p.name.split(' ').pop())).join(' / '); return `<tr class="${x.position <= 3 ? 'top' + x.position : ''}"><td class="pos">${x.position}</td><td><a class="tl-cell" href="#/team/${esc(x.id)}">${teamLogo(t)}<span class="team-name">${esc(t ? t.name : '—')}</span></a>${x.adj ? `<span class="adj-note">(${x.adj > 0 ? '+' : ''}${fmtPts(x.adj)})</span>` : ''}</td><td class="muted hide-sm">${drs}</td><td class="r mono hide-sm">${x.wins}</td><td class="r mono hide-sm">${x.podiums}</td><td class="pts">${fmtPts(x.points)}</td></tr>`; }).join('')}
       </tbody></table></div>` : empty('No teams yet');
   } else if (view === 'progress') {
     body = progressChart(d, st);
@@ -852,7 +854,7 @@ function pageStandings(d, view) {
       return `<span class="cell ${cls}" title="${fmtPts(rr.pts)} pts">${race.pos}${race.fl ? '•' : ''}${sp}</span>`;
     };
     body = st.drivers.length ? `<div class="table-wrap"><table class="tbl matrix"><thead><tr><th>Pos</th><th>Driver</th>${rs.map(r => `<th title="${esc(r.name)}">${flag(r.country)}<small>R${esc(r.round)}</small></th>`).join('')}<th class="r">Pts</th></tr></thead><tbody>
-      ${st.drivers.map(x => { const drv = driverLabel(d, x.id), t = driverTeam(d, drv, x); return `<tr><td class="pos">${x.position}</td><td><span class="swatch" style="--tc:${esc(teamColor(t))}"></span><a href="#/driver/${esc(x.id)}">${nameHTML(drv.name)}</a></td>${rs.map(r => `<td>${cellFor(x, r)}</td>`).join('')}<td class="pts">${fmtPts(x.points)}</td></tr>`; }).join('')}
+      ${st.drivers.map(x => { const drv = driverLabel(d, x.id), t = driverTeam(d, drv, x); return `<tr><td class="pos">${x.position}</td><td class="mx-drv">${avatar(drv, t, 'sm')}<a href="#/driver/${esc(x.id)}">${nameHTML(drv.name)}</a></td>${rs.map(r => `<td>${cellFor(x, r)}</td>`).join('')}<td class="pts">${fmtPts(x.points)}</td></tr>`; }).join('')}
       </tbody></table></div>
       <div class="legend"><span><span class="cell p1">1</span>Win</span><span><span class="cell p2">2</span><span class="cell p3">3</span>Podium</span><span><span class="cell pts">7</span>Points</span><span><span class="cell nopts">14</span>No points</span><span><span class="cell dnf">DNF</span>Retired</span><span>• fastest lap</span><span>S = sprint finish</span></div>` : empty('No drivers yet');
   }
@@ -1525,8 +1527,10 @@ function progressChart(d, st) {
     let c = 0; const pts = [0];
     rs.forEach(r => { c += x.rounds[r.id] ? x.rounds[r.id].pts : 0; pts.push(c); });
     pts[pts.length - 1] += x.points - c;
-    const short = isTeam ? (ent.name.length > 18 ? ent.name.slice(0, 17) + '…' : ent.name) : ent.name.split(' ').pop();
-    return { name: ent.name, short, color: teamColor(t), pts, drv: isTeam ? null : ent, team: t };
+    const short = isTeam ? (ent.name.length > 16 ? ent.name.slice(0, 15).trim() + '…' : ent.name) : ent.name.split(' ').pop();
+    const img = isTeam ? (ent && ent.logo ? asset(ent.logo) : '') : (ent.headshot || ent.photo ? asset(ent.headshot || ent.photo) : '');
+    if (img) { const im = new Image(); im.src = img; }
+    return { name: ent.name, short, color: teamColor(t), pts, drv: isTeam ? null : ent, team: t, img, face: !isTeam && !ent.headshot, logo: isTeam };
   });
   const n = rs.length;
   if (PG.n !== n || PG.t === null) { PG.t = n; PG.hidden = {}; }
@@ -1556,7 +1560,7 @@ function pgBuild() {
     : '';
   stage.innerHTML = PG.mode === 'race'
     ? `<div class="race-head"><div class="race-round" id="pg-round"></div><div class="muted" id="pg-lead"></div></div>
-       <div class="race" style="height:${ser.length * 44}px">${ser.map((x, i) => `<div class="race-row" data-i="${i}" style="--c:${esc(x.color)}"><span class="rr-pos"></span>${x.drv ? avatar(x.drv, x.team, 'sm') : `<span class="swatch" style="--tc:${esc(x.color)}"></span>`}<span class="rr-name">${esc(x.short)}</span><span class="rr-track"><i></i></span><span class="rr-val"></span></div>`).join('')}</div>`
+       <div class="race" style="height:${ser.length * 44}px">${ser.map((x, i) => `<div class="race-row" data-i="${i}" style="--c:${esc(x.color)}"><span class="rr-pos"></span>${x.drv ? avatar(x.drv, x.team, 'sm') : teamLogo(x.team, 'rr')}<span class="rr-name">${esc(x.short)}</span><span class="rr-track"><i></i></span><span class="rr-val"></span></div>`).join('')}</div>`
     : '';
 }
 function pgDraw() {
@@ -1605,10 +1609,13 @@ function graphSVG(ser, rs, t, hid, fmtV) {
     if (t > fl) pts.push([X(t), Y(pgVal(x, t))]);
     const path = pts.map((p, j) => `${j ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
     const dots = x.pts.slice(1, fl + 1).map((v, j) => `<circle cx="${X(j + 1).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3.2" fill="${esc(x.color)}"><title>${esc(x.name)} · R${esc(rs[j].round)}: ${fmtPts(v)} pts</title></circle>`).join('');
-    const hx = X(t), hy = Y(pgVal(x, t));
-    return `<g><path class="ln" d="${path}" stroke="${esc(x.color)}"${dash[i] ? ' stroke-dasharray="7 5"' : ''}/>${dots}<circle class="head" cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="5" fill="${esc(x.color)}"/><text class="lbl" x="${W - R + 10}" y="${(ly[i] + 4).toFixed(1)}" fill="${esc(x.color)}">${esc(x.short)} · ${fmtV(pgVal(x, t))}</text></g>`;
+    const hx = X(t), hy = Y(pgVal(x, t)), HR = 12;
+    const head = x.img
+      ? `<g class="head-pic" transform="translate(${hx.toFixed(1)},${hy.toFixed(1)})"><circle r="${HR + 2.5}" fill="${esc(x.color)}"/><circle r="${HR}" class="hp-bg"/><image href="${esc(x.img)}" x="${x.logo ? -HR * .78 : -HR}" y="${x.logo ? -HR * .78 : -HR}" width="${x.logo ? HR * 1.56 : HR * 2}" height="${x.logo ? HR * 1.56 : HR * 2}" clip-path="url(#pgclip)" preserveAspectRatio="${x.logo ? 'xMidYMid meet' : x.face ? 'xMidYMin slice' : 'xMidYMid slice'}"/><title>${esc(x.name)} · ${fmtV(pgVal(x, t))} pts</title></g>`
+      : `<circle class="head" cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="5" fill="${esc(x.color)}"/>`;
+    return `<g><path class="ln" d="${path}" stroke="${esc(x.color)}"${dash[i] ? ' stroke-dasharray="7 5"' : ''}/>${dots}${head}<text class="lbl" x="${W - R + 20}" y="${(ly[i] + 4).toFixed(1)}" fill="${esc(x.color)}">${esc(x.short)} · ${fmtV(pgVal(x, t))}</text></g>`;
   }).join('');
-  return `<div style="overflow-x:auto"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Points progression" style="min-width:640px">${g}${lines}</svg></div>`;
+  return `<div style="overflow-x:auto"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Points progression" style="min-width:640px"><defs><clipPath id="pgclip"><circle r="12"/></clipPath></defs>${g}${lines}</svg></div>`;
 }
 function pgButton() { const b = document.getElementById('pg-play'); if (b) b.textContent = PG.playing ? '❚❚ Pause' : PG.t >= PG.n - 0.001 ? '↺ Replay' : '▶ Play'; }
 function pgStop() { PG.playing = false; cancelAnimationFrame(PG.raf); pgButton(); pgDraw(); }

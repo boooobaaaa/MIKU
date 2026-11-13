@@ -1053,7 +1053,11 @@ function secGridDraft(d) {
         <div class="toolbar" style="margin-bottom:10px"><button class="btn sm" data-act="gd-loadplayers">${GDA.players ? 'Refresh' : 'Load players & drafts'}</button><button class="btn sm danger" data-act="gd-reset">Global reset now</button><span class="muted" style="font-size:13px">Reset restores everyone's attempts and expires unfinished drafts. Teams and scores are kept.</span></div>
         ${GDA.err ? `<p class="warn">${esc(GDA.err)}</p>` : ''}
         ${GDA.players ? (() => { const pi = GD.periodInfo(d, s); const rows = GDA.players.map(p => ({ p, sc: p.team ? GD.teamScore(cards, p.team) : null, n: (GDA.drafts || []).filter(x => x.uid === p.uid).length })).sort((a, b) => (b.sc ? b.sc.total : -1) - (a.sc ? a.sc.total : -1));
-          return `<p class="muted" style="font-size:13px">${rows.length} players · ${(GDA.drafts || []).length} drafts · ${(GDA.drafts || []).filter(x => x.stage === 'done').length} completed</p><table class="rtable"><thead><tr><th>Player</th><th>Attempts this reset</th><th>Total drafts</th><th>Current team</th><th>Score</th><th>Last draft</th><th></th></tr></thead><tbody>${rows.map(({ p, sc, n }) => `<tr><td><b>${esc(p.name)}</b></td><td class="mono">${p.period === pi.key ? p.attempts : 0}/${c.attempts}</td><td class="mono">${n}</td><td style="font-size:12.5px">${p.team ? ['d1', 'd2', 'c'].map(k => esc((cards.byId[p.team[k]] || {}).name || '?')).join(' · ') : '<span class="muted">—</span>'}</td><td class="c-pts">${sc ? LG.fmtPts(sc.total) : '—'}</td><td class="muted" style="font-size:12.5px">${p.lastStart ? new Date(p.lastStart).toLocaleString() : ''}</td><td>${p.period === pi.key && p.attempts > 0 ? `<button class="btn xs" data-act="gd-resetone" data-uid="${esc(p.uid)}" data-name="${esc(p.name)}" title="Give this player all their attempts back">↺ Reset rolls</button>` : ''}</td></tr>`).join('')}</tbody></table>`; })() : ''}`}
+          const byName = [...rows].sort((a, b) => String(a.p.name).localeCompare(String(b.p.name)));
+          const picker = rows.length ? `<div class="gd-pickrow"><label class="fld"><span>Reset one player</span><select id="gd-pickp">${byName.map(({ p, sc }) => `<option value="${esc(p.uid)}" ${GDA.pick === p.uid ? 'selected' : ''}>${esc(p.name)} — ${p.period === pi.key ? p.attempts : 0}/${c.attempts} used${sc ? ' · ' + LG.fmtPts(sc.total) + ' pts' : ''}</option>`).join('')}</select></label>
+            <button class="btn sm" data-act="gd-resetpick">↺ Reset rolls</button><button class="btn sm danger" data-act="gd-wipepick">🗑 Full reset</button>
+            <p class="hint" style="flex-basis:100%;margin:0"><b>Reset rolls</b> gives them all their attempts back for this reset period (team and score kept). <b>Full reset</b> deletes their team, score and draft history — they pick a username and start from zero next time.</p></div>` : '';
+          return picker + `<p class="muted" style="font-size:13px">${rows.length} players · ${(GDA.drafts || []).length} drafts · ${(GDA.drafts || []).filter(x => x.stage === 'done').length} completed</p><table class="rtable"><thead><tr><th>Player</th><th>Attempts this reset</th><th>Total drafts</th><th>Current team</th><th>Score</th><th>Last draft</th><th></th></tr></thead><tbody>${rows.map(({ p, sc, n }) => `<tr><td><b>${esc(p.name)}</b></td><td class="mono">${p.period === pi.key ? p.attempts : 0}/${c.attempts}</td><td class="mono">${n}</td><td style="font-size:12.5px">${p.team ? ['d1', 'd2', 'c'].map(k => esc((cards.byId[p.team[k]] || {}).name || '?')).join(' · ') : '<span class="muted">—</span>'}</td><td class="c-pts">${sc ? LG.fmtPts(sc.total) : '—'}</td><td class="muted" style="font-size:12.5px">${p.lastStart ? new Date(p.lastStart).toLocaleString() : ''}</td><td>${p.period === pi.key && p.attempts > 0 ? `<button class="btn xs" data-act="gd-resetone" data-uid="${esc(p.uid)}" data-name="${esc(p.name)}" title="Give this player all their attempts back">↺ Reset rolls</button>` : ''}<button class="iconbtn del" data-act="gd-wipe" data-uid="${esc(p.uid)}" data-name="${esc(p.name)}" title="Full reset — delete this player's team, score and drafts">✕</button></td></tr>`).join('')}</tbody></table>`; })() : ''}`}
     </div>`;
 }
 
@@ -1092,6 +1096,25 @@ function gdKeepSeason(d) {
   const set = window.GridDraft && window.GridDraft.saveSet(d);
   if (set) d.teams.forEach(t => { delete t.gdPoints; });
   return set;
+}
+
+async function gdPlayerAct(what, b, d) {
+  const s = window.GridDraft.store(d), uid = b.dataset.uid, name = b.dataset.name;
+  if (what === 'rolls') {
+    if (!confirm(`Give ${name} all their attempts back for this reset period?`)) return;
+    try { await s.resetPlayer(uid); const p = (GDA.players || []).find(x => x.uid === uid); if (p) p.attempts = 0; toast(`${name}'s rolls are reset`); }
+    catch (x) { toast('Could not reset: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase first' : ''), 'err'); }
+    return rerender();
+  }
+  if (!confirm(`Fully reset ${name}?\n\nThis deletes their current team, leaderboard score and every draft they've made. They'll choose a username and start from zero next time. This can't be undone.`)) return;
+  try {
+    const n = await s.wipePlayer(uid);
+    GDA.players = (GDA.players || []).filter(x => x.uid !== uid); GDA.drafts = (GDA.drafts || []).filter(x => x.uid !== uid);
+    if (GDA.pick === uid) GDA.pick = '';
+    const G = window.GridDraft.G; G.lb = null;
+    toast(`${name} was fully reset (${n} draft${n === 1 ? '' : 's'} removed)`);
+  } catch (x) { toast('Could not reset: ' + (x.code || x.message), 'err'); }
+  rerender();
 }
 
 /* ---------------- fantasy admin ---------------- */
@@ -1657,6 +1680,14 @@ document.addEventListener('click', async e => {
     case 'gd-loadplayers': { const s = window.GridDraft.store(d); GDA.err = ''; try { GDA.players = await s.players(); GDA.drafts = await s.allDrafts(); } catch (x) { GDA.err = 'Couldn\'t load: ' + (x.code || x.message); } return rerender(); }
     case 'gd-saveset': { const st = gdKeepSeasonBackup(d); if (!st) return toast('No cards yet — they appear once drivers have race results.', 'err'); toast(`${LG.seasonName(st.label)} cards saved (${st.drivers.length} drivers, ${st.constructors.length} teams)`); return commit(); }
     case 'gd-delset': { const k = b.dataset.key; if (!confirm('Delete this saved card set? Its cards leave the pool, and players who own them will show a missing card (0 pts). This can\'t be undone after you publish.')) return; d.gridDraft.sets = (d.gridDraft.sets || []).filter(x => x.key !== k); return commit(); }
+    case 'gd-resetpick': case 'gd-wipepick': {
+      const sel = document.getElementById('gd-pickp'); if (!sel || !sel.value) return toast('Pick a player first', 'err');
+      const p = (GDA.players || []).find(x => x.uid === sel.value); if (!p) return;
+      GDA.pick = p.uid;
+      const fake = document.createElement('button'); fake.dataset.uid = p.uid; fake.dataset.name = p.name;
+      return gdPlayerAct(act === 'gd-resetpick' ? 'rolls' : 'wipe', fake, d);
+    }
+    case 'gd-wipe': return gdPlayerAct('wipe', b, d);
     case 'gd-resetone': {
       if (!confirm(`Give ${b.dataset.name} all their attempts back for this reset period?`)) return;
       const s = window.GridDraft.store(d); b.disabled = true;

@@ -2479,3 +2479,24 @@ select option { background: var(--card-solid); color: var(--text); }
 .gd-sets tr.gd-off td:nth-child(3) { opacity: 1; }
 .gd-sets .tgl { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 13px; white-space: nowrap; }
 .gd-sets td:first-child { min-width: 180px; }
+
+/* ===== Team logos in standings / bar race ===== */
+.tlogo { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; flex: none; vertical-align: middle; margin-right: 10px;
+  background: color-mix(in srgb, var(--tc, var(--miku)) 16%, var(--card-solid)); border: 1.5px solid color-mix(in srgb, var(--tc, var(--miku)) 70%, transparent);
+  box-shadow: 0 0 12px -4px var(--tc, var(--miku)); overflow: hidden; }
+.tlogo img { width: 78%; height: 78%; object-fit: contain; }
+.tlogo.nologo { background: var(--tc, var(--miku)); width: 6px; border-radius: 4px; border: 0; }
+.tl-cell { display: inline-flex; align-items: center; color: inherit; }
+.tl-cell .team-name { font-weight: 600; }
+.race-row .tlogo { margin: 0 auto; width: 28px; height: 28px; }
+.mx-drv { white-space: nowrap; }
+.mx-drv .avatar.sm { width: 26px; height: 26px; margin-right: 9px; }
+
+/* ===== Progression graph picture markers ===== */
+.chart .head-pic circle.hp-bg { fill: var(--card-solid); }
+.chart .head-pic { filter: drop-shadow(0 2px 5px rgba(0, 0, 0, .45)); }
+.chart .head-pic image { pointer-events: none; }
+
+/* ===== Grid Draft admin: reset one player ===== */
+.gd-pickrow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; padding: 14px; margin-bottom: 14px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--miku) 4%, transparent); }
+.gd-pickrow .fld { flex: 1 1 320px; margin: 0; }
