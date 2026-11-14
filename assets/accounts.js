@@ -155,7 +155,7 @@ function page(d) {
     </form>
     <p class="hint">Keep it friendly — admins can reset any name that breaks the league's rules.</p></section>` : '';
   const pm = s.member;
-  const portal = pm ? `<a class="ac-game" href="#/portal"><span class="ac-gi">✎</span><span><b>Team portal</b><small>${esc(pm.role || 'Staff')}${pm.teamId && byId(d.teams, pm.teamId) ? ' · ' + esc(byId(d.teams, pm.teamId).name) : ''}</small></span><span class="ac-go">›</span></a>` : '';
+  const portal = pm ? `<a class="ac-game" href="#/portal"><span class="ac-gi">✎</span><span><b>Team Portal</b><small>${esc(pm.role || 'Staff')}${pm.teamId && byId(d.teams, pm.teamId) ? ' · ' + esc(byId(d.teams, pm.teamId).name) : ''}</small></span><span class="ac-go">›</span></a>` : '';
   if (portal) gd = portal + gd;
   return `<div class="page ac">${top}
     <div class="ac-grid">
