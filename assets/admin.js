@@ -729,6 +729,8 @@ function secApplications(d) {
     return `<div class="ap-q">
       <div class="fgrid">${F.text('Question', `${p}.label`, q.label || '')}${F.select('Type', `${p}.type`, q.type || 'short', Apps.Q_TYPES)}
         ${F.text('Help text (optional)', `${p}.help`, q.help || '')}
+        ${q.type === 'number' ? F.num('Max digits (blank = no limit)', `${p}.maxDigits`, q.maxDigits ?? '', 'min="1" max="12" step="1" placeholder="e.g. 2"') : ''}
+        ${q.type === 'short' ? F.num('Max characters (blank = no limit)', `${p}.maxLen`, q.maxLen ?? '', 'min="1" max="1000" step="1"') : ''}
         ${['choice', 'multi'].includes(q.type) ? `<label class="fld wide"><span>Options — one per line</span><textarea data-path="${p}.options" data-lines rows="${Math.max(3, (q.options || []).length + 1)}">${esc((q.options || []).join('\n'))}</textarea></label>` : ''}
         ${F.check('Required', `${p}.required`, !!q.required)}</div>
       <div class="prow-act">${mvBtns(`applications.forms.${fi}.questions`, k, n)}<button class="iconbtn del" data-act="apq-del" data-i="${fi}" data-k="${k}" title="Remove question">✕</button></div></div>`;
@@ -1194,8 +1196,8 @@ function ftAccountsCard(d, f) {
 }
 
 /* ---------------- accounts (Discord links) ---------------- */
-const ACA = { links: null, err: '', loading: false };
-window.addEventListener('hashchange', () => { if (!/^#\/admin\/accounts/.test(location.hash) && !ACA.loading) ACA.links = null; });
+const ACA = { links: null, err: '', loading: false, players: null, pLoading: false, q: '' };
+window.addEventListener('hashchange', () => { if (!/^#\/admin\/accounts/.test(location.hash) && !ACA.loading) { ACA.links = null; if (!ACA.pLoading) ACA.players = null; } });
 function accReviewer(d, s) {
   const adminList = String(window.GridDraft.cfg(d).admins || '').toLowerCase().split(/[\s,;]+/);
   return s && s.user && (adminList.includes(s.user.email) || (s.siteAdmin && allowed('accounts')));
@@ -1253,8 +1255,43 @@ function secAccounts(d) {
       ${ACA.links === null ? '<p class="muted">Loading…</p>' : pend.map(row).join('') || '<p class="muted">No requests waiting. 🩵</p>'}</div>
     <div class="a-card"><h3>Approved (${ok.length})</h3>${ok.map(row).join('') || '<p class="muted">Nobody approved yet.</p>'}
       ${ok.length ? '<p class="hint">Changing a driver or removing a link updates the driver pages — Publish to make it live.</p>' : ''}</div>
-    ${no.length ? `<div class="a-card"><h3>Denied (${no.length})</h3>${no.map(row).join('')}</div>` : ''}` + setup;
+    ${no.length ? `<div class="a-card"><h3>Denied (${no.length})</h3>${no.map(row).join('')}</div>` : ''}
+    ${namesCard(d, ok)}` + setup;
 }
+/* names players show on the Grid Draft / Fantasy leaderboards — revert, rename or lock */
+function namesCard(d, approvedLinks) {
+  const GD = window.GridDraft, gs = d.gridDraft && d.gridDraft.enabled ? GD.store(d) : null, ftOn = d.fantasy && d.fantasy.enabled;
+  if (gs && gs.ready && !gs.error && ACA.players === null && !ACA.pLoading) {
+    ACA.pLoading = true;
+    gs.players().then(x => { ACA.players = x; }).catch(() => { ACA.players = []; }).finally(() => { ACA.pLoading = false; rerender(); });
+  }
+  const fdocs = ftOn ? window.Fantasy.accountDocs(d) : [];
+  const by = {};
+  (ACA.players || []).forEach(p => { (by[p.uid] = by[p.uid] || { uid: p.uid }).gd = p; });
+  fdocs.forEach(f => { (by[f.uid] = by[f.uid] || { uid: f.uid }).ft = f; });
+  const link = uid => approvedLinks.find(x => x.uid === uid);
+  const changed = r => (r.gd && (r.gd.origName || r.gd.nameLocked)) || (r.ft && (r.ft.origName || r.ft.origManager || r.ft.nameLocked));
+  const q = ACA.q.toLowerCase();
+  let rows = Object.values(by).filter(r => !q || [r.gd && r.gd.name, r.gd && r.gd.origName, r.ft && r.ft.manager, r.ft && r.ft.name, r.ft && r.ft.origManager, r.ft && r.ft.origName, (link(r.uid) || {}).discordName].filter(Boolean).some(v => String(v).toLowerCase().includes(q)));
+  rows.sort((a, b) => (changed(b) ? 1 : 0) - (changed(a) ? 1 : 0) || String((a.gd || a.ft).name || (a.ft || {}).manager).localeCompare(String((b.gd || b.ft).name || (b.ft || {}).manager)));
+  const was = v => v ? `<small class="nm-was">was “${esc(v)}”</small>` : '';
+  const lockBtn = (kind, uid, on) => `<button class="btn xs ${on ? 'nm-locked' : ''}" data-act="nm-${kind}-lock" data-uid="${esc(uid)}" title="${on ? 'Unlock — let them change it again' : 'Lock — stop them changing it'}">${on ? '🔒 Locked' : '🔓 Lock'}</button>`;
+  const cell = (kind, r) => {
+    if (kind === 'gd') { const p = r.gd; if (!p) return '<td class="muted">—</td>';
+      return `<td><div class="nm-cell"><b>${esc(p.name)}</b>${p.origName && p.origName !== p.name ? was(p.origName) : ''}</div><div class="nm-btns">${p.origName && p.origName !== p.name ? `<button class="btn xs" data-act="nm-gd-revert" data-uid="${esc(r.uid)}">↺ Revert</button>` : ''}<button class="btn xs" data-act="nm-gd-rename" data-uid="${esc(r.uid)}">✎ Rename</button>${lockBtn('gd', r.uid, p.nameLocked)}</div></td>`; }
+    const f = r.ft; if (!f) return '<td class="muted">—</td>';
+    const diff = (f.origManager && f.origManager !== f.manager) || (f.origName && f.origName !== f.name);
+    return `<td><div class="nm-cell"><b>${esc(f.manager)}</b>${f.origManager && f.origManager !== f.manager ? was(f.origManager) : ''}<span>${esc(f.name)}</span>${f.origName && f.origName !== f.name ? was(f.origName) : ''}</div><div class="nm-btns">${diff ? `<button class="btn xs" data-act="nm-ft-revert" data-uid="${esc(r.uid)}">↺ Revert</button>` : ''}<button class="btn xs" data-act="nm-ft-rename" data-uid="${esc(r.uid)}">✎ Rename</button>${lockBtn('ft', r.uid, f.nameLocked)}</div></td>`;
+  };
+  if (!gs && !ftOn) return '';
+  return `<div class="a-card" style="overflow-x:auto"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px"><h3 style="margin:0">Names on the leaderboards</h3>
+      <div style="display:flex;gap:8px"><input type="search" id="nm-q" placeholder="Search names…" value="${esc(ACA.q)}" style="min-width:200px"><button class="btn sm" data-act="nm-reload">Refresh</button></div></div>
+    <p class="hint" style="margin:0 0 12px">Players can change their names under 👤 My account. <b>Revert</b> puts back the first name they used, <b>Rename</b> sets any name you like, and <b>Lock</b> stops them changing it again. Changed or locked names are listed first.</p>
+    ${ACA.players === null && gs ? '<p class="muted">Loading players…</p>' : rows.length ? `<table class="rtable nm-table"><thead><tr><th>Discord</th>${gs ? '<th>Grid Draft username</th>' : ''}${ftOn ? '<th>Fantasy manager / team</th>' : ''}</tr></thead><tbody>
+      ${rows.map(r => { const l = link(r.uid); return `<tr class="${changed(r) ? 'nm-changed' : ''}"><td>${l ? `<span class="ac-badge" style="margin:0">${window.Accounts.dcFace(l)}<span>${esc(l.discordName)}</span><i>✓</i></span>` : '<span class="muted" style="font-size:12.5px">Not linked</span>'}</td>${gs ? cell('gd', r) : ''}${ftOn ? cell('ft', r) : ''}</tr>`; }).join('')}
+    </tbody></table>` : `<p class="muted">${q ? 'No names match that search.' : 'No players yet.'}</p>`}</div>`;
+}
+document.addEventListener('input', e => { if (e.target.id !== 'nm-q') return; ACA.q = e.target.value; const pos = e.target.selectionStart; rerender(); const el = document.getElementById('nm-q'); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (x) { } } });
 function setDriverClaim(d, link, driverId) {
   d.drivers.forEach(x => { if (x.discord && x.discord.uid === link.uid) delete x.discord; });
   const drv = driverId && byId(d.drivers, driverId);
@@ -1795,6 +1832,28 @@ document.addEventListener('click', async e => {
           await s.deleteLink(L.uid); ACA.links = ACA.links.filter(x => x.uid !== L.uid); setDriverClaim(d, L, ''); toast('Link removed');
         }
         window.Accounts.refreshApproved(); return commit();
+      } catch (x) { toast('Couldn’t update: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase.' : ''), 'err'); return; }
+    }
+    case 'nm-reload': ACA.players = null; window.Fantasy.AC.docs = null; return rerender();
+    case 'nm-gd-revert': case 'nm-gd-rename': case 'nm-gd-lock': case 'nm-ft-revert': case 'nm-ft-rename': case 'nm-ft-lock': {
+      const uid = b.dataset.uid, isGd = act.startsWith('nm-gd'), what = act.split('-')[2];
+      try {
+        if (isGd) {
+          const p = (ACA.players || []).find(x => x.uid === uid); if (!p) return;
+          let name = p.name, lock = !!p.nameLocked;
+          if (what === 'revert') { name = p.origName; if (!confirm(`Change “${p.name}” back to “${name}”?`)) return; lock = lock || confirm('Also lock it so they can’t change it again?'); }
+          else if (what === 'rename') { const n = prompt('New Grid Draft username (2–24 characters):', p.name); if (n === null) return; name = n.trim().slice(0, 24); if (name.length < 2) return toast('Names need at least 2 characters', 'err'); }
+          else lock = !lock;
+          await window.GridDraft.store(d).adminSetName(uid, name, lock); Object.assign(p, { name, nameLocked: lock }); window.GridDraft.G.lb = null;
+        } else {
+          const f = window.Fantasy.accountDocs(d).find(x => x.uid === uid); if (!f) return;
+          let manager = f.manager, name = f.name, lock = !!f.nameLocked;
+          if (what === 'revert') { manager = f.origManager || f.manager; name = f.origName || f.name; if (!confirm(`Change back to “${manager}” · “${name}”?`)) return; lock = lock || confirm('Also lock it so they can’t change it again?'); }
+          else if (what === 'rename') { const m = prompt('Manager name:', f.manager); if (m === null) return; const t = prompt('Team name:', f.name); if (t === null) return; manager = m.trim().slice(0, 40); name = t.trim().slice(0, 40); if (!manager || !name) return toast('Names can’t be empty', 'err'); }
+          else lock = !lock;
+          await window.Portal.store(d).adminSetFantasyNames(uid, { manager, name, locked: lock }); Object.assign(f, { manager, name, nameLocked: lock });
+        }
+        toast(what === 'lock' ? 'Updated' : 'Name updated'); return rerender();
       } catch (x) { toast('Couldn’t update: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase.' : ''), 'err'); return; }
     }
     case 'ft-reloadacct': window.Fantasy.AC.docs = null; return rerender();

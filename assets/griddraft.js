@@ -251,7 +251,13 @@ service cloud.firestore {
 
     match /gd_users/{uid} {
       function validName(n) { return n is string && n.size() >= 2 && n.size() <= 24; }
-      function renameOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']) && validName(request.resource.data.name); }
+      function renameOnly() {
+        let nd = request.resource.data;
+        let od = resource.data;
+        return nd.diff(od).affectedKeys().hasOnly(['name', 'origName']) && validName(nd.name)
+          && od.get('nameLocked', false) != true
+          && (('origName' in od) ? nd.origName == od.origName : (!('origName' in nd) || nd.origName == od.name));
+      }
       function seenOnly() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seen']) && request.resource.data.seen == request.time; }
       function startDraft() {
         let nd = request.resource.data;
@@ -284,7 +290,9 @@ service cloud.firestore {
         && request.resource.data.lastStart == request.time && request.resource.data.seen == request.time
         && request.resource.data.active == '' && request.resource.data.team == null && request.resource.data.teamAt == null;
       allow update: if (signedIn() && request.auth.uid == uid && (renameOnly() || seenOnly() || startDraft() || completeDraft()))
-        || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attempts']) && request.resource.data.attempts == 0);
+        || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attempts']) && request.resource.data.attempts == 0)
+        || ((isAdmin() || canReviewLinks()) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'nameLocked'])
+          && validName(request.resource.data.name) && request.resource.data.nameLocked is bool);
       allow delete: if isAdmin();
     }
 
@@ -393,7 +401,13 @@ function firebaseStore(conf) {
       await F.setDoc(F.doc(db, 'gd_users', s.user.uid), { name, period: '', attempts: 0, lastStart: F.serverTimestamp(), active: '', team: null, teamAt: null, seen: F.serverTimestamp() });
       await loadProfile(); emit();
     },
-    async rename(name) { await F.updateDoc(F.doc(db, 'gd_users', s.user.uid), { name }); s.profile.name = name; emit(); },
+    async rename(name) {
+      if (s.profile && s.profile.nameLocked) { const e = new Error('An admin has locked this name.'); e.code = 'name-locked'; throw e; }
+      const upd = { name }; if (s.profile && !s.profile.origName && s.profile.name !== name) upd.origName = s.profile.name;
+      await F.updateDoc(F.doc(db, 'gd_users', s.user.uid), upd); Object.assign(s.profile, upd); emit();
+    },
+    /* admin: set (or revert) a player's public name and lock / unlock it */
+    async adminSetName(uid, name, locked) { await F.updateDoc(F.doc(db, 'gd_users', uid), { name, nameLocked: !!locked }); },
     async start(period, attempts, pair) {
       const uref = F.doc(db, 'gd_users', s.user.uid), dref = F.doc(F.collection(db, 'gd_drafts'));
       const b = F.writeBatch(db);
@@ -707,6 +721,7 @@ async function act(kind, el) {
   try {
     if (kind === 'signin') { await s.signIn(); return; }
     if (kind === 'signout') { await s.signOut(); G.lb = null; G.hist = null; G.draft = null; G.draftFor = ''; return LG.render(false); }
+    if (kind === 'rename' && s.profile && s.profile.nameLocked) return toast('An admin has locked your username.', 'err');
     if (kind === 'rename') { const n = prompt('New public username (2–24 characters):', s.profile.name || ''); if (n && n.trim().length >= 2) { await s.rename(n.trim().slice(0, 24)); G.lb = null; } return LG.render(false); }
     if (kind === 'resume') { location.hash = '#/griddraft/play'; return; }
     if (kind === 'openpack') { openPack(el); return; }

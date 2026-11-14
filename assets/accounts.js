@@ -98,7 +98,7 @@ const DCLOGO = '<svg class="dc-logo" viewBox="0 0 24 24" aria-hidden="true"><pat
 function driverOptions(d, cur, takenBy) {
   const act = d.drivers.filter(x => x.active !== false), old = d.drivers.filter(x => x.active === false);
   const o = x => `<option value="${esc(x.id)}" ${x.id === cur ? 'selected' : ''}>${esc((x.number !== undefined && x.number !== '' ? '#' + x.number + ' · ' : '') + x.name)}${takenBy && takenBy(x) ? ' — already claimed' : ''}</option>`;
-  return `<option value="">— I'm not a driver —</option>${act.length ? `<optgroup label="Drivers">${act.map(o).join('')}</optgroup>` : ''}${old.length ? `<optgroup label="Former drivers">${old.map(o).join('')}</optgroup>` : ''}`;
+  return `<option value="">— I'm not a Driver —</option>${act.length ? `<optgroup label="Drivers">${act.map(o).join('')}</optgroup>` : ''}${old.length ? `<optgroup label="Former Drivers">${old.map(o).join('')}</optgroup>` : ''}`;
 }
 
 function page(d) {
@@ -141,12 +141,24 @@ function page(d) {
     const row = window.Fantasy.accountRow ? window.Fantasy.accountRow(d, s.user.uid) : null;
     ft = `<a class="ac-game" href="#/fantasy/team"><span class="ac-gi">★</span><span><b>Fantasy</b><small>${row ? esc(row.entry.team) + ' · ' + (row.rank ? 'P' + row.rank + ' · ' : '') + fmtPts(row.total) + ' pts' : 'No team saved yet'}</small></span><span class="ac-go">›</span></a>`;
   }
+  // names shown on the leaderboards
+  const gs = window.GridDraft && d.gridDraft && d.gridDraft.enabled ? window.GridDraft.store(d) : null, gp = gs && gs.profile;
+  const fdoc = window.Fantasy && d.fantasy && d.fantasy.enabled ? (window.Fantasy.accountDocs(d) || []).find(x => x.uid === s.user.uid) : null;
+  const lockNote = '<small class="ac-lock">🔒 Locked by an admin</small>';
+  const names = gp || fdoc ? `<section class="card ac-names"><h3>Names on the leaderboards</h3>
+    <form data-form="ac-names" class="ac-names-grid">
+      ${gp ? `<label class="fld"><span>Grid Draft username</span><input name="gd" minlength="2" maxlength="24" value="${esc(gp.name)}" ${gp.nameLocked ? 'disabled' : ''}>${gp.nameLocked ? lockNote : ''}</label>` : ''}
+      ${fdoc ? `<label class="fld"><span>Fantasy manager name</span><input name="fm" minlength="1" maxlength="40" value="${esc(fdoc.manager)}" ${fdoc.nameLocked ? 'disabled' : ''}>${fdoc.nameLocked ? lockNote : ''}</label>
+        <label class="fld"><span>Fantasy team name</span><input name="ft" minlength="1" maxlength="40" value="${esc(fdoc.name)}" ${fdoc.nameLocked ? 'disabled' : ''}></label>` : ''}
+      <div class="ac-names-act"><button class="btn primary" ${(!gp || gp.nameLocked) && (!fdoc || fdoc.nameLocked) ? 'disabled' : ''}>Save names</button></div>
+    </form>
+    <p class="hint">Keep it friendly — admins can reset any name that breaks the league's rules.</p></section>` : '';
   return `<div class="page ac">${top}
     <div class="ac-grid">
       <section class="card"><h3>Signed in</h3><p class="ac-who"><b>${esc(s.user.displayName || 'Google account')}</b><span class="muted">Google · your email stays private</span></p><button class="btn sm ghost" data-ac="signout">Sign out</button></section>
       <section class="card ac-dc"><h3>${DCLOGO} Discord</h3>${link}</section>
       ${gd || ft ? `<section class="card"><h3>Your games</h3><div class="ac-games">${gd}${ft}</div>${!(l && l.status === 'approved') && (c.fantasyApproved || c.gdApproved) ? `<p class="hint">${[c.fantasyApproved && 'Fantasy', c.gdApproved && 'Grid Draft'].filter(Boolean).join(' and ')} leaderboard${c.fantasyApproved && c.gdApproved ? 's only show' : ' only shows'} approved accounts — link your Discord to appear.</p>` : ''}</section>` : ''}
-    </div></div>`;
+    </div>${names}</div>`;
 }
 
 document.addEventListener('click', async e => {
@@ -165,6 +177,33 @@ document.addEventListener('click', async e => {
   } catch (x) { toast('Something went wrong: ' + (x.code || x.message), 'err'); }
 });
 document.addEventListener('change', e => { if (e.target.closest && e.target.closest('[data-form="ac-link"]') && e.target.name === 'drv') ME.pick = e.target.value; });
+document.addEventListener('submit', async e => {
+  if (e.target.dataset.form !== 'ac-names') return;
+  e.preventDefault();
+  const d = LG.S.data, f = e.target, btn = f.querySelector('button'), done = [];
+  btn.disabled = true;
+  try {
+    const gs = window.GridDraft && window.GridDraft.store(d);
+    if (f.gd && !f.gd.disabled && gs && gs.profile) {
+      const n = f.gd.value.trim().slice(0, 24);
+      if (n.length < 2) throw new Error('Your Grid Draft username needs at least 2 characters.');
+      if (n !== gs.profile.name) { await gs.rename(n); if (window.GridDraft.G) window.GridDraft.G.lb = null; done.push('Grid Draft'); }
+    }
+    if (f.fm && !f.fm.disabled) {
+      const ps = store(d), doc = (window.Fantasy.accountDocs(d) || []).find(x => x.uid === ps.user.uid);
+      const m = f.fm.value.trim().slice(0, 40), t = f.ft.value.trim().slice(0, 40);
+      if (!m || !t) throw new Error('Fantasy names can’t be empty.');
+      if (doc && (m !== doc.manager || t !== doc.name)) {
+        await ps.saveFantasy({ manager: m, name: t }, false);
+        const FT = window.Fantasy; FT.AC.docs = null; FT.AC.mineFor = '';
+        try { const k = 'league.fantasy.myteam', my = JSON.parse(localStorage.getItem(k) || 'null'); if (my) { my.manager = m; my.name = t; localStorage.setItem(k, JSON.stringify(my)); } } catch (x) { }
+        done.push('Fantasy');
+      }
+    }
+    toast(done.length ? `Saved — your ${done.join(' and ')} name${done.length > 1 ? 's are' : ' is'} updated.` : 'Nothing changed.');
+  } catch (x) { toast(x.code === 'name-locked' ? 'An admin has locked this name.' : 'Couldn’t save: ' + (x.message || x.code) + (/permission/i.test(x.code || x.message) ? ' — the league admin may need to update the Firebase rules.' : ''), 'err'); }
+  btn.disabled = false; LG.render(false);
+});
 document.addEventListener('submit', async e => {
   if (e.target.dataset.form !== 'ac-link') return;
   e.preventDefault();

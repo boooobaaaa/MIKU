@@ -97,8 +97,16 @@ function fbStore(conf) {
       const ref = F.doc(db, 'fantasy', s.user.uid), cur = await F.getDoc(ref);
       const hist = cur.exists() ? (cur.data().history || []) : [];
       const next = picksChanged || !hist.length ? hist.concat([{ picks: x.picks, at: F.Timestamp.now() }]) : hist;
-      await F.setDoc(ref, { uid: s.user.uid, name: x.name, manager: x.manager, history: next, updatedAt: F.serverTimestamp() });
+      const old = cur.exists() ? cur.data() : null, doc = { uid: s.user.uid, name: x.name, manager: x.manager, history: next, updatedAt: F.serverTimestamp() };
+      if (old) {
+        if (old.nameLocked) { doc.nameLocked = true; doc.name = old.name; doc.manager = old.manager; }
+        if ('origManager' in old) doc.origManager = old.origManager; else if (doc.manager !== old.manager) doc.origManager = old.manager;
+        if ('origName' in old) doc.origName = old.origName; else if (doc.name !== old.name) doc.origName = old.name;
+      }
+      await F.setDoc(ref, doc);
+      return doc;
     },
+    async adminSetFantasyNames(uid, x) { await F.updateDoc(F.doc(db, 'fantasy', uid), { manager: x.manager, name: x.name, nameLocked: !!x.locked }); },
     async deleteFantasy(uid) { await F.deleteDoc(F.doc(db, 'fantasy', uid)); }
   });
   return s;
@@ -262,20 +270,31 @@ const RULES = `
         && h.at is timestamp && h.at > request.time - duration.value(10, 'm') && h.at < request.time + duration.value(2, 'm');
     }
     function ftDocOk(x, uid) {
-      return x.keys().hasOnly(['uid', 'name', 'manager', 'history', 'updatedAt']) && x.uid == uid
+      return x.keys().hasOnly(['uid', 'name', 'manager', 'history', 'updatedAt', 'origName', 'origManager', 'nameLocked']) && x.uid == uid
         && x.name is string && x.name.size() >= 1 && x.name.size() <= 40
         && x.manager is string && x.manager.size() >= 1 && x.manager.size() <= 40
         && x.history is list && x.history.size() >= 1 && x.history.size() <= 150 && x.updatedAt == request.time;
     }
     match /fantasy/{uid} {
       allow read: if true;
+      function ftNamesOk(nd, od) {
+        return nd.get('nameLocked', false) == od.get('nameLocked', false)
+          && (od.get('nameLocked', false) != true || (nd.name == od.name && nd.manager == od.manager))
+          && (('origName' in od) ? nd.origName == od.origName : (!('origName' in nd) || nd.origName == od.name))
+          && (('origManager' in od) ? nd.origManager == od.origManager : (!('origManager' in nd) || nd.origManager == od.manager));
+      }
       allow create: if signedIn() && request.auth.uid == uid && ftDocOk(request.resource.data, uid)
+        && !('origName' in request.resource.data) && !('origManager' in request.resource.data) && !('nameLocked' in request.resource.data)
         && request.resource.data.history.size() == 1 && ftEntryOk(request.resource.data.history[0]);
-      allow update: if signedIn() && request.auth.uid == uid && ftDocOk(request.resource.data, uid)
+      allow update: if (signedIn() && request.auth.uid == uid && ftDocOk(request.resource.data, uid) && ftNamesOk(request.resource.data, resource.data)
         && (request.resource.data.history == resource.data.history
           || (request.resource.data.history.size() == resource.data.history.size() + 1
             && request.resource.data.history[0:resource.data.history.size()] == resource.data.history
-            && ftEntryOk(request.resource.data.history[resource.data.history.size()])));
+            && ftEntryOk(request.resource.data.history[resource.data.history.size()]))))
+        || ((canRunFantasy() || canReviewLinks()) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'manager', 'nameLocked'])
+          && request.resource.data.name is string && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 40
+          && request.resource.data.manager is string && request.resource.data.manager.size() >= 1 && request.resource.data.manager.size() <= 40
+          && request.resource.data.nameLocked is bool);
       allow delete: if canRunFantasy();
     }
 `;

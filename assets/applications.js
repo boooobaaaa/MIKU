@@ -28,7 +28,7 @@ const TEMPLATES = {
       { label: 'Time zone', type: 'short', required: true, help: 'e.g. CST, GMT+1' },
       { label: 'Racing experience', type: 'long', required: true, help: 'Leagues you\'ve raced in, results, how long you\'ve been racing' },
       { label: 'Preferred team', type: 'team', required: false },
-      { label: 'Preferred race number', type: 'number', required: false },
+      { label: 'Preferred race number', type: 'number', required: false, maxDigits: 2 },
       { label: 'Which races can you attend?', type: 'choice', options: ['All of them', 'Most of them', 'About half', 'Not sure yet'], required: true },
       { label: 'Why do you want to join?', type: 'long', required: true }
     ] },
@@ -167,12 +167,15 @@ function field(d, q, v) {
   const lab = `<span>${esc(q.label || 'Question')}${q.required ? ' <b class="ap-req">*</b>' : ''}</span><small class="ap-help">${esc(q.help || '')}</small>`;
   const opts = (q.options || []).filter(Boolean);
   if (q.type === 'long') return `<label class="fld wide">${lab}<textarea name="${nm}" rows="5" maxlength="4000" ${req}>${esc(v || '')}</textarea></label>`;
-  if (q.type === 'number') return `<label class="fld">${lab}<input type="number" name="${nm}" value="${esc(v ?? '')}" ${req}></label>`;
+  if (q.type === 'number') { const md = Math.max(0, parseInt(q.maxDigits, 10) || 0);
+    return md ? `<label class="fld">${lab}<input type="text" inputmode="numeric" autocomplete="off" data-digits="${md}" maxlength="${md}" pattern="[0-9]{1,${md}}" title="Numbers only, up to ${md} digit${md === 1 ? '' : 's'}" name="${nm}" value="${esc(v ?? '')}" ${req}><small class="ap-lim">Up to ${md} digit${md === 1 ? '' : 's'}</small></label>`
+      : `<label class="fld">${lab}<input type="number" name="${nm}" value="${esc(v ?? '')}" ${req}></label>`; }
   if (q.type === 'choice') return `<label class="fld">${lab}<select name="${nm}" ${req}><option value="">— Choose —</option>${opts.map(o => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
   if (q.type === 'team') return `<label class="fld">${lab}<select name="${nm}" ${req}><option value="">— Choose a team —</option>${d.teams.map(t => `<option value="${esc(t.id)}" ${t.id === v ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></label>`;
   if (q.type === 'driver') return `<label class="fld">${lab}<select name="${nm}" ${req}><option value="">— Choose a driver —</option>${d.drivers.filter(x => x.active !== false).map(x => `<option value="${esc(x.id)}" ${x.id === v ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>`;
   if (q.type === 'multi') return `<div class="fld wide" data-q="${esc(q.id)}" role="group">${lab}<div class="ap-multi">${opts.map(o => `<label class="ap-check"><input type="checkbox" name="${nm}" value="${esc(o)}" ${(v || []).includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div></div>`;
-  return `<label class="fld">${lab}<textarea class="ap-grow" name="${nm}" rows="1" maxlength="1000" ${req}>${esc(v || '')}</textarea></label>`;
+  const ml = Math.min(1000, parseInt(q.maxLen, 10) || 1000);
+  return `<label class="fld">${lab}<textarea class="ap-grow" name="${nm}" rows="1" maxlength="${ml}" ${req}>${esc(v || '')}</textarea>${ml < 1000 ? `<small class="ap-lim">Up to ${ml} character${ml === 1 ? '' : 's'}</small>` : ''}</label>`;
 }
 /* short answers grow as you type, and Enter adds a new line instead of sending the form */
 const grow = el => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px'; };
@@ -297,8 +300,8 @@ function collect(form, f) {
   const fd = new FormData(form), ans = {};
   f.questions.forEach(q => {
     if (q.type === 'multi') ans[q.id] = fd.getAll('q_' + q.id).map(String);
-    else if (q.type === 'number') { const v = String(fd.get('q_' + q.id) || '').trim(); ans[q.id] = v === '' ? '' : Number(v); }
-    else ans[q.id] = String(fd.get('q_' + q.id) || '').trim().slice(0, q.type === 'long' ? 4000 : 1000);
+    else if (q.type === 'number') { const v = String(fd.get('q_' + q.id) || '').trim(), md = parseInt(q.maxDigits, 10) || 0; ans[q.id] = v === '' ? '' : md ? v.replace(/\D/g, '').slice(0, md) : Number(v); }
+    else ans[q.id] = String(fd.get('q_' + q.id) || '').trim().slice(0, q.type === 'long' ? 4000 : Math.min(1000, parseInt(q.maxLen, 10) || 1000));
   });
   return { applicant: String(fd.get('__applicant') || '').trim().slice(0, 80), answers: ans };
 }
@@ -363,5 +366,6 @@ document.addEventListener('click', async e => {
   LG.render(false);
 });
 
+document.addEventListener('input', e => { const el = e.target; if (!el.dataset || !el.dataset.digits) return; const v = el.value.replace(/\D/g, '').slice(0, Number(el.dataset.digits)); if (v !== el.value) el.value = v; });
 window.Apps = { page, hub, badge, APP_STATUS, Q_TYPES, TEMPLATES, fromTemplate, forms, openForms, answerText, notifyDecision, uidOf, contractFor };
 })();

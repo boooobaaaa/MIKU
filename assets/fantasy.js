@@ -344,13 +344,15 @@ function acctSubmit(d, S, v) {
   const cur = normPicks(me.picks), changed = !last || !samePicks(last.picks, cur);
   const fromId = last ? effectiveRoundFor(d, last.at) : '', fromR = LG.rounds(d).find(r => r.id === fromId);
   const A = window.Accounts, needs = A && A.cfg(d).fantasyApproved, ok = A && A.isApproved(d, s.user.uid);
-  const man = me.manager || (mine && mine.manager) || String(s.user.displayName || '').split(' ')[0], tn = me.name || (mine && mine.name) || '';
+  const man = mine ? mine.manager : (me.manager || String(s.user.displayName || '').split(' ')[0]), tn = mine ? mine.name : (me.name || '');
+  const locked = !!(mine && mine.nameLocked);
   return `<div class="ft-submit card">
     <h3>${mine ? 'Your saved team' : 'Enter the league'}</h3>
     <div class="pform">
-      <label class="fld"><span>Manager name (shown on the leaderboard)</span><input id="ft-m" type="text" maxlength="40" value="${esc(man)}" placeholder="Name or nickname"></label>
-      <label class="fld"><span>Fantasy team name</span><input id="ft-t" type="text" maxlength="40" value="${esc(tn)}" placeholder="e.g. Leek Speed Racing"></label>
+      <label class="fld"><span>Manager name (shown on the leaderboard)</span><input id="ft-m" type="text" maxlength="40" value="${esc(man)}" placeholder="Name or nickname" ${locked ? 'disabled' : ''}></label>
+      <label class="fld"><span>Fantasy team name</span><input id="ft-t" type="text" maxlength="40" value="${esc(tn)}" placeholder="e.g. Leek Speed Racing" ${locked ? 'disabled' : ''}></label>
     </div>
+    ${locked ? '<p class="hint">🔒 An admin has locked your names.</p>' : ''}
     ${v.ok ? (changed ? `<p class="ok-note" style="margin:14px 0 0">✓ Team is valid${last ? ' — you have unsaved changes.' : '.'}</p>` : '') : `<p class="warn" style="margin:14px 0 0">To finish: ${esc(v.errs.join(' · '))}</p>`}
     ${last && !changed ? `<p class="ok-note ft-saved" style="margin:14px 0 0">✓ Saved to your account${fromR ? ` · these picks count from <b>R${esc(fromR.round)} ${esc(fromR.name)}</b>` : fromId === '__after__' ? ' · the season is over' : ''}.</p>` : ''}
     <div class="toolbar" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="btn primary" data-ft="save" ${v.ok ? '' : 'disabled'}>${last ? (changed ? 'Save changes' : 'Save names') : 'Save my team'}</button><button class="btn ghost" data-ft="reset">Clear picks</button></div>
