@@ -1,21 +1,18 @@
 {
   "league": {
-    "name": "Mirai Racing Association",
-    "season": "Season 0",
-    "tagline": "Where Legends Blossom",
-    "logo": "uploads/branding/2026-11-09-mirai-gdtm.png",
-    "rules": "# Sporting regulations\n\n## Race format\n- Races are **50% distance**, dynamic weather, parc fermé on.\n- Three qualifying sessions, eliminations per round, 7 minutes 30 seconds.\n- Assists: ABS and traction control allowed; no racing line.\n\n## Conduct\n- Racing incidents are reviewed by the stewards after each round. Submit tickets in Discord within **24 hours**.\n- Penalties: warnings → time penalties → championship points deductions.\n- Three no-shows without notice and your seat goes to a reserve driver.\n\n## Reserves\nReserve drivers score points for the **team**, and keep their own points in the drivers' table.",
+    "name": "Aurora Racing League",
+    "season": "2026",
+    "tagline": "Wednesday night wheel-to-wheel. Clean racing, cosy vibes, one championship.",
+    "logo": "uploads/test/car.png",
     "links": {
-      "discord": "https://discord.gg/cuY4QGXA39",
-      "youtube": "https://www.youtube.com/@MIKUMotorsports",
+      "discord": "https://discord.gg/your-invite",
+      "youtube": "",
       "twitch": ""
     },
-    "footer": "The Official Motorsport Championship Series",
-    "raceControl": "KIRA",
-    "rcKira": true
+    "rules": "# Sporting regulations\n\n## Race format\n- Races are **50% distance**, dynamic weather, parc ferm\u00e9 on.\n- One-shot qualifying, 18 minutes.\n- Assists: ABS and traction control allowed; no racing line.\n\n## Conduct\n- Racing incidents are reviewed by the stewards after each round. Submit tickets in Discord within **24 hours**.\n- Penalties: warnings \u2192 time penalties \u2192 championship points deductions.\n- Three no-shows without notice and your seat goes to a reserve driver.\n\n## Reserves\nReserve drivers score points for the **team**, and keep their own points in the drivers' table."
   },
   "settings": {
-    "adminHash": "31e30acfbdece1d98ecf046af66835385049ecc52eba95e49a6f61654f4f5c27"
+    "adminHash": ""
   },
   "scoring": {
     "race": [
@@ -43,2057 +40,1034 @@
     "fastestLap": 1,
     "fastestLapTopN": 10,
     "sprintFastestLap": 0,
-    "pole": 1
+    "pole": 0
   },
   "teams": [
     {
       "id": "aqua",
-      "name": "BWT Alpine F1 Team",
-      "color": "#f08fbc",
-      "base": "Enstone, United Kingdom",
-      "principal": "Steve Nielsen",
-      "car": "A526",
+      "name": "Mercedes-AMG PETRONAS Formula One Team",
+      "color": "#39c5bb",
+      "base": "Sapporo, Japan",
+      "principal": "Mei Hoshino",
+      "car": "AVR-26",
       "engine": "Mercedes",
-      "logo": "uploads/teams/2026-11-09-alpine-20kp.png",
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/alpine/2026alpinecarright.webp",
+      "logo": "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22%3E%3Ccircle cx=%2220%22 cy=%2220%22 r=%2216%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%223%22/%3E%3C/svg%3E",
+      "carImage": "uploads/test/car.png",
       "staff": {
+        "exec": {
+          "title": "Chief Executive Officer",
+          "name": "Yuki Hoshino",
+          "country": "JP",
+          "photo": "uploads/test/avatar.png"
+        },
         "principal": {
-          "name": "Tori Eden",
-          "country": "CN",
-          "photo": "uploads/staff/2026-11-14-tori-b4x8.png"
-        }
+          "name": "Mei Hoshino",
+          "country": "JP"
+        },
+        "race": [
+          {
+            "name": "Tom Becker",
+            "country": "DE",
+            "driverId": "d1"
+          },
+          {
+            "name": "Ana Ruiz",
+            "country": "ES",
+            "driverId": "d7",
+            "photo": "uploads/test/avatar.png"
+          }
+        ],
+        "perf": [
+          {
+            "name": "Lars Holm",
+            "country": "DK",
+            "driverId": "d1"
+          }
+        ],
+        "reserves": [
+          {
+            "name": "Kenji Ito",
+            "number": 27,
+            "country": "JP",
+            "photo": "uploads/test/avatar.png"
+          },
+          {
+            "name": "Sofia Lane",
+            "number": 88,
+            "country": "CA"
+          }
+        ],
+        "academy": [
+          {
+            "name": "Mila Novak",
+            "number": 14,
+            "country": "CZ",
+            "photo": "uploads/test/avatar.png"
+          }
+        ]
       }
     },
     {
       "id": "crimson",
-      "name": "Aston Martin Aramco F1 Team",
-      "color": "#2d7b59",
-      "base": "Silverstone, United Kingdom",
-      "principal": "Adrian Newey",
-      "car": "AMR26",
-      "engine": "Honda",
-      "logo": "uploads/teams/2026-11-09-aston-2sx9.png",
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/astonmartin/2026astonmartincarright.webp",
+      "name": "Crimson Lantern GP",
+      "color": "#e2445c",
+      "base": "Maranello, Italy",
+      "principal": "Luca Bassi",
+      "car": "CL-07",
+      "engine": "Ferrari",
+      "logo": "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22%3E%3Ccircle cx=%2220%22 cy=%2220%22 r=%2216%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%223%22/%3E%3C/svg%3E",
+      "carImage": "uploads/test/car.png",
       "staff": {
         "principal": {
-          "name": "omr123143",
-          "country": "BA"
+          "name": "Luca Bassi",
+          "country": "IT"
         }
       }
     },
     {
       "id": "nightjar",
-      "name": "Audi Revolut F1 Team",
-      "color": "#eb4426",
-      "base": "Hinwil, Switzerland",
-      "principal": "Mattia Binotto",
-      "car": "R26",
-      "engine": "Audi",
-      "logo": "uploads/teams/2026-11-09-audi-5jfq.png",
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/audi/2026audicarright.webp"
+      "name": "BWT Alpine F1 Team",
+      "color": "#8a7cf8",
+      "base": "Milton Keynes, UK",
+      "principal": "Ada Whitlock",
+      "car": "NJ-3",
+      "engine": "Honda RBPT",
+      "logo": "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22%3E%3Ccircle cx=%2220%22 cy=%2220%22 r=%2216%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%223%22/%3E%3C/svg%3E"
     },
     {
       "id": "solstice",
-      "name": "Cadillac Formula 1 Team",
-      "color": "#b5b5b5",
-      "base": "Silverstone, United Kingdom",
-      "principal": "Marcin Budkowski",
-      "car": "MAC-26",
-      "engine": "Ferrari",
-      "logo": "uploads/teams/2026-11-09-cadillac-qo2q.png",
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/cadillac/2026cadillaccarright.webp"
+      "name": "Visa Cash App Racing Bulls Formula One Team",
+      "color": "#f2a541",
+      "base": "Woking, UK",
+      "principal": "Tom Ashby",
+      "car": "SR26",
+      "engine": "Mercedes",
+      "logo": "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22%3E%3Ccircle cx=%2220%22 cy=%2220%22 r=%2216%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%223%22/%3E%3C/svg%3E"
     },
     {
       "id": "polar",
-      "name": "TGR Haas F1 Team",
-      "color": "#dfe1e2",
-      "base": "Kannapolis, United States",
-      "principal": "Ayao Komatsu",
-      "car": "VF-26",
-      "engine": "Ferrari",
-      "logo": "uploads/teams/2026-11-09-haas-bgz1.png",
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/haasf1team/2026haasf1teamcarright.webp"
-    },
-    {
-      "id": "team-raoctb",
-      "name": "McLaren Mastercard F1 Team",
-      "color": "#f28c32",
-      "base": "Woking, United Kingdom",
-      "principal": "Andrea Stella",
-      "engine": "Mercedes",
-      "car": "MCL40",
-      "logo": "uploads/teams/2026-11-09-mclaren-dgf5.png",
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/mclaren/2026mclarencarright.webp",
-      "staff": {
-        "principal": {
-          "name": "Mario Aragón"
-        }
-      }
-    },
-    {
-      "id": "team-ji57ia",
-      "name": "Mercedes-AMG PETRONAS Formula One Team",
-      "color": "#58e1c1",
-      "base": "Brackley, United Kingdom",
-      "principal": "Toto Wolff",
-      "car": "W17",
-      "engine": "Mercedes",
-      "bio": "",
-      "logo": "uploads/teams/2026-11-09-merc-ahhr.png",
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/mercedes/2026mercedescarright.webp",
-      "staff": {
-        "principal": {
-          "name": "Nicki Branden",
-          "country": "DE",
-          "photo": "uploads/staff/2026-11-14-branden-fmle.png"
-        }
-      }
-    },
-    {
-      "id": "team-tmnl09",
-      "name": "Scuderia Ferrari HP",
-      "color": "#d52d37",
-      "base": "Maranello, Italy",
-      "principal": "Frédéric Vasseur",
-      "engine": "Ferrari",
-      "car": "SF-26",
-      "logo": "uploads/teams/2026-11-09-ferrari-m9to.png",
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/ferrari/2026ferraricarright.webp",
-      "staff": {
-        "principal": {
-          "name": "Rousey123",
-          "country": "AU"
-        }
-      }
-    },
-    {
-      "id": "team-3ws3tm",
-      "name": "Oracle Red Bull Racing",
-      "color": "#113b8d",
-      "base": "Milton Keynes, United Kingdom",
-      "principal": "Laurent Mekies",
-      "engine": "Red Bull Ford",
-      "car": "RB22",
-      "logo": "uploads/teams/2026-11-09-rbr-btbh.png",
-      "staff": {
-        "exec": {
-          "title": "Executive Officer",
-          "name": "Seojun Park",
-          "country": "VN",
-          "photo": "uploads/staff/2026-11-05-seocrossedarm1-rz29.png"
-        },
-        "principal": {
-          "name": "Adam Jones",
-          "country": "US",
-          "photo": "uploads/staff/2026-11-05-rbadam-uvai.png",
-          "discord": {
-            "uid": "pDBs69IBWjfBjQRSe3knv6jta3h1",
-            "id": "178520095989956608",
-            "name": "jones",
-            "user": "jones3335",
-            "avatar": "25c11303b3989545c7fe3862b30306c9"
-          }
-        },
-        "race": [
-          {
-            "name": "Adam Jones",
-            "country": "US",
-            "driverId": "drv-8vg761",
-            "photo": "uploads/staff/2026-11-05-rbadam-xc8w.png"
-          },
-          {
-            "name": "Cassidy Leeks",
-            "photo": "uploads/staff/2026-11-05-rbcassidy-lol0.png",
-            "country": "US",
-            "driverId": "drv-ncu50w"
-          }
-        ],
-        "reserves": []
-      },
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/redbullracing/2026redbullracingcarright.webp"
-    },
-    {
-      "id": "team-0tr4e5",
-      "name": "Visa Cash App Racing Bulls Formula One Team",
-      "color": "#6f91f7",
-      "base": "Faenza, Italy",
-      "principal": "Alan Permane",
-      "engine": "Red Bull Ford",
-      "car": "VCARB 03",
-      "logo": "uploads/teams/2026-11-09-vcarb-pt47.png",
-      "staff": {
-        "exec": {
-          "title": "Executive Officer",
-          "name": "Seojun Park",
-          "country": "VN",
-          "photo": "uploads/staff/2026-11-05-seocrossedarm1-8un6.png"
-        },
-        "principal": {
-          "name": "Tao Yuze",
-          "country": "CN",
-          "photo": "uploads/staff/2026-11-05-vcarbtao-n7x9.png"
-        },
-        "race": [
-          {
-            "name": "Tao Yuze",
-            "photo": "uploads/staff/2026-11-05-vcarbtao-xm1q.png",
-            "country": "CN"
-          }
-        ]
-      },
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/racingbulls/2026racingbullscarright.webp"
-    },
-    {
-      "id": "team-rzql3o",
-      "name": "Atlassian Williams F1 Team",
-      "color": "#215dd9",
-      "car": "FW48",
-      "engine": "Mercedes",
-      "base": "Grove, United Kingdom",
-      "principal": "James Vowles",
-      "logo": "uploads/teams/2026-11-09-williams-u91e.png",
-      "carImage": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/williams/2026williamscarright.webp"
+      "name": "Polar Static",
+      "color": "#6ec1ff",
+      "base": "Enstone, France",
+      "principal": "Claire Dubois",
+      "car": "PS-01",
+      "engine": "Renault"
     }
   ],
   "drivers": [
     {
-      "id": "drv-8vg761",
-      "name": "Seojun Park",
-      "number": 21,
-      "country": "VN",
-      "teamId": "team-3ws3tm",
-      "active": true,
-      "gamertag": "hyosoi",
-      "photo": "uploads/drivers/2026-11-05-seorender-dkz1.png",
-      "headshot": "uploads/drivers/2026-11-05-seorender-s6kr.png",
-      "bio": "Debuting in the Scarlet Red, Seojun Park was Scuderia Ferrari HP's first Race Driver #1 until his transfer later in the season. Before Round 3 in Canada, Seojun Park was transferred from Scuderia Ferrari to Oracle Red Bull Racing, where he continues to drive for the team. He is known for his methods and work to build the structure of every team he's been signed. to, and has built one of the most structured team systems compared to the competitors. Seojun Park has continued to consistently gather points for the team in its crucial fight for the Constructors' title.\n",
-      "history": [
-        {
-          "teamId": "team-tmnl09",
-          "role": "Race Driver",
-          "fromSeason": "1",
-          "fromRound": 1,
-          "toSeason": "1",
-          "toRound": 3
-        },
-        {
-          "teamId": "team-3ws3tm",
-          "role": "Race Driver",
-          "fromSeason": "1",
-          "fromRound": 3,
-          "toSeason": "now",
-          "toRound": ""
-        }
-      ],
-      "discord": {
-        "uid": "7r4QB3SNujhnEaf29LNeiEInhoJ3",
-        "id": "175034174120525824",
-        "name": "seo",
-        "user": "hyosoi",
-        "avatar": "08d5962c5e6c0559a3f83ebe86f7d884"
-      },
-      "looks": [
-        {
-          "id": "look-2q1qv5",
-          "teamId": "team-tmnl09",
-          "rounds": [],
-          "photo": "uploads/drivers/2026-11-14-sf1-2xnn.png",
-          "headshot": "uploads/drivers/2026-11-14-sf1-rk24.png"
-        }
-      ],
-      "fantasyValue": 30.5
-    },
-    {
-      "id": "drv-ncu50w",
-      "name": "Roxanne Zenin",
-      "number": 56,
-      "country": "GB",
-      "teamId": "team-3ws3tm",
-      "active": true,
-      "gamertag": "Fabelynx",
-      "photo": "uploads/drivers/2026-11-05-roxrender-pe4n.png",
-      "headshot": "uploads/drivers/2026-11-05-roxrender-vc5k.png",
-      "bio": "Roxanne Zenin joined the grid as a Reserve Driver for Aston Martin Aramco Formula One Team and made her debut in Round 1 at Monza, driving in place of Cevapi. After a shaky start to her career, most notably her Round 1 DNF, she clawed her way straight from the bottom to the top of the grid, continuing to take home more trophies as the season went on. From Aston Martin, she made her debut at McLaren Mastercard Formula One Team in Round 2 at Singapore and took home her first Sprint Win and Grand Prix Win in the rain. Following her performance, she was signed by Scuderia Ferrari HP for a brief period before being transferred and signed to her current home: Oracle Red Bull Racing, where she now settled into the team and support system.",
-      "history": [
-        {
-          "teamId": "crimson",
-          "role": "Reserve Driver",
-          "fromSeason": "1",
-          "fromRound": 1,
-          "toSeason": "1",
-          "toRound": 1
-        },
-        {
-          "teamId": "team-raoctb",
-          "role": "Race Driver",
-          "fromSeason": "1",
-          "fromRound": 2,
-          "toSeason": "1",
-          "toRound": 2
-        },
-        {
-          "teamId": "team-tmnl09",
-          "role": "Race Driver",
-          "fromSeason": "1",
-          "fromRound": 3,
-          "toSeason": "1",
-          "toRound": 3
-        },
-        {
-          "teamId": "team-3ws3tm",
-          "role": "Race Driver",
-          "fromSeason": "1",
-          "fromRound": 3,
-          "toSeason": "now",
-          "toRound": ""
-        }
-      ],
-      "looks": [
-        {
-          "id": "look-ucxe2w",
-          "teamId": "crimson",
-          "rounds": [],
-          "photo": "uploads/drivers/2026-11-14-roxast-l5qn.png",
-          "headshot": "uploads/drivers/2026-11-14-roxast-bys1.png"
-        },
-        {
-          "id": "look-h6vln4",
-          "teamId": "team-raoctb",
-          "rounds": [],
-          "photo": "uploads/drivers/2026-11-14-roxmcl-fg77.png",
-          "headshot": "uploads/drivers/2026-11-14-roxmcl-0541.png"
-        }
-      ],
-      "fantasyValue": 32
-    },
-    {
-      "id": "drv-48oaev",
-      "name": "Illia Speedy",
-      "number": 6,
-      "country": "UA",
-      "teamId": "team-0tr4e5",
-      "active": true,
-      "gamertag": "illia_95849",
-      "photo": "uploads/drivers/2026-11-14-dizzyfixedrender2-1ps5.png",
-      "headshot": "uploads/drivers/2026-11-14-2026-11-14-dizzyfixedrender2-v2qw-dk3d.png",
-      "fantasyValue": 25.5
-    },
-    {
-      "id": "drv-z9dwau",
-      "name": "Joshua Tsing",
-      "number": 8,
-      "country": "SG",
-      "teamId": "team-0tr4e5",
-      "active": true,
-      "gamertag": "1.800.foreign",
-      "photo": "uploads/drivers/2026-11-05-mavodriver-hsgz.png",
-      "headshot": "uploads/drivers/2026-11-05-mavodriver-j22g.png",
-      "fantasyValue": 9.5
-    },
-    {
-      "id": "drv-cs0f9n",
-      "name": "Tori Eden",
-      "number": 5,
-      "country": "CN",
+      "id": "d1",
+      "name": "Aiko Tanaka",
+      "number": 39,
+      "country": "JP",
       "teamId": "aqua",
       "active": true,
-      "gamertag": "mr_jasonrich",
-      "photo": "uploads/drivers/2026-11-13-tori-vbn6.png",
-      "headshot": "uploads/drivers/2026-11-13-tori-nusn.png",
-      "looks": [
-        {
-          "id": "look-t12xke",
-          "teamId": "team-3ws3tm",
-          "rounds": [],
-          "photo": "uploads/drivers/2026-11-14-torirbr-12fl.png",
-          "headshot": "uploads/drivers/2026-11-14-torirbr-69dl.png"
-        },
-        {
-          "id": "look-jv9yrh",
-          "teamId": "team-0tr4e5",
-          "rounds": [],
-          "photo": "uploads/drivers/2026-11-14-toriblend-lxmx.png",
-          "headshot": "uploads/drivers/2026-11-14-toriblend-5rtr.png"
-        }
-      ],
-      "fantasyValue": 6.5
+      "photo": "uploads/test/avatar.png"
     },
     {
-      "id": "drv-0cl2kf",
-      "name": "Stepin",
-      "number": 55,
-      "country": "RU",
-      "teamId": "aqua",
-      "active": true,
-      "gamertag": "stepinp",
-      "photo": "uploads/drivers/2026-11-13-stepin-j6sg.png",
-      "headshot": "uploads/drivers/2026-11-13-stepin-ufbo.png",
-      "fantasyValue": 17.5
-    },
-    {
-      "id": "drv-jpfr9u",
-      "name": "Comodo",
-      "number": 26,
-      "country": "ID",
-      "teamId": "aqua",
-      "active": true,
-      "gamertag": "Comodogaming267",
-      "photo": "uploads/drivers/2026-11-13-comodo-xjex.png",
-      "headshot": "uploads/drivers/2026-11-13-comodo-zukv.png",
-      "reserve": true
-    },
-    {
-      "id": "drv-ndx3h9",
-      "name": "Theo",
-      "number": 17,
-      "country": "KR",
-      "teamId": "crimson",
-      "active": true,
-      "gamertag": "imthatdangerousguy",
-      "photo": "uploads/drivers/2026-11-13-theo-wi0z.png",
-      "headshot": "uploads/drivers/2026-11-13-theo-3bv6.png",
-      "fantasyValue": 22.5
-    },
-    {
-      "id": "drv-g0e4mq",
-      "name": "Cevapi",
-      "number": 33,
-      "country": "BA",
-      "teamId": "crimson",
-      "active": true,
-      "gamertag": "ansaromar12",
-      "photo": "uploads/drivers/2026-11-13-cevapi-89tz.png",
-      "headshot": "uploads/drivers/2026-11-13-cevapi-qjiz.png",
-      "fantasyValue": 6
-    },
-    {
-      "id": "drv-p4vlk9",
-      "name": "Mario Aragón",
-      "number": 51,
-      "country": "SV",
-      "teamId": "team-raoctb",
-      "active": true,
-      "gamertag": "ELPRO_6433",
-      "photo": "uploads/drivers/2026-11-13-mario-etwx.png",
-      "headshot": "uploads/drivers/2026-11-13-mario-jk6r.png",
-      "fantasyValue": 16
-    },
-    {
-      "id": "drv-7cnufb",
-      "name": "Chori Calderon",
-      "number": 77,
-      "country": "AR",
-      "teamId": "team-raoctb",
-      "active": true,
-      "gamertag": "Dodo201355f",
-      "photo": "uploads/drivers/2026-11-13-chori-v7ux.png",
-      "headshot": "uploads/drivers/2026-11-13-chori-01ps.png",
-      "looks": [
-        {
-          "id": "look-gn87g9",
-          "teamId": "nightjar",
-          "rounds": [],
-          "photo": "uploads/drivers/2026-11-14-choriaudi-hz96.png",
-          "headshot": "uploads/drivers/2026-11-14-2026-11-14-choriaudi-bm4b-x953.png"
-        }
-      ],
-      "fantasyValue": 6
-    },
-    {
-      "id": "drv-fmzcoq",
-      "name": "Nicki Branden",
-      "number": 28,
-      "country": "DE",
-      "teamId": "team-ji57ia",
-      "active": true,
-      "gamertag": "youkantewin001",
-      "photo": "uploads/drivers/2026-11-13-branden-rgvb.png",
-      "headshot": "uploads/drivers/2026-11-13-branden-geps.png",
-      "fantasyValue": 8
-    },
-    {
-      "id": "drv-gx5u0y",
-      "name": "Marco Andriy",
-      "number": 11,
-      "country": "MX",
-      "teamId": "team-ji57ia",
-      "active": false,
-      "gamertag": "junorimoonblox",
-      "photo": "uploads/drivers/2026-11-13-marco-v4ww.png",
-      "headshot": "uploads/drivers/2026-11-13-marco-l2nb.png",
-      "reserve": true,
-      "history": [
-        {
-          "teamId": "team-3ws3tm",
-          "role": "Race Driver",
-          "fromSeason": "Season 0",
-          "fromRound": 1,
-          "toSeason": "Season 0",
-          "toRound": 3
-        },
-        {
-          "teamId": "team-ji57ia",
-          "role": "Race Driver",
-          "fromSeason": "Season 0",
-          "fromRound": 6,
-          "toSeason": "Season 0",
-          "toRound": 7
-        },
-        {
-          "teamId": "team-ji57ia",
-          "role": "Reserve Driver",
-          "fromSeason": "Season 0",
-          "fromRound": 7,
-          "toSeason": "",
-          "toRound": ""
-        }
-      ],
-      "looks": [
-        {
-          "id": "look-ikhpje",
-          "teamId": "team-3ws3tm",
-          "rounds": [],
-          "photo": "",
-          "headshot": ""
-        }
-      ]
-    },
-    {
-      "id": "drv-v039lf",
-      "name": "Spryzxen Niccolo",
-      "number": 81,
-      "country": "BR",
-      "teamId": "team-tmnl09",
-      "active": true,
-      "gamertag": "iifelipeiiop113",
-      "photo": "uploads/drivers/2026-11-13-spry-nqfy.png",
-      "headshot": "uploads/drivers/2026-11-13-spry-pp4j.png",
-      "fantasyValue": 24
-    },
-    {
-      "id": "drv-qt3v9z",
-      "name": "Guizin",
-      "number": 29,
-      "country": "BR",
-      "teamId": "team-tmnl09",
-      "active": true,
-      "gamertag": "Guidstopgames",
-      "photo": "uploads/drivers/2026-11-13-guizin-vppj.png",
-      "headshot": "uploads/drivers/2026-11-13-guizin-kf5b.png",
-      "fantasyValue": 27
-    },
-    {
-      "id": "drv-hk45yy",
-      "name": "Neon",
-      "number": 12,
-      "country": "CA",
-      "teamId": "team-ji57ia",
-      "active": false,
-      "gamertag": "neon32133",
-      "photo": "uploads/drivers/2026-11-13-neon-wcq3.png",
-      "headshot": "uploads/drivers/2026-11-13-neon-s8x7.png"
-    },
-    {
-      "id": "drv-sg6pnt",
-      "name": "\"AI Driver\"",
-      "number": "",
+      "id": "d2",
+      "name": "Leo Marchetti",
+      "number": 16,
       "country": "IT",
-      "teamId": "team-raoctb",
-      "active": false
-    },
-    {
-      "id": "drv-8rgkcf",
-      "name": "Antonelli",
-      "number": "",
-      "country": "DE",
       "teamId": "crimson",
-      "active": false,
-      "gamertag": "Supergeorge235",
-      "photo": "uploads/drivers/2026-11-14-antonelliast-dq0c.png",
-      "headshot": "uploads/drivers/2026-11-14-antonelliast-tzk7.png"
-    },
-    {
-      "id": "drv-50b6k5",
-      "name": "Alexandros Margaritis",
-      "number": 54,
-      "country": "GR",
-      "teamId": "team-3ws3tm",
       "active": true,
-      "gamertag": "petroom",
-      "photo": "uploads/drivers/2026-11-13-petroomrender-97xd.png",
-      "headshot": "uploads/drivers/2026-11-13-petroomrender-le53.png",
-      "reserve": true,
-      "discord": {
-        "uid": "RVY6TfsCfpPkSakiTg6R2cGdgV02",
-        "id": "1273405559584067604",
-        "name": "PoutsokefalosTV ☦",
-        "user": "ass_ketchup2",
-        "avatar": "61f88894648fd1e5897dedf4bfab8f26"
-      },
-      "history": [
-        {
-          "teamId": "team-tmnl09",
-          "role": "Race Driver",
-          "fromSeason": "Season 0",
-          "fromRound": 1,
-          "toSeason": "Season 0",
-          "toRound": 2
-        },
-        {
-          "teamId": "team-3ws3tm",
-          "role": "Reserve Driver",
-          "fromSeason": "Season 0",
-          "fromRound": 3,
-          "toSeason": "",
-          "toRound": ""
-        },
-        {
-          "teamId": "team-0tr4e5",
-          "role": "Race Driver",
-          "fromSeason": "Season 0",
-          "fromRound": 6,
-          "toSeason": "Season 0",
-          "toRound": 6
-        }
-      ],
-      "looks": [
-        {
-          "id": "look-8q91m0",
-          "teamId": "team-tmnl09",
-          "rounds": [],
-          "photo": "uploads/drivers/2026-11-14-petroom2-ad73.png",
-          "headshot": "uploads/drivers/2026-11-14-2026-11-14-petroom2-bebu-osnu.png"
-        }
-      ]
+      "photo": "uploads/test/avatar.png"
     },
     {
-      "id": "drv-h2mur5",
-      "name": "Naza Ceballos",
-      "number": 30,
-      "country": "AR",
-      "teamId": "team-tmnl09",
-      "active": false,
-      "reserve": true,
-      "history": [
-        {
-          "teamId": "team-raoctb",
-          "role": "Race Driver",
-          "fromSeason": "Season 0",
-          "fromRound": 1,
-          "toSeason": "Season 0",
-          "toRound": 2
-        },
-        {
-          "teamId": "team-raoctb",
-          "role": "Team Principal",
-          "fromSeason": "Season 0",
-          "fromRound": 1,
-          "toSeason": "Season 0",
-          "toRound": 2
-        },
-        {
-          "teamId": "team-tmnl09",
-          "role": "Team Principal",
-          "fromSeason": "Season 0",
-          "fromRound": 2,
-          "toSeason": "Season 0",
-          "toRound": 6
-        },
-        {
-          "teamId": "team-tmnl09",
-          "role": "Race Driver",
-          "fromSeason": "Season 0",
-          "fromRound": 2,
-          "toSeason": "Season 0",
-          "toRound": 6
-        }
-      ],
-      "looks": [
-        {
-          "id": "look-lf3kn6",
-          "teamId": "team-raoctb",
-          "rounds": [],
-          "photo": "uploads/drivers/2026-11-14-nazamcl-8twp.png",
-          "headshot": "uploads/drivers/2026-11-14-nazamcl-4ds5.png"
-        }
-      ]
+      "id": "d3",
+      "name": "Sam Okafor",
+      "number": 44,
+      "country": "GB",
+      "teamId": "nightjar",
+      "active": true
     },
     {
-      "id": "drv-vofpzs",
-      "name": "Robert Kubica",
-      "number": 88,
-      "country": "LT",
-      "teamId": "team-ji57ia",
+      "id": "d4",
+      "name": "Nina Lindqvist",
+      "number": 7,
+      "country": "SE",
+      "teamId": "solstice",
       "active": true,
-      "gamertag": "aarkes2300",
-      "photo": "uploads/drivers/2026-11-14-robert-rgei.png",
-      "headshot": "uploads/drivers/2026-11-14-robert-x3c5.png",
-      "fantasyValue": 6
+      "photo": "uploads/test/avatar.png"
+    },
+    {
+      "id": "d5",
+      "name": "Theo Laurent",
+      "number": 10,
+      "country": "FR",
+      "teamId": "polar",
+      "active": true,
+      "photo": "uploads/test/avatar.png"
+    },
+    {
+      "id": "d6",
+      "name": "Mateo Ruiz",
+      "number": 55,
+      "country": "ES",
+      "teamId": "crimson",
+      "active": true
+    },
+    {
+      "id": "d7",
+      "name": "Hana Seo",
+      "number": 1,
+      "country": "KR",
+      "teamId": "aqua",
+      "active": true,
+      "photo": "uploads/test/avatar.png"
+    },
+    {
+      "id": "d8",
+      "name": "Oscar Virtanen",
+      "number": 77,
+      "country": "FI",
+      "teamId": "nightjar",
+      "active": true,
+      "photo": "uploads/test/avatar.png"
+    },
+    {
+      "id": "d9",
+      "name": "Jules Moreau",
+      "number": 31,
+      "country": "BE",
+      "teamId": "polar",
+      "active": true
+    },
+    {
+      "id": "d10",
+      "name": "Kai Brooks",
+      "number": 23,
+      "country": "US",
+      "teamId": "solstice",
+      "active": true,
+      "photo": "uploads/test/avatar.png"
     }
   ],
   "calendar": [
     {
-      "id": "rnd-3iz0f6",
+      "id": "r1",
       "round": 1,
-      "name": "Italian Grand Prix",
-      "track": "Autodromo Nazionale di Monza",
-      "country": "IT",
-      "start": "2026-10-04T19:20:00.000Z",
-      "laps": 17,
-      "sprint": false,
-      "cancelled": false,
-      "sessions": [
-        {
-          "name": "Qualifying",
-          "start": "2026-10-04T19:00:00.000Z",
-          "end": "2026-10-04T18:49:48.000Z"
-        },
-        {
-          "name": "Race",
-          "start": "2026-10-04T19:20:00.000Z",
-          "end": ""
-        }
-      ]
+      "name": "Bahrain Grand Prix",
+      "track": "Bahrain International Circuit",
+      "country": "BH",
+      "laps": 57,
+      "start": "2026-10-15T01:00:00.000Z",
+      "sprint": false
     },
     {
-      "id": "rnd-7sn7it",
+      "id": "r2",
       "round": 2,
-      "name": "Singapore Grand Prix",
-      "track": "Marina Bay Street Circuit",
-      "country": "SG",
-      "start": "2026-10-11T20:00:00.000Z",
-      "laps": 28,
+      "name": "Saudi Arabian Grand Prix",
+      "track": "Jeddah Corniche Circuit",
+      "country": "SA",
+      "laps": 50,
+      "start": "2026-10-22T01:00:00.000Z",
+      "sprint": true
+    },
+    {
+      "id": "r3",
+      "round": 3,
+      "name": "Australian Grand Prix",
+      "track": "Albert Park",
+      "country": "AU",
+      "laps": 58,
+      "start": "2026-10-29T01:00:00.000Z",
+      "sprint": false,
+      "notes": "**Stewards:** Car #31 received a 5-second time penalty for leaving the track and gaining an advantage at Turn 3."
+    },
+    {
+      "id": "r4",
+      "round": 4,
+      "name": "Japanese Grand Prix",
+      "track": "Suzuka International Racing Course",
+      "country": "JP",
+      "laps": 53,
+      "start": "2026-11-05T02:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r5",
+      "round": 5,
+      "name": "Miami Grand Prix",
+      "track": "Miami International Autodrome",
+      "country": "US",
+      "laps": 57,
+      "start": "2026-11-12T02:00:00.000Z",
       "sprint": true,
       "sessions": [
         {
           "name": "Practice 1",
-          "start": "2026-10-10T18:30:00.000Z",
-          "end": "2026-10-09T19:00:00.000Z"
+          "start": "2026-11-10T00:30:00.000Z",
+          "end": "2026-11-10T01:30:00.000Z"
         },
         {
           "name": "Sprint Qualifying",
-          "start": "2026-10-09T19:15:00.000Z",
-          "end": "2026-10-09T19:25:00.000Z"
+          "start": "2026-11-10T04:00:00.000Z",
+          "end": "2026-11-10T04:45:00.000Z"
         },
         {
           "name": "Sprint",
-          "start": "2026-10-10T19:40:00.000Z",
-          "end": ""
+          "start": "2026-11-10T23:30:00.000Z",
+          "end": "2026-11-11T00:00:00.000Z"
         },
         {
           "name": "Qualifying",
-          "start": "2026-10-10T19:30:00.000Z",
-          "end": "2026-10-10T20:50:00.000Z"
+          "start": "2026-11-11T03:00:00.000Z",
+          "end": "2026-11-11T04:00:00.000Z"
         },
         {
           "name": "Race",
-          "start": "2026-10-11T20:00:00.000Z",
+          "start": "2026-11-12T02:00:00.000Z",
           "end": ""
         }
       ]
     },
     {
-      "id": "rnd-23hfvm",
-      "round": 3,
-      "name": "Canadian Grand Prix",
-      "track": "Circuit Gilles Villeneuve",
-      "country": "CA",
-      "start": "2026-10-18T20:00:00.000Z",
-      "laps": 37,
-      "sprint": false,
-      "sessions": [
-        {
-          "name": "Practice 1",
-          "start": "2026-10-17T19:30:00.000Z",
-          "end": "2026-10-17T20:00:00.000Z"
-        },
-        {
-          "name": "Practice 2",
-          "start": "2026-10-17T20:10:00.000Z",
-          "end": "2026-10-17T20:40:00.000Z"
-        },
-        {
-          "name": "Practice 3",
-          "start": "2026-10-17T20:50:00.000Z",
-          "end": "2026-10-17T21:20:00.000Z"
-        },
-        {
-          "name": "Qualifying",
-          "start": "2026-10-18T19:30:00.000Z",
-          "end": "2026-10-18T19:50:00.000Z"
-        },
-        {
-          "name": "Race",
-          "start": "2026-10-18T20:00:00.000Z",
-          "end": ""
-        }
-      ]
+      "id": "r6",
+      "round": 6,
+      "name": "Emilia Romagna Grand Prix",
+      "track": "Imola",
+      "country": "IT",
+      "laps": 63,
+      "start": "2026-11-19T02:00:00.000Z",
+      "sprint": false
     },
     {
-      "id": "rnd-8e9iai",
-      "round": 4,
-      "name": "Belgian Grand Prix",
-      "track": "Circuit de Spa-Francorchamps",
-      "country": "BE",
-      "start": "2026-10-25T21:00:00.000Z",
-      "laps": 30,
-      "sprint": false,
-      "sessions": [
-        {
-          "name": "Practice 1",
-          "start": "2026-10-24T19:00:00.000Z",
-          "end": "2026-10-24T20:00:00.000Z"
-        },
-        {
-          "name": "Practice 2",
-          "start": "2026-10-24T23:00:00.000Z",
-          "end": "2026-10-25T00:00:00.000Z"
-        },
-        {
-          "name": "Media",
-          "start": "2026-10-24T20:30:00.000Z",
-          "end": ""
-        },
-        {
-          "name": "Practice 3",
-          "start": "2026-10-25T19:00:00.000Z",
-          "end": "2026-10-25T19:20:00.000Z"
-        },
-        {
-          "name": "Qualifying",
-          "start": "2026-10-25T19:30:00.000Z",
-          "end": "2026-10-25T19:55:00.000Z"
-        },
-        {
-          "name": "",
-          "start": "2026-10-25T21:00:00.000Z",
-          "end": ""
-        }
-      ]
+      "id": "r7",
+      "round": 7,
+      "name": "Monaco Grand Prix",
+      "track": "Circuit de Monaco",
+      "country": "MC",
+      "laps": 78,
+      "start": "2026-12-03T02:00:00.000Z",
+      "sprint": false
     },
     {
-      "id": "rnd-04d6hs",
-      "round": 5,
+      "id": "r8",
+      "round": 8,
+      "name": "Spanish Grand Prix",
+      "track": "Circuit de Barcelona-Catalunya",
+      "country": "ES",
+      "laps": 66,
+      "start": "2026-12-10T02:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r9",
+      "round": 9,
       "name": "British Grand Prix",
       "track": "Silverstone Circuit",
       "country": "GB",
-      "start": "2026-11-01T19:00:00.000Z",
-      "laps": 26,
-      "sprint": true,
-      "sessions": [
-        {
-          "name": "Sprint Qualifying",
-          "start": "2026-10-31T19:00:00.000Z",
-          "end": "2026-10-31T19:10:00.000Z"
-        },
-        {
-          "name": "Sprint",
-          "start": "2026-10-31T19:15:00.000Z",
-          "end": "2026-10-31T19:45:00.000Z"
-        },
-        {
-          "name": "Qualifying",
-          "start": "2026-10-31T20:00:00.000Z",
-          "end": "2026-10-31T20:30:00.000Z"
-        },
-        {
-          "name": "Race",
-          "start": "2026-11-01T19:00:00.000Z",
-          "end": ""
-        }
-      ]
+      "laps": 52,
+      "start": "2026-12-17T02:00:00.000Z",
+      "sprint": true
     },
     {
-      "id": "rnd-fy5xi7",
-      "round": 6,
-      "name": "Qatar Grand Prix",
-      "track": "Lusail International Circuit",
-      "country": "QA",
-      "start": "2026-11-08T21:00:00.000Z",
-      "laps": 29,
-      "sprint": false,
-      "cancelled": false,
-      "sessions": [
-        {
-          "name": "Practice 1",
-          "start": "2026-11-06T19:00:00.000Z",
-          "end": "2026-11-06T19:30:00.000Z"
-        },
-        {
-          "name": "Practice 2",
-          "start": "2026-11-06T23:00:00.000Z",
-          "end": "2026-11-06T23:30:00.000Z"
-        },
-        {
-          "name": "Practice 3",
-          "start": "2026-11-07T19:00:00.000Z",
-          "end": "2026-11-06T19:30:00.000Z"
-        },
-        {
-          "name": "Qualifying",
-          "start": "2026-11-08T20:30:00.000Z",
-          "end": "2026-11-08T20:50:00.000Z"
-        },
-        {
-          "name": "Race",
-          "start": "2026-11-08T21:00:00.000Z",
-          "end": ""
-        }
-      ]
-    },
-    {
-      "id": "rnd-01qdyi",
-      "round": 7,
-      "name": "Brazilian Grand Prix",
-      "track": "Autódromo José Carlos Pace",
-      "country": "BR",
-      "start": "2026-11-15T20:45:00.000Z",
-      "laps": 36,
-      "sprint": true,
-      "sessions": [
-        {
-          "name": "Practice 1",
-          "start": "2026-11-14T19:30:00.000Z",
-          "end": "2026-11-14T19:40:00.000Z"
-        },
-        {
-          "name": "Sprint Qualifying",
-          "start": "2026-11-14T19:45:00.000Z",
-          "end": "2026-11-14T19:55:00.000Z"
-        },
-        {
-          "name": "Sprint",
-          "start": "2026-11-14T20:00:00.000Z",
-          "end": ""
-        },
-        {
-          "name": "Qualifying",
-          "start": "2026-11-15T20:15:00.000Z",
-          "end": "2026-11-14T20:40:00.000Z"
-        },
-        {
-          "name": "Race",
-          "start": "2026-11-15T20:45:00.000Z",
-          "end": ""
-        }
-      ]
-    },
-    {
-      "id": "rnd-eth5a3",
-      "round": 8,
-      "name": "Azerbaijan Grand Prix",
-      "track": "Baku City Circuit",
-      "country": "AZ",
-      "start": "2026-11-22T20:45:00.000Z",
-      "laps": 26,
-      "sprint": false,
-      "sessions": [
-        {
-          "name": "Qualifying",
-          "start": "2026-11-22T20:10:00.000Z",
-          "end": "2026-11-22T20:40:00.000Z"
-        },
-        {
-          "name": "Race",
-          "start": "2026-11-22T20:45:00.000Z",
-          "end": ""
-        }
-      ]
-    },
-    {
-      "id": "rnd-j09a6l",
-      "round": 9,
-      "name": "Emilia-Romagna Grand Prix",
-      "track": "Autodromo Internazionale Enzo e Dino Ferrari",
-      "country": "IT",
-      "start": "2026-11-29T20:45:00.000Z",
-      "laps": 26,
-      "sprint": false,
-      "sessions": [
-        {
-          "name": "Qualifying",
-          "start": "2026-11-29T20:10:00.000Z",
-          "end": "2026-11-29T20:40:00.000Z"
-        },
-        {
-          "name": "Race",
-          "start": "2026-11-29T20:45:00.000Z",
-          "end": ""
-        }
-      ]
-    },
-    {
-      "id": "rnd-rit1a2",
+      "id": "r10",
       "round": 10,
+      "name": "Belgian Grand Prix",
+      "track": "Spa-Francorchamps",
+      "country": "BE",
+      "laps": 44,
+      "start": "2027-01-07T02:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r11",
+      "round": 11,
+      "name": "Italian Grand Prix",
+      "track": "Monza",
+      "country": "IT",
+      "laps": 53,
+      "start": "2027-01-14T02:00:00.000Z",
+      "sprint": false
+    },
+    {
+      "id": "r12",
+      "round": 12,
       "name": "Abu Dhabi Grand Prix",
       "track": "Yas Marina Circuit",
       "country": "AE",
-      "start": "2026-12-06T20:45:00.000Z",
-      "laps": 29,
-      "sprint": false,
-      "sessions": [
-        {
-          "name": "Qualifying",
-          "start": "2026-12-06T20:10:00.000Z",
-          "end": "2026-12-06T20:40:00.000Z"
-        },
-        {
-          "name": "Race",
-          "start": "2026-12-06T20:45:00.000Z",
-          "end": ""
-        }
-      ]
+      "laps": 58,
+      "start": "2027-01-21T02:00:00.000Z",
+      "sprint": false
     }
   ],
   "results": {
-    "rnd-3iz0f6": {
-      "dotd": {
-        "driverId": "drv-ndx3h9",
-        "pct": 30,
-        "runners": [
-          {
-            "driverId": "drv-8vg761",
-            "pct": 30
-          },
-          {
-            "driverId": "drv-hk45yy",
-            "pct": 20
-          },
-          {
-            "driverId": "drv-p4vlk9",
-            "pct": 10
-          }
-        ]
-      },
-      "race": [
+    "r1": {
+      "quali": [
         {
-          "driverId": "drv-ndx3h9",
-          "teamId": "crimson",
+          "driverId": "d4",
+          "teamId": "solstice",
           "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": true,
-          "fastestLap": false
+          "time": "1:29.148"
         },
         {
-          "driverId": "drv-hk45yy",
-          "teamId": "team-ji57ia",
+          "driverId": "d7",
+          "teamId": "aqua",
           "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
+          "time": "1:28.429"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:28.729"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:28.778"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:28.582"
+        },
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:29.390"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:28.930"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:29.200"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:30.104"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:29.808"
+        }
+      ],
+      "race": [
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 57,
+          "time": "1:32:50.735"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+5.807"
+        },
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+10.844",
           "fastestLap": true
         },
         {
-          "driverId": "drv-gx5u0y",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
-        },
-        {
-          "driverId": "drv-8vg761",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
-        },
-        {
-          "driverId": "drv-h2mur5",
-          "teamId": "team-raoctb",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
-        },
-        {
-          "driverId": "drv-p4vlk9",
-          "teamId": "team-raoctb",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
-        },
-        {
-          "driverId": "drv-50b6k5",
-          "teamId": "team-tmnl09",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
-        },
-        {
-          "driverId": "drv-ncu50w",
+          "driverId": "d6",
           "teamId": "crimson",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+14.844"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+19.747"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+22.236"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+27.043"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+29.960"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 57,
+          "time": "+32.063"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
           "status": "DNF",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
-        },
-        {
-          "driverId": "drv-cs0f9n",
-          "teamId": "team-3ws3tm",
-          "status": "NS",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
-        },
-        {
-          "driverId": "drv-fmzcoq",
-          "teamId": "team-ji57ia",
-          "status": "NS",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
-        },
-        {
-          "driverId": "drv-g0e4mq",
-          "teamId": "crimson",
-          "status": "NS",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
+          "laps": 28,
+          "time": "Gearbox"
         }
       ]
     },
-    "rnd-23hfvm": {
+    "r2": {
       "quali": [
         {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "1:01.912",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-v039lf",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "1:02.020",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-48oaev",
-          "teamId": "team-0tr4e5",
-          "status": "FIN",
-          "time": "1:02.091",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-hk45yy",
-          "teamId": "team-ji57ia",
-          "status": "FIN",
-          "time": "1:03.245",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-8vg761",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "1:04.879",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-p4vlk9",
-          "teamId": "team-raoctb",
-          "status": "FIN",
-          "time": "1:12.683",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-fmzcoq",
-          "teamId": "team-ji57ia",
-          "status": "FIN",
-          "time": "1:06.146",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-cs0f9n",
-          "teamId": "team-0tr4e5",
-          "status": "FIN",
-          "time": "1:14.213",
-          "laps": ""
-        }
-      ],
-      "race": [
-        {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": true,
-          "pole": true,
-          "bestLap": "1:00.950"
-        },
-        {
-          "driverId": "drv-hk45yy",
-          "teamId": "team-ji57ia",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-p4vlk9",
-          "teamId": "team-raoctb",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-8vg761",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-48oaev",
-          "teamId": "team-0tr4e5",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-fmzcoq",
-          "teamId": "team-ji57ia",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-v039lf",
-          "teamId": "team-tmnl09",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-7cnufb",
-          "teamId": "team-raoctb",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-cs0f9n",
-          "teamId": "team-0tr4e5",
-          "status": "DNS",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        }
-      ],
-      "dotd": {
-        "driverId": "drv-ncu50w",
-        "runners": [
-          {
-            "driverId": "drv-p4vlk9",
-            "pct": 14
-          },
-          {
-            "driverId": "drv-8vg761",
-            "pct": 7
-          },
-          {
-            "driverId": "drv-hk45yy",
-            "pct": 7
-          }
-        ],
-        "pct": 71
-      }
-    },
-    "rnd-8e9iai": {
-      "race": [
-        {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": true,
-          "pole": true,
-          "bestLap": "1.38.845"
-        },
-        {
-          "driverId": "drv-0cl2kf",
-          "teamId": "aqua",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false,
-          "tyres": "S M"
-        },
-        {
-          "driverId": "drv-8vg761",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-48oaev",
-          "teamId": "team-0tr4e5",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-ndx3h9",
+          "driverId": "d2",
           "teamId": "crimson",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-qt3v9z",
-          "teamId": "team-tmnl09",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-v039lf",
-          "teamId": "team-tmnl09",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-cs0f9n",
-          "teamId": "aqua",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false,
-          "tyres": "S"
-        },
-        {
-          "driverId": "drv-hk45yy",
-          "teamId": "team-ji57ia",
-          "status": "DSQ",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        }
-      ],
-      "quali": [
-        {
-          "driverId": "drv-hk45yy",
-          "teamId": "team-ji57ia",
           "status": "FIN",
-          "time": "1:37.866",
-          "laps": ""
+          "time": "1:28.014"
         },
         {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "1:38.441",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-0cl2kf",
+          "driverId": "d7",
           "teamId": "aqua",
           "status": "FIN",
-          "time": "1:41.179",
-          "laps": ""
+          "time": "1:28.713"
         },
         {
-          "driverId": "drv-v039lf",
-          "teamId": "team-tmnl09",
+          "driverId": "d3",
+          "teamId": "nightjar",
           "status": "FIN",
-          "time": "1:46.262",
-          "laps": ""
+          "time": "1:29.409"
         },
         {
-          "driverId": "drv-qt3v9z",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-8vg761",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "1:42.045",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-cs0f9n",
-          "teamId": "aqua",
-          "status": "DNF",
-          "time": "1:42.529",
-          "laps": ""
-        }
-      ],
-      "dotd": {
-        "driverId": "drv-ncu50w",
-        "runners": [
-          {
-            "driverId": "drv-0cl2kf",
-            "pct": 4
-          },
-          {
-            "driverId": "drv-hk45yy",
-            "pct": 15
-          },
-          {
-            "driverId": "drv-8vg761",
-            "pct": 0
-          },
-          {
-            "driverId": "drv-48oaev",
-            "pct": 0
-          }
-        ],
-        "pct": 54
-      }
-    },
-    "rnd-fy5xi7": {
-      "sprint": [],
-      "quali": [
-        {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "1:10.562",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-v039lf",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "1:11.970",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-qt3v9z",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "1:12.800",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-48oaev",
-          "teamId": "team-0tr4e5",
-          "status": "FIN",
-          "time": "1:13.333",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-cs0f9n",
+          "driverId": "d1",
           "teamId": "aqua",
           "status": "FIN",
-          "time": "1:13.929",
-          "laps": ""
+          "time": "1:28.370"
         },
         {
-          "driverId": "drv-50b6k5",
-          "teamId": "team-3ws3tm",
+          "driverId": "d4",
+          "teamId": "solstice",
           "status": "FIN",
-          "time": "1:14.012",
-          "laps": ""
+          "time": "1:29.031"
         },
         {
-          "driverId": "drv-jpfr9u",
-          "teamId": "aqua",
+          "driverId": "d5",
+          "teamId": "polar",
           "status": "FIN",
-          "time": "1:14.787",
-          "laps": ""
+          "time": "1:29.034"
         },
         {
-          "driverId": "drv-8vg761",
-          "teamId": "team-3ws3tm",
+          "driverId": "d10",
+          "teamId": "solstice",
           "status": "FIN",
-          "time": "",
-          "laps": ""
+          "time": "1:29.058"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:29.652"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:29.122"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:29.611"
         }
       ],
       "race": [
         {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-3ws3tm",
+          "driverId": "d6",
+          "teamId": "crimson",
           "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": true,
-          "fastestLap": true,
-          "tyres": "M S S",
-          "bestLap": "1.11.348"
+          "laps": 50,
+          "time": "1:36:56.728"
         },
         {
-          "driverId": "drv-qt3v9z",
-          "teamId": "team-tmnl09",
+          "driverId": "d5",
+          "teamId": "polar",
           "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
+          "laps": 50,
+          "time": "+1.228",
+          "fastestLap": true
         },
         {
-          "driverId": "drv-48oaev",
-          "teamId": "team-0tr4e5",
+          "driverId": "d8",
+          "teamId": "nightjar",
           "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
+          "laps": 50,
+          "time": "+3.937"
         },
         {
-          "driverId": "drv-jpfr9u",
+          "driverId": "d1",
           "teamId": "aqua",
           "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false,
-          "tyres": "M S"
+          "laps": 50,
+          "time": "+10.273"
         },
         {
-          "driverId": "drv-v039lf",
-          "teamId": "team-tmnl09",
+          "driverId": "d4",
+          "teamId": "solstice",
           "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
+          "laps": 50,
+          "time": "+14.986"
         },
         {
-          "driverId": "drv-8vg761",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false,
-          "tyres": "H S"
-        },
-        {
-          "driverId": "drv-50b6k5",
-          "teamId": "team-0tr4e5",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false,
-          "tyres": "S H"
-        },
-        {
-          "driverId": "drv-cs0f9n",
+          "driverId": "d7",
           "teamId": "aqua",
           "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false,
-          "tyres": "S S M M"
+          "laps": 50,
+          "time": "+21.084"
         },
         {
-          "driverId": "drv-fmzcoq",
-          "teamId": "team-ji57ia",
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+27.254"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+31.567"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 50,
+          "time": "+36.844"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
           "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false
+          "laps": 25,
+          "time": "Gearbox"
+        }
+      ],
+      "sprint": [
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 17,
+          "time": "28:41.552"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+1.401"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+5.066"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+6.612"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+8.016"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+11.680"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+15.465"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+17.149"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+18.831"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 17,
+          "time": "+20.498"
+        }
+      ]
+    },
+    "r3": {
+      "quali": [
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:29.048"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:28.224"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:28.898"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:29.211"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:28.620"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:28.789"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:28.778"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:29.660"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:29.654"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:29.508"
+        }
+      ],
+      "race": [
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 58,
+          "time": "1:38:00.334",
+          "tyres": "S12 M20 S21"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+5.138",
+          "tyres": "S18 M35"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+10.806",
+          "fastestLap": true,
+          "tyres": "M53"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+13.899",
+          "tyres": "M30 S23"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+20.550",
+          "tyres": "M53"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+24.736",
+          "tyres": "M25 H28"
+        },
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+25.923",
+          "tyres": "H33 M20"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+31.920",
+          "tyres": "S18 M35"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+33.233",
+          "tyres": "M25 H28"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 58,
+          "time": "+34.816",
+          "tyres": "S18 M35"
         }
       ],
       "dotd": {
-        "driverId": "drv-ncu50w",
-        "pct": 36,
+        "driverId": "d3",
+        "pct": 45
+      }
+    },
+    "r4": {
+      "quali": [
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:28.220"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:29.232"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:28.368"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:28.558"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:29.240"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "time": "1:29.247"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "FIN",
+          "time": "1:29.862"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "time": "1:28.843"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "time": "1:29.100"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "time": "1:29.728"
+        }
+      ],
+      "race": [
+        {
+          "driverId": "d1",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 53,
+          "time": "1:33:23.553",
+          "fastestLap": true,
+          "tyres": "S12 M20 S21"
+        },
+        {
+          "driverId": "d3",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+3.688",
+          "tyres": "S15 H38"
+        },
+        {
+          "driverId": "d5",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+9.217",
+          "tyres": "H33 M20"
+        },
+        {
+          "driverId": "d8",
+          "teamId": "nightjar",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+13.658",
+          "tyres": "S15 H38"
+        },
+        {
+          "driverId": "d2",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+16.934",
+          "tyres": "M53"
+        },
+        {
+          "driverId": "d7",
+          "teamId": "aqua",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+22.327",
+          "tyres": "H33 M20"
+        },
+        {
+          "driverId": "d4",
+          "teamId": "solstice",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+25.820",
+          "tyres": "M53"
+        },
+        {
+          "driverId": "d9",
+          "teamId": "polar",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+32.129",
+          "tyres": "H33 M20"
+        },
+        {
+          "driverId": "d6",
+          "teamId": "crimson",
+          "status": "FIN",
+          "laps": 53,
+          "time": "+35.996",
+          "tyres": "H33 M20"
+        },
+        {
+          "driverId": "d10",
+          "teamId": "solstice",
+          "status": "DNF",
+          "laps": 26,
+          "time": "Gearbox",
+          "tyres": "S14 M12"
+        }
+      ],
+      "dotd": {
+        "driverId": "d1",
+        "pct": 38,
+        "link": "https://discord.com",
         "runners": [
           {
-            "driverId": "drv-qt3v9z",
-            "pct": 29
+            "driverId": "d3",
+            "pct": 27
           },
           {
-            "driverId": "drv-48oaev",
-            "pct": 21
+            "driverId": "d2",
+            "pct": 19
           },
           {
-            "driverId": "drv-v039lf",
-            "pct": 7
-          },
-          {
-            "driverId": "drv-jpfr9u",
-            "pct": 7
+            "driverId": "d6",
+            "pct": 16
           }
         ]
       }
-    },
-    "rnd-7sn7it": {
-      "sprintQuali": [
-        {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-raoctb",
-          "status": "FIN",
-          "time": "1:36.763",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-hk45yy",
-          "teamId": "team-ji57ia",
-          "status": "FIN",
-          "time": "1:49.504",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-7cnufb",
-          "teamId": "nightjar",
-          "status": "FIN",
-          "time": "2:17.437",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-p4vlk9",
-          "teamId": "team-raoctb",
-          "status": "FIN",
-          "time": "",
-          "laps": ""
-        }
-      ],
-      "sprint": [
-        {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-raoctb",
-          "status": "FIN",
-          "time": "",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-hk45yy",
-          "teamId": "team-ji57ia",
-          "status": "FIN",
-          "time": "",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-7cnufb",
-          "teamId": "nightjar",
-          "status": "DNF",
-          "time": "",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-p4vlk9",
-          "teamId": "team-raoctb",
-          "status": "DNF",
-          "time": "",
-          "laps": ""
-        }
-      ],
-      "quali": [
-        {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-raoctb",
-          "status": "FIN",
-          "time": "1:47.229",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-gx5u0y",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "1:50.395",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-8rgkcf",
-          "teamId": "crimson",
-          "status": "FIN",
-          "time": "1:52.979",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-p4vlk9",
-          "teamId": "team-raoctb",
-          "status": "FIN",
-          "time": "1:53.212",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-8vg761",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "1:53.645",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-50b6k5",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "1:55.483",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-g0e4mq",
-          "teamId": "crimson",
-          "status": "FIN",
-          "time": "2:01.237",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-fmzcoq",
-          "teamId": "team-ji57ia",
-          "status": "FIN",
-          "time": "2:04.254",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-7cnufb",
-          "teamId": "nightjar",
-          "status": "FIN",
-          "time": "2:45.541",
-          "laps": ""
-        }
-      ],
-      "race": [
-        {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-raoctb",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": true,
-          "pole": true,
-          "bestLap": "1.47.137"
-        },
-        {
-          "driverId": "drv-50b6k5",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-8rgkcf",
-          "teamId": "crimson",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-8vg761",
-          "teamId": "team-tmnl09",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-7cnufb",
-          "teamId": "nightjar",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-gx5u0y",
-          "teamId": "team-3ws3tm",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-g0e4mq",
-          "teamId": "crimson",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        },
-        {
-          "driverId": "drv-cs0f9n",
-          "teamId": "team-3ws3tm",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "pole": false
-        }
-      ]
-    },
-    "rnd-04d6hs": {
-      "sprint": [
-        {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": true,
-          "tyres": "M S"
-        },
-        {
-          "driverId": "drv-48oaev",
-          "teamId": "team-0tr4e5",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "tyres": "M S"
-        },
-        {
-          "driverId": "drv-v039lf",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "tyres": "M S"
-        },
-        {
-          "driverId": "drv-qt3v9z",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "tyres": "M S"
-        },
-        {
-          "driverId": "drv-8vg761",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "tyres": "S M"
-        },
-        {
-          "driverId": "drv-z9dwau",
-          "teamId": "team-0tr4e5",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "tyres": "M S"
-        }
-      ],
-      "quali": [
-        {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "1:16.537",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-qt3v9z",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "1:16.770",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-v039lf",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "1:16.916",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-48oaev",
-          "teamId": "team-0tr4e5",
-          "status": "FIN",
-          "time": "1:17.745",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-cs0f9n",
-          "teamId": "aqua",
-          "status": "FIN",
-          "time": "1:18.662",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-8vg761",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "1:19.025",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-z9dwau",
-          "teamId": "team-0tr4e5",
-          "status": "FIN",
-          "time": "1:23.545",
-          "laps": ""
-        },
-        {
-          "driverId": "drv-0cl2kf",
-          "teamId": "aqua",
-          "status": "DNF",
-          "time": "",
-          "laps": ""
-        }
-      ],
-      "race": [
-        {
-          "driverId": "drv-ncu50w",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": true,
-          "fastestLap": true,
-          "tyres": "M S S",
-          "bestLap": "1.17.0"
-        },
-        {
-          "driverId": "drv-qt3v9z",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false,
-          "tyres": "M S S"
-        },
-        {
-          "driverId": "drv-v039lf",
-          "teamId": "team-tmnl09",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false,
-          "tyres": "M S S"
-        },
-        {
-          "driverId": "drv-8vg761",
-          "teamId": "team-3ws3tm",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false,
-          "tyres": "S M S"
-        },
-        {
-          "driverId": "drv-jpfr9u",
-          "teamId": "aqua",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false,
-          "tyres": "S M"
-        },
-        {
-          "driverId": "drv-fmzcoq",
-          "teamId": "team-ji57ia",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
-        },
-        {
-          "driverId": "drv-z9dwau",
-          "teamId": "team-0tr4e5",
-          "status": "FIN",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false,
-          "tyres": "M S"
-        },
-        {
-          "driverId": "drv-p4vlk9",
-          "teamId": "team-raoctb",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "tyres": "M S"
-        },
-        {
-          "driverId": "drv-cs0f9n",
-          "teamId": "aqua",
-          "status": "DNF",
-          "time": "",
-          "laps": "",
-          "fastestLap": false,
-          "tyres": "S"
-        },
-        {
-          "driverId": "drv-48oaev",
-          "teamId": "team-0tr4e5",
-          "status": "DNS",
-          "time": "",
-          "laps": "",
-          "pole": false,
-          "fastestLap": false
-        }
-      ],
-      "dotd": {
-        "driverId": "drv-ncu50w",
-        "runners": [
-          {
-            "driverId": "drv-8vg761",
-            "pct": 20
-          },
-          {
-            "driverId": "drv-v039lf",
-            "pct": 13
-          }
-        ],
-        "pct": 67
-      }
     }
   },
-  "adjustments": [],
+  "adjustments": [
+    {
+      "id": "adj1",
+      "type": "driver",
+      "targetId": "d9",
+      "points": -3,
+      "roundId": "r3",
+      "reason": "Causing a collision, Lap 1 Turn 3"
+    }
+  ],
   "news": [
     {
       "id": "n1",
@@ -2102,8 +1076,14 @@
       "author": "Race Control",
       "tag": "Race report",
       "pinned": false,
-      "image": "",
-      "body": "Round 4 at Suzuka had everything — a wet start, a strategy gamble on lap 18 and a final-sector battle through the Esses.\n\n## Key moments\n- A brilliant opening lap from the front row set the tone\n- Two cars tangled at the hairpin, bringing out the VSC\n- The fastest lap went down to the final ten laps\n\nNext up: **Miami**, our second sprint weekend of the season."
+      "image": "uploads/test/podium-celebration.jpg",
+      "body": "Round 4 at Suzuka had everything \u2014 a wet start, a strategy gamble on lap 18 and a final-sector battle through the Esses.\n\n## Key moments\n- A brilliant opening lap from the front row set the tone\n- Two cars tangled at the hairpin, bringing out the VSC\n- The fastest lap went down to the final ten laps\n\nNext up: **Miami**, our second sprint weekend of the season.\n\n![The podium celebrations under the lights](uploads/test/podium-celebration.jpg)\n\nWhat a night.",
+      "teams": [
+        "aqua"
+      ],
+      "drivers": [
+        "d1"
+      ]
     },
     {
       "id": "n2",
@@ -2113,7 +1093,10 @@
       "tag": "Announcement",
       "pinned": false,
       "image": "",
-      "body": "We are racing every **Wednesday at 8pm Central**, starting in Bahrain on October 14th and finishing under the lights in Abu Dhabi.\n\nSprint weekends: Jeddah, Miami and Silverstone. Check the [Discord](https://discord.gg/your-invite) for sign-ups."
+      "body": "We are racing every **Wednesday at 8pm Central**, starting in Bahrain on October 14th and finishing under the lights in Abu Dhabi.\n\nSprint weekends: Jeddah, Miami and Silverstone. Check the [Discord](https://discord.gg/your-invite) for sign-ups.",
+      "teams": [
+        "aqua"
+      ]
     },
     {
       "id": "n3",
@@ -2122,518 +1105,293 @@
       "author": "League Admin",
       "tag": "Paddock",
       "pinned": false,
-      "image": "",
-      "body": "Standings, results, the calendar and driver profiles now all live here, updated after every round. Grab a drink, get comfy and enjoy the season. 🩵"
+      "image": "uploads/test/car.png",
+      "body": "Standings, results, the calendar and driver profiles now all live here, updated after every round. Grab a drink, get comfy and enjoy the season. \ud83e\ude75",
+      "teams": [
+        "aqua"
+      ]
     }
   ],
-  "stewards": [],
+  "meta": {
+    "updated": "2026-11-05T03:30:00.000Z"
+  },
+  "stewards": [
+    {
+      "id": "sd1",
+      "roundId": "r3",
+      "session": "race",
+      "lap": "Lap 1, Turn 3",
+      "title": "Collision between #31 and #23",
+      "driverId": "d9",
+      "involved": "#23 Brooks",
+      "status": "Penalty",
+      "penalty": "+5s time penalty",
+      "points": -3,
+      "teamToo": false,
+      "decision": "Car 31 braked late and made contact with the rear of Car 23. **Predominantly to blame.**",
+      "docs": [
+        "uploads/test/stewards-doc-12.png",
+        "uploads/test/report.pdf"
+      ]
+    },
+    {
+      "id": "sd2",
+      "roundId": "r4",
+      "session": "race",
+      "lap": "Lap 18",
+      "title": "Unsafe release in the pit lane",
+      "driverId": "d6",
+      "involved": "",
+      "status": "Reprimand",
+      "penalty": "",
+      "points": "",
+      "teamToo": false,
+      "decision": "Released into the path of another car; no contact made."
+    },
+    {
+      "id": "sd3",
+      "roundId": "r4",
+      "session": "quali",
+      "lap": "",
+      "title": "Impeding at the chicane",
+      "driverId": "d2",
+      "involved": "#39 Tanaka",
+      "status": "No further action",
+      "penalty": "",
+      "points": "",
+      "teamToo": false,
+      "decision": ""
+    }
+  ],
   "history": [
     {
-      "id": "season-t99cyb",
-      "season": "2026",
-      "driverChampion": "Aiko Tanaka",
-      "driverTeam": "BWT Alpine F1 Team",
-      "driverColor": "#f08fbc",
-      "driverPoints": 70,
-      "teamChampion": "Aston Martin Aramco F1 Team",
-      "teamColor": "#2d7b59",
-      "teamPoints": 107,
-      "notes": "",
-      "hidden": true
+      "id": "s25",
+      "season": "2025",
+      "driverChampion": "Leo Marchetti",
+      "driverTeam": "Crimson Lantern GP",
+      "driverColor": "#e2445c",
+      "driverPoints": 412,
+      "teamChampion": "Crimson Lantern GP",
+      "teamColor": "#e2445c",
+      "teamPoints": 690,
+      "notes": "Won the title by **3 points** at the final round.",
+      "standings": {
+        "drivers": [
+          {
+            "name": "Leo Marchetti",
+            "team": "Crimson Lantern GP",
+            "color": "#e2445c",
+            "country": "IT",
+            "points": 412,
+            "wins": 9,
+            "podiums": 14
+          },
+          {
+            "name": "Aiko Tanaka",
+            "team": "Aqua Vertex Racing",
+            "color": "#39c5bb",
+            "country": "JP",
+            "points": 390,
+            "wins": 7,
+            "podiums": 12
+          },
+          {
+            "name": "Sam Okafor",
+            "team": "Nightjar Motorsport",
+            "color": "#8a7cf8",
+            "country": "GB",
+            "points": 301,
+            "wins": 3,
+            "podiums": 9
+          },
+          {
+            "name": "Old Timer",
+            "team": "Crimson Lantern GP",
+            "color": "#e2445c",
+            "country": "DE",
+            "points": 120,
+            "wins": 0,
+            "podiums": 1
+          },
+          {
+            "name": "Nina Lindqvist",
+            "team": "Solstice Racing",
+            "color": "#f2a541",
+            "country": "SE",
+            "points": 88,
+            "wins": 0,
+            "podiums": 0
+          },
+          {
+            "name": "Back Marker",
+            "team": "Polar Static",
+            "color": "#6ec1ff",
+            "country": "US",
+            "points": 0,
+            "wins": 0,
+            "podiums": 0
+          }
+        ],
+        "teams": [
+          {
+            "name": "Crimson Lantern GP",
+            "color": "#e2445c",
+            "points": 690,
+            "wins": 9
+          }
+        ]
+      }
+    },
+    {
+      "id": "s24",
+      "season": "2024",
+      "driverChampion": "Leo Marchetti",
+      "driverTeam": "Nightjar Motorsport",
+      "driverColor": "#8a7cf8",
+      "driverPoints": 380,
+      "teamChampion": "Nightjar Motorsport",
+      "teamColor": "#8a7cf8",
+      "teamPoints": 640,
+      "notes": ""
     }
   ],
-  "theme": {
-    "accent": "#f4a6c6",
-    "accentSoft": "#ffd1e3",
-    "accentDeep": "#b2557f",
-    "highlight": "#c4125f",
-    "bgDark": "#0d0a0c",
-    "bgLight": "#fbf4f7",
-    "defaultMode": "dark",
-    "allowToggle": true,
-    "effects": true,
-    "timingLogo": "uploads/branding/2026-11-13-21cwhite-sc09.png",
-    "historyStyle": "cards"
-  },
   "signups": {
     "open": true,
-    "title": "Join the Grid",
-    "intro": "Are you ready to put your hat in the ring in the chase for the Drivers' Championship Title? Or is it the drive to own and manage a team fueling your interest? Is maintaining order on the grid something you want to do?\n\nIf so, take the next steps to become a participant at Mirai Racing Association!",
-    "requirements": "",
+    "title": "Join the grid",
+    "intro": "Season 2027 sign-ups are **open**! We race Wednesdays at 8pm CT.",
+    "requirements": "- Clean racing record\n- Available most Wednesdays\n- Discord account",
     "formUrl": "",
-    "seatsPerTeam": 2,
+    "seatsPerTeam": 3,
     "showBuilder": true
   },
-  "meta": {
-    "updated": "2026-11-14T04:25:09.232Z"
+  "youtube": {
+    "show": true,
+    "channelId": "UCabcdefghijklmnopqrstuv",
+    "channelUrl": "https://youtube.com/@league",
+    "title": "Latest video"
   },
-  "rulebook": {
-    "md": "\n\n| SECTION A: GENERAL REGULATORY PROVISIONS |\n| :---: |\n\n| Version:\t\t\t\tIssue 01 Status:\t\t\t\t\tDRAFT Date:\t\t\t\t\t08/11/2026 HMSB Approval Date:\t\t\t |\n| :---- |\n\n**CONTENTS:**\n\n[**PREAMBLE\t2**](#preamble)\n\n[**ARTICLE A1:  GENERAL PRINCIPLES\t2**](#article-a1:-general-principles)\n\n[A1.1 Overview\t2](#a1.1-overview)\n\n[A1.2 Applicable regulations\t2](#a1.2-applicable-regulations)\n\n[**ARTICLE A2:  KIRA FORMULA ONE WORLD CHAMPIONSHIP\t4**](#article-a2:-kira-formula-one-world-championship)\n\n[A2.1 Format of the Championship\t4](#a2.1-format-of-the-championship)\n\n[A2.2 Championship points system\t5](#a2.2-championship-points-system)\n\n[A2.3 F1 Car livery\t7](#a2.3-f1-car-livery)\n\n[A2.4 Competition Numbers\t7](#a2.4-competition-numbers)\n\n[A2.5 Postponement or cancellation of a Competition\t8](#a2.5-postponement-or-cancellation-of-a-competition)\n\n[A2.6 KIRA Prize Giving Ceremony and Gala Dinner\t8](#a2.6-kira-prize-giving-ceremony-and-gala-dinner)\n\n[**ARTICLE A3: ENTRIES, LICENCES, AND REGISTRATION\t9**](#article-a3:-entries,-licences,-and-registration)\n\n[A3.1 F1 Team entry applications\t9](#a3.1-f1-team-entry-applications)\n\n[A3.1 Licenses\t10](#a3.1-licenses)\n\n[A3.2 New Entrant Teams\t10](#a3.2-new-entrant-teams)\n\n[**ARTICLE A4:  INTEGRITY REQUIREMENTS\t12**](#article-a4:-integrity-requirements)\n\n[A4.1 Prevention of Competition manipulation\t12](#a4.1-prevention-of-competition-manipulation)\n\n[A4.2 Safeguarding\t12](#a4.2-safeguarding)\n\n[**ARTICLE A5:  GENERAL ROLES AND RESPONSIBILITIES OF KEY STAKEHOLDERS\t13**](#article-a5:-general-roles-and-responsibilities-of-key-stakeholders)\n\n[A5.1 General obligations applicable to all\t13](#a5.1-general-obligations-applicable-to-all)\n\n[A5.2 KIRA\t15](#a5.2-kira)\n\n[A5.3 F1 Teams\t15](#a5.3-f1-teams)\n\n[A5.4 Movement of personnel \\- F1 Teams\t16](#a5.4-movement-of-personnel---f1-teams)\n\n[A5.5 Other Covered Persons\t17](#a5.5-other-covered-persons)\n\n[A5.6 Transfer of personnel\t17](#a5.6-transfer-of-personnel)\n\n[**ARTICLE A6:  INVESTIGATIONS, RIGHT OF INQUIRY, AND NOTIFICATION OF BREACHES\t18**](#article-a6:-investigations,-right-of-inquiry,-and-notification-of-breaches)\n\n[A6.1 Investigations\t18](#a6.1-investigations)\n\n[**ARTICLE A7:  CONFIDENTIALITY, PUBLIC REPORTING, AND DATA PRIVACY\t21**](#article-a7:-confidentiality,-public-reporting,-and-data-privacy)\n\n[A7.1 Confidentiality\t21](#a7.1-confidentiality)\n\n[**APPENDIX A1:  DEFINITIONS\t22**](#appendix-a1:-definitions)\n\n[**APPENDIX A2:  SUMMARY OF ADVISORY COMMITTEES\t29**](#appendix-a2:-summary-of-advisory-committees)\n\n# **PREAMBLE** {#preamble}\n\n# **ARTICLE A1:  GENERAL PRINCIPLES** {#article-a1:-general-principles}\n\n| *Advisory Committee: RGAC Governance: F1 Commission / WMSC* |\n| :---- |\n\n| A1.1\t\tOverview |  |\n| :---- | :---- |\n| **A1.1.1** | KIRA is responsible for the sporting organisation and regulation of the KIRA Formula One World Championship (the “**Championship**”), comprising the KIRA Formula One Grand Prix competitions that are included on the International Sporting Calendar (each, a “**Competition**”), with two World Championship titles, one for Drivers and one for Constructors. |\n| **A1.1.2** | The Championship is the exclusive property of KIRA. KIRA has granted the Commercial Rights Holder the exclusive right to exploit the commercial rights in the Championship. |\n| **A1.1.3** | This Section A (General Regulatory Provisions) and its appendices include provisions that are of general application to the Championship and that apply to all other sections of the KIRA F1 Regulations unless stated otherwise. |\n| **A1.2\t\tApplicable regulations** |  |\n| **A1.2.1** | The Championship, each of its Competitions, and all F1 Activities are governed by the KIRA in accordance with the KIRA rules and regulations, which include the KIRA Statutes, the KIRA International Sporting Code and its appendices (“**ISC**”), the KIRA F1 Regulations (see Article A1.2.2), the KIRA Code of Ethics, the KIRAJudicial and Disciplinary Rules, and any other rules, policies, and procedures issued (and amended) by KIRA from time to time (“**HMA Rules and Regulations**”). KIRA may also issue KIRA F1 Documents (see Article A1.2.3) which may contain binding or non-binding guidance, clarifications, and feedback from time to time (see Articles A1.2.3 and A9.5). |\n| **A1.2.2** | The **“HMA F1 Regulations”** comprise the following: **Section A:** KIRA Formula One General Regulatory Provisions and related appendices; **Section B:** KIRA Formula One Sporting Regulations and related appendices; **Section C:** KIRAFormula One Technical Regulations and related appendices; **Section D:** KIRA Formula One Financial Regulations \\- F1 Teams and related appendices; and **Section E:** KIRA Formula One Operational Regulations and related appendices |\n| **A1.2.3** | KIRA F1 Documents The KIRA may issue additional documents from time to time (“KIRA F1 Documents”) which may contain binding guidance (to the extent expressly provided for in the underlying KIRA F1 Regulation(s)) or non-binding guidance. Such documents will be prefixed by “KIRA-F1-Doc”, followed by the document number, version, and title, and stating whether it is binding (including the KIRA F1 Regulation article reference(s) pursuant to which the binding document is being issued) or non-binding. The KIRA will make such KIRA F1 Documents available to F1 Teams. F1 Teams and are responsible for sharing those documents with their respective Personnel (and, if applicable, their respective suppliers), subject to any confidentiality restrictions set out in the KIRA F1 Documents. The KIRA may provide copies of KIRA F1 Documents to the Stewards, any other designated recipients of such documents by such means as the KIRAconsiders appropriate (ordinarily by email), subject to any confidentiality restrictions. The content of such documents will ordinarily be confidential and available only to the recipients designated by KIRA, who may share, where necessary, such content with their professional advisors, their suppliers, members of their Legal Group, or disclose any such documents as required by Applicable Laws. KIRA may (at its sole discretion) publish any such documents on its website or circulate them to the media, omitting any Confidential Information. KIRA F1 Documents designated as binding shall be limited to KIRA-issued document. |\n|  |  |\n\n# **ARTICLE A2:  KIRA FORMULA ONE WORLD CHAMPIONSHIP** {#article-a2:-kira-formula-one-world-championship}\n\n| *Advisory Committee: RGAC Governance: F1 Commission / WMSC* |\n| :---- |\n\n| A2.1\t\tFormat of the Championship |  |\n| :---- | ----- |\n| **A2.1.1** | The KIRA will publish the list of Competitions included in the Championship in the International Sporting Calendar 1 week prior to the start of each season which will each have the status of a restricted International Competition. |\n| **A2.1.2** | The maximum number of Competitions in the Championship is 24 and the minimum number is eight. |\n| **A2.1.3** | No more than 24 F1 Cars may participate in the Championship, with two F1 Cars entered by each F1 Team |\n| **A2.1.4** | World Championship Titles: The Drivers’ Championship title will be awarded to the F1 Driver who has scored the highest number of points, calculated in accordance with Article A2.2, taking into consideration all results obtained during the Competitions that have actually taken place. The Constructors’ Championship title will be awarded to the F1 Team that has scored the highest number of points, calculated in accordance with Article A2.2, taking into consideration the results from both F1 Cars obtained during the Competitions that have actually taken place. If two or more F1 Drivers or F1 Teams finish the Championship with the same number of points, the higher place in the Championship (in either case) shall be awarded to: The holder of the greatest number of first places in a race. If the number of first places is the same, the holder of the greatest number of second places in a race. If the number of second places is the same, the holder of the greatest number of third places in a race and so on until a winner emerges. If this procedure fails to produce a result, the same criteria as above will apply to the qualifying results of the F1 Drivers during the season. |\n| **A2.2\t\tChampionship points system** |  |\n| **A2.2.1** | Points awarded for a Race Points for both the Drivers’ Championship and Constructors’ Championship titles will be awarded at each Competition based on the final race classification, and depending on the number of laps completed by the leader between the start signal and the end-of-session signal of the Race. In all cases, no points will be awarded unless a minimum of two complete and consecutive laps have been completed by the leader without a Safety Car or Virtual Safety Car procedure. If the leader has completed two laps but less than 25% of the Scheduled Race Distance, points will be awarded in accordance with column 1 of the table below.  If the leader has completed 25% but less than 50% of the Scheduled Race Distance, points will be awarded in accordance with column 2 of the table below. If the leader has completed 50% but less than 75% of the Scheduled Race Distance, points will be awarded in accordance with column 3 of the table below. If the leader has completed 75% or more of the Scheduled Race Distance, points will be awarded in accordance with column 4 of the table below **Position** **Points**  **Col. 1 Col. 2 Col. 3 Col. 4**  **≥ 2L ≥25% ≥50% ≥75%** 1st 6 13 19 25 2nd 4 10 14 18 3rd 3 8 12 15 4th 2 6 10 12 5th 1 5 8 10 6th 4 6 8 7th 3 4 6 8th 2 3 4 9th 1 2 2 10th 1 1  |\n\n| A2.2.2 | Points awarded for a Sprint Points for both the Drivers’ and Constructors’ Championship titles will be awarded at each Alternative Format Competition based on the final Sprint classification and depending on the number of laps completed by the leader between the start signal and the end-of-session signal of the Sprint. In all cases, no points will be awarded unless a minimum of two complete and consecutive laps have been completed by the leader without a Safety Car or Virtual Safety Car procedure. If the leader has completed two laps but less than 50% of the Scheduled Sprint Distance, no points will be awarded. If the leader has completed 50% or more of the Scheduled Sprint Distance, points will be awarded in accordance with column 1 of the table below. |\n| :---- | :---- |\n\n| Position | Points |\n| :---: | :---: |\n|  | **Col. 1** |\n|  | ≥ 50% |\n| 1st | 8 |\n| 2nd | 7 |\n| 3rd | 6 |\n| 4th | 5 |\n| 5th | 4 |\n| 6th | 3 |\n| 7th | 2 |\n\n| A2.2.3 | Dead heat Prizes and points awarded for F1 Cars that are tied for the same position will be added together and shared equally. |\n| :---- | :---- |\n| **A2.3\t\tF1 Car livery** |  |\n| **A2.3.1** | The provisions of the ISC relating to F1 Car livery shall not apply to the Championship |\n| **A2.3.2** | Both F1 Cars entered by an F1 Team must be presented in substantially the same livery at every Competition in a Championship. Any material change to the livery during a Championship may only be made with the agreement of the KIRA and the Commercial Rights Holder. The procedure for requesting the agreement of the KIRA and the Commercial Rights Holder is set out in *KIRA-F1-DOC098*. |\n| **A2.3.3** | Advertising on F1 Cars Advertising that is political or religious in nature or that is prejudicial to the interests of KIRA is strictly prohibited. The F1 Team must ensure that any advertising on the F1 Car livery complies with Applicable Laws. |\n| **A2.3.4** | Requirements for F1 Car livery The name or the emblem of the make of the F1 Car must appear on the front of the nose of the F1 Car. The number of the F1 Driver must appear on the external bodywork of the F1 Car and be clearly legible. Livery may not protrude beyond the bodywork of the F1 Car and must be substantially similar on both sides of the F1 Car. |\n| **A2.4\t\tCompetition Numbers** |  |\n| **A2.4.1** | Subject to Article A2.4.3, all F1 Drivers are assigned a permanent Competition Number on a first come, first served basis. F1 Drivers must use that Competition Number during every Competition they participate in a given Championship. Any new F1 Drivers, either at the start of or during a Championship, will also be allocated a permanent Competition Number in the same way. Drivers may request a change in their Competition Number in writing to KIRA, provided such request happens before the publication of the Championship entry list, and is intended to take effect only in the following Championship. |\n| **A2.4.2** | The reigning World Champion Driver may use the number one. The Competition Number that was previously allocated to that F1 Driver will be reserved for them in the subsequent Championship if they do not retain the title of World Champion Driver. |\n| **A2.4.3** | An F1 Driver permanently forfeits their Competition Number, either by confirming this decision in writing to the KIRA, orif they do not participate in a Competition for two consecutive Championships. Such Competition Number shall be available in respect of the next Championship season. |\n| **A2.4.4** | All Other Racing Drivers shall use the Competition Numbers issued to the F1 Team by KIRA for such drivers. |\n| **A2.4.5** | Competition Numbers shall be 1 to 99 (inclusive.) |\n| **A2.4.6** | Each F1 Car must carry the Competition Number of its driver as published by KIRA at the beginning of the Championship or the Competition Number that has been allocated to their replacement. The Competition Number must be clearly visible from the front of the F1 Car. |\n| **A2.5\t\tPostponement or cancellation of a Competition** |  |\n| **A2.5.1** | A Competition may be postponed or cancelled in accordance with the ISC.  |\n| **A2.5.2** | A Competition may also be postponed or cancelled if fewer than 12 F1 Cars are available for it. |\n| **A2.6\t\tKIRA Prize Giving Ceremony and Gala Dinner** |  |\n| **A2.6.1** | The F1 Drivers finishing first, second, and third in the Drivers’ Championship, a representative of the F1 Team finishing first in the Constructors’ Championship must be present for the duration of the annual KIRA Prize Giving Ceremony and Gala Dinner. Failure to comply with any one of these requirements shall result in a fine of up to €250,000 (for each failure to comply), except in case of Force Majeure, payable by the relevant F1 Team to KIRA in accordance with the ISC. |\n| **A2.6.2** | The ConstructorsChampionship Trophy and Drivers’ Championship Trophy will be presented by the KIRA to the World Champion Constructor and World Champion Driver at the KIRAPrize Giving Ceremony and Gala Dinner. Those KIRA Trophies are subject to the requirements of Appendix A8. Other trophies and awards may also be presented as determined by the KIRA. |\n\n# **ARTICLE A3: ENTRIES, LICENCES, AND REGISTRATION** {#article-a3:-entries,-licences,-and-registration}\n\n| *Advisory Committee: RGAC, unless otherwise stated Governance: F1 Commission / WMSC, unless otherwise stated* |\n| :---- |\n\n| A3.1\t\tF1 Team entry applications |  |\n| :---- | :---- |\n| **A3.1.1** | Existing F1 Teams and New Entrant Teams must submit applications (including an Entry Form and other related documentation required by the KIRA) prior to each edition of the Championship. |\n| **A3.1.2** | Applications by F1 Teams to compete in the following Championship of the League may be submitted to KIRA during the break period between the final round of Season N-1 and Season N. Applications by F1 Teams at other times will be considered by KIRA as a late entry. KIRA will notify the applicant team of the outcome of the application within the duration of the season break. |\n| **A3.1.3** | Applications by F1 Teams shall include: confirmation that the applicant has read the KIRA Rules and Regulations and agrees on its own behalf and on behalf of everyone associated with its participation in the Championship to comply with them; the name of the F1 Team (which must include the name of the chassis); the make of the Power Unit (an F1 Team may change the make of Power Unit at any time during the Championship but must promptly notify the KIRA of any such change before the next Competition where it is first used); the make of the F1 Car (if the F1 Team fits a Power Unit that it does not manufacture, the F1 Car name must be the combination of the F1 Team’s name and the Power Unit Manufacturer’s name, subject to any changes made for branding purposes, with the former always preceding the latter); he names of the F1 Drivers (an F1 Driver may be nominated subsequent to the entry application); and an undertaking by the applicant to participate in every Competition with at least one of their F1 Cars and using all reasonable endeavours to procure that its F1 Cars complete each Competition in active competition with other F1 Teams in order to achieve the highest position possible in the Championship to the best of its sporting ability within the constraints of the KIRA Rules and Regulations, subject only to the limited exceptions agreed pursuant to the governance framework of the KIRA F1 Regulations(e.g. Force Majeure). |\n| **A3.1.4** | Applications by F1 Teams must be duly completed in accordance with the above requirements. Any application that does not meet these requirements will not be accepted by KIRA. KIRA will publish the list of F1 Cars and F1 Drivers accepted together with their Competition Numbers one week before the start of Season N-1. |\n| **A3.1.5** | Successful applicants are automatically entered in all Competitions of the Championship. An F1 Team may not participate in the Championship or any Competition unless its entry application has been accepted by the KIRA. |\n| **A3.1\t\tLicenses** |  |\n| **A3.3.1** | F1 Drivers: F1 Drivers must hold a valid Super Licence and International Licence, and F1 Team free practice drivers must hold a valid Free Practice Only Super Licence and International Licence, in accordance with the requirements of the ISC and Appendix L. When a penalty other than a reprimand or fine, is imposed under the ISC or Article B1.10.4, the Stewards may impose penalty points on an F1 Driver’s Super Licence. If an F1 Driver accrues 12 penalty points on their Super Licence, they will be suspended for the next Competition, following which 12 points will be removed from their Super Licence. Such penalty points will remain on the F1 Driver’s Super Licence for a period of 12 months after which they will be respectively removed on the 12-month anniversary of their imposition. |\n| **A3.3.2** | F1 Teams must hold a valid Super Licence as a condition of entry in the Championship. |\n| **A3.2\t\tNew Entrant Teams** |  |\n| **A3.2.1** | In order to maintain requisite standards in the Championship, a New Entrant Team whose application has been accepted must comply with the following Articles or Sections of the KIRA F1 Regulations prior to first participation in the Championship in Year N, as follows:  Section A (General Regulatory Provisions): for the complete Season N-1; Section B (Sporting), Article B11: for the complete Season N-1; any other provisions in the KIRA F1 Regulations that are expressly stated to apply to New Entrant Teams. |\n\n# **ARTICLE A4:  INTEGRITY REQUIREMENTS** {#article-a4:-integrity-requirements}\n\n| *Advisory Committee: RGAC Governance: F1 Commission / WMSC* |\n| :---- |\n\n| A4.1\t\tPrevention of Competition manipulation |  |\n| :---- | :---- |\n| **A4.1.1** | The KIRA Manipulation of Competition Regulations seek to maintain the integrity of motorsport and protect against any efforts to improperly impact the results of any motorsport competitions |\n| **A2.4.5** | The Persons defined as “Competition Stakeholders” in the KIRA Manipulation of Competition Regulations, set out at Appendix M of the ISC, agree to be bound by and to comply with the KIRA Manipulation of Competition Regulations as a condition of their participation in the Championship. |\n| **A4.2\t\tSafeguarding** |  |\n| **A4.2.1** | The safety and wellbeing of all participants is of paramount importance. KIRA recognises the fundamental right of every individual to compete, work, and thrive in an environment free from abuse and harassment. KIRA Safeguarding Policy and Regulations aims to promote the wellbeing and safety of all individuals involved in motorsport activities, especially children and vulnerable adults, fostering an environment in which everyone can engage with confidence and peace of mind. |\n| **A4.2.3** | The Persons defined as “Covered Persons” in KIRA Safeguarding Policy and Regulations, set out at Appendix S of the ISC, agree to be bound by and to comply with the KIRA Safeguarding Policy and Regulations as a condition of their participation in the Championship. |\n\n# **ARTICLE A5:  GENERAL ROLES AND RESPONSIBILITIES OF KEY STAKEHOLDERS** {#article-a5:-general-roles-and-responsibilities-of-key-stakeholders}\n\n| *Advisory Committee: RGAC, unless otherwise stated Governance: F1 Commission / WMSC, unless otherwise stated* |\n| :---- |\n\n| A5.1\t\tGeneral obligations applicable to all |  |\n| :---- | :---- |\n| **A5.1.1** | All Covered Persons must comply with the following general obligations, and each F1 Team must procure that their respective Personnel and the other members of their respective Legal Groups (and their respective Personnel) do the same: comply with the KIRA Rules and Regulations at all times, and provisions within the remit of their roles and responsibilities; comply by the specified deadline with any applicable written request for information/access or Demand from the KIRA pursuant to Article A6.3 and Appendix A3; submit any information or documentation required by any KIRA-issued document by the deadline specified in such document; cooperate fully and in a timely manner with KIRA in the exercise of its regulatory functions, including with any investigation conducted by or on behalf of KIRA; not delay, impede, or frustrate the exercise by KIRA, of its regulatory functions, including any investigation conducted by or on behalf of KIRA, or any attempt to do so;  not threaten or seek to intimidate any person with the intent of discouraging such person from the Good Faith reporting of information that relates to an alleged breach of the KIRA Rules and Regulations, and not retaliate against any person or Witness who has provided (or may provide) evidence or information in Good Faith in relation to an alleged breach of the KIRA Rules and Regulations to KIRA, the Stewards, any KIRA Court or Judging Panel, any person conducting an investigation for KIRA, law enforcement, regulatory or professional disciplinary body, or other competent body; not sign a Declaration or submit any information to the KIRA that they are aware, or ought to reasonably be aware, is untrue or fraudulent; not submit any Reporting Documentation to the KIRA that is inaccurate, incomplete, misleading, or otherwise not compliant with the KIRA F1 Regulations; comply with the terms of any applicable Decision, ABA, or settlement; comply with the terms of any provisional suspension or sanction(s) imposed on them pursuant to the KIRA Rules and Regulations;  perform all applicable obligations under the KIRA F1 Regulations, acting at all times with honesty and integrity, and in a spirit of transparency and cooperation; not do anything (by act or omission) that brings the KIRA or the Championship into disrepute; and comply with any other obligations applicable to them under other Sections of the KIRA F1 Regulations or in the KIRA Rules and Regulations, including ISC Article 12.2. |\n| **A5.2\t\tKIRA** |  |\n| **A5.2.1** | The KIRA is responsible for developing, administering and enforcing the KIRA Rules and Regulations (including the KIRA F1 Regulations) and exercising the powers and carrying out the functions set out in them. |\n| **A5.2.2** | The KIRA shall be responsible for monitoring compliance with the KIRA F1 Regulations on an ongoing basis, investigate instances of suspected non-compliance, and take appropriate enforcement action in respect of any breaches of the KIRA F1 Regulations.  |\n| **A5.2.3** | Unless specified otherwise or unless the context requires otherwise: The Prosecuting Body has the authority to conduct investigations on behalf of the KIRA, and therefore references to the “KIRA” in Article A6 and Appendix A3 in the context of investigations shall be construed accordingly. However, the right to request information/access under Article A6.3.1a may also be exercised by the KIRA Single Seater Department or KIRA Legal or their designees.  References to the “KIRA” in the KIRA F1 Regulations refer to the KIRA Single Seater Department (including any KIRA employees operating under its direct instruction with the competency and responsibility to deal with a particular matter regarding the implementation of the KIRA F1 Regulations). For the avoidance of doubt, unless specifically stated, references to the “KIRA” shall not include the Stewards, any KIRA Court or Judging Panel. |\n| **A5.2.4** | The KIRA may engage an Independent Audit Firm, Stewards, external control bodies, experts, external legal advisors, or other specialists or service providers to assist it in carrying out its functions. These persons may receive remuneration from the KIRA for their services and are bound by an obligation of confidentiality. |\n| **A5.3\t\tF1 Teams** |  |\n|  | *Governance: F1 Commission / WMSC* |\n| **A5.3.1** | It is the duty of each F1 Team to satisfy the KIRA, the Stewards, and relevant KIRA Courts that they comply with all aspects of the applicable KIRA F1 Regulations at all times.  |\n| **A5.3.2** | Each F1 Team and each PU Manufacturer must ensure that their respective Personnel: are informed that the F1 Team and their Personnel are subject to the KIRA Rules and Regulations, and made aware of the KIRA Rules and Regulations, including all of the requirements that they impose on the F1 Team or PU Manufacturer and/or on their Personnel; are informed and appropriately trained with respect to the ways in which their areas of responsibility may impact the F1 Team’s compliance with the KIRA F1 Regulations; informed of the KIRA ethics and compliance hotline available on the KIRA website and provide assurances to all Personnel that the reporting of any breaches of the KIRA Rules and Regulations via the KIRA ethics and compliance hotline or through any other KIRA process shall not constitute a breach of any contractual clauses between the Personnel and the F1 Team with regard to Confidential Information, and ensure protection clauses appropriate policies are in effect for such Personnel; are informed that they must not use any personal or private devices for work-related activities in a way that could involve or expose confidential information. If however, it is agreed between the F1 Team with the relevant Personnel that personal or private devices may be used for work-related activities. when starting employment with the F1 team,  are informed that possession of any materials, data or information belonging to a previous employer (meaning F1 Team) is forbidden, must not be retained, must be returned to that previous employer, and must not be used under any circumstances in their new role. |\n| **A5.4**\t\tMovement of personnel \\- F1 Teams |  |\n|  | *F1 Commission / WMSC* |\n|  | Each F1 Team must implement reasonable measures to prevent the disclosure of Confidential Information to other F1 Teams. No F1 Team may use the movement of personnel (whether employee, worker, consultant, contractor, secondee, agent, office holder, or any other type of permanent or temporary personnel, including those engaged by any sub-contractor) to another F1 Team, either directly or via an external entity, for the purpose of circumventing the requirement to prevent the disclosure of Confidential Information to any other F1 Team. For the purposes of this Article, personnel involved in the following activities are considered to have knowledge of confidential information, and hence are covered by the provisions of this Article A5.7.3: The design, research and development or systems of the F1 Car; The development of simulation methodology; Personnel involved in race operations or strategy. The above list is not exhaustive, and the KIRA retains the right to expand the list of Personnel which it retains relevant for the purposes of this Article. In order that the KIRA may be satisfied that any movement of personnel is not designed to circumvent the requirement to prevent the disclosure of Confidential Information to any other F1 Team, each F1 Team must inform the KIRA of all relevant personnel movements using the form provided by the KIRA at Appendix A6.  |\n| **A5.5**\t\tOther Covered Persons |  |\n|  | All Covered Persons may be individually responsible for breaches of the KIRA F1 Regulations (subject to A1.4.2) if so, specified in the KIRA F1 Regulations. Without limiting the generality of the foregoing, Declaration Signatories are individually responsible for breaches under the Financial Regulations, as specified in those regulations. |\n| **A5.6**\t\tTransfer of personnel |  |\n|  | All teams are subject to a strict three-week policy, where no team can transfer or sell any personnel after signing or acquiring them for three weeks from the signing date. Personnel can be signed or transferred only twice per season to prevent mass poaching. Any team found in violation of this rule will be subject to any penalties, fines, and restrictions issued by the KIRA as a result of this violation. |\n\n# **ARTICLE A6:  INVESTIGATIONS, RIGHT OF INQUIRY, AND NOTIFICATION OF BREACHES** {#article-a6:-investigations,-right-of-inquiry,-and-notification-of-breaches}\n\n| *Advisory Committee: RGAC Governance: F1 Commission / WMSC* |\n| :---- |\n\n| A6.1\t\tInvestigations |  |\n| :---- | :---- |\n| **A6.1.1**  | General Subject to paragraph b, the KIRA may open and conduct investigations under the KIRA F1 Regulations in accordance with this Article A6 and the KIRA Judicial and Disciplinary Rules. The Stewards may open and conduct investigations in accordance with their powers set out in the ISC. Such investigations and any Decisions arising from them are excluded from the scope of this Article A6. The KIRA may open and conduct investigations in respect of anti-doping matters in accordance with Appendix A to the ISC. Such investigations and any Decisions arising from them are excluded from the scope of this Article A6. Nothing in this Article A6 shall limit the powers of the Prosecuting Body to conduct a disciplinary inquiry in accordance with Article 4 of the KIRA Judicial and Disciplinary Rules. |\n| **A6.1.2** | Opening an investigation The KIRA may at any time, subject to the limitation period defined in Article A7.9, open and conduct an investigation into any actual, potential, or suspected non-compliance with the KIRA F1 Regulations.  Without limiting the generality of the above, the KIRA may open an investigation if an F1 Team (for purposes of this Article, the “Complainant”) submits a report to the KIRA alleging that another F1 Team has committed a breach (or potential breach) of the KIRA F1 Regulations. For the report to be considered by the KIRA, the report submitted by the Complainant must: be submitted in Good Faith and promptly after the Complainant becomes aware of the suspected non-compliance;  identify the non-complying F1 Team or PU Manufacturer and clearly summarise any alleged non-compliance; clearly specify the relevant provision(s) of the KIRA F1 Regulations that have not been complied with; include sufficient valid evidence or strong indications for each reported instance of noncompliance;   |\n| **A6.1.3**  | Notification of opening of investigation The KIRA shall notify the subject of the investigation in writing If a report is filed by a Complainant, the KIRA will also: notify the Complainant in writing regarding any decision by the KIRA to open an investigation or not to open an investigation; and provide a copy of the written report submitted by the Complainant or a summary thereof (omitting any Confidential Information of the Complainant) to subject of the investigation unless the KIRA considers that doing so might prejudice the investigation. |\n| **A6.1.4**  | Conduct of the investigation For the purposes of the investigation, the KIRA may require any person likely to provide information to attend one or more interviews and may request information/access or issue Demands in accordance with Article A6.3 and Appendix A3. The KIRA may also exercise any other investigatory powers set out in the ISC or KIRA Judicial and Disciplinary Rules. The KIRA may be assisted in its investigation in accordance with Article A5.2.4. The KIRA shall use all reasonable endeavours to complete investigations promptly and to minimise any potential disruption to the F1 Team. |\n| **A6.1.5** | Outcome of the investigation Upon completion of an investigation, any decision by the KIRA as to whether or not to take further action will be at its sole discretion, taking into consideration the substance of the information collected during the investigation and the merits of each case  |\n| **A6.1.6** | Notification of outcome of investigation The KIRA shall notify the subject of the investigation in writing of the outcome of the investigation and, if further action is to be taken, give the subject an opportunity to provide a response (this notice will serve as the Initial Notice). If the KIRA concludes, after considering any response, that there has been a breach of the KIRA F1 Regulations, the KIRA will issue a Final Notice and refer the matter to the relevant KIRA Court for hearing and determination or (in appropriate cases) seek to enter into a settlement agreement in accordance with the KIRA Judicial and Disciplinary Rules or an ABA in accordance with the Financial Regulations.  If a report is filed by a Complainant, the KIRA will also inform the Complainant of the outcome of the investigation (i.e., no further action, settlement/ABA, or referral to the relevant KIRA Court) but the Complainant shall not be entitled to receive a copy of the Final Notice.  |\n| **A6.1.7** | No right of appeal There shall be no right of appeal against a decision by the KIRA to open (or not to open) an investigation, or against the outcome of an investigation. |\n| **A6.1.8** | Confidentiality The KIRA and all persons taking part in an investigation are bound by an obligation of confidentiality in relation to Persons not concerned with the investigation. Nevertheless, subject to Article A8.2.2, the KIRA may at any time make public its decision to conduct an investigation under the KIRA F1 Regulations and the outcome thereof in accordance with Article A8, provided at all times that it maintains the confidentiality of any Confidential Information provided to it in connection with such investigation. F1 Teams shall not by any means prevent any of their Personnel (current or former) or other persons from disclosing to the KIRA any Confidential Information that might be relevant to their compliance with the KIRA Rules and Regulations.  |\n\n# **ARTICLE A7:  CONFIDENTIALITY, PUBLIC REPORTING, AND DATA PRIVACY** {#article-a7:-confidentiality,-public-reporting,-and-data-privacy}\n\n| *Advisory Committee: RGAC Governance: F1 Commission / WMSC* |\n| :---- |\n\n| A7.1\t\tConfidentiality |  |\n| :---- | :---- |\n| **A7.1.1**  | Any information (including personal information) received by the KIRA, the Stewards, and/or any KIRA Court pursuant to the KIRA F1 Regulations may be shared between those bodies as necessary in the exercise of their regulatory functions under the KIRA F1 Regulations. The KIRA may also share such information with any of the external Persons listed in Article A5.2.4, provided that such Persons provide satisfactory assurance to the KIRA that they will have appropriate procedures in place to maintain the confidentiality of such information and share it only on a need-to-know basis. The KIRA may also share such information with other competent authorities where such information might evidence infringements of other applicable laws or regulations or where the KIRA is required to so by applicable law. |\n| **A7.1.2**  | The KIRA, the Stewards, and the KIRA Courts will have appropriate procedures in place to maintain the confidentiality of any Confidential Information provided to them in the exercise of their respective regulatory functions. |\n\n# **APPENDIX A1:  DEFINITIONS** {#appendix-a1:-definitions}\n\n| *Advisory Committee: RGAC Governance: F1 Commission / WMSC* |\n| :---- |\n\nUnless specified otherwise, the definitions set out in this Appendix apply to all Sections of the KIRA F1  \nRegulations. Additional definitions may be set out in other Sections of the KIRA F1 Regulations\n\n**“Accepted Breach Agreement (ABA)”** means an agreement entered into between the KIRA and the relevant F1 Team or Declaration Signatory, in accordance with Article 7.1.2 and the Financial Regulations.\n\n**“Advisory Committee”** means a committee that operates pursuant to a mandate from the F1 Commission, including the committees that advise the F1 Commission in respect of (i) the Technical Regulations (the F1 Technical Advisory Committee); (ii) the Sporting Regulations (the F1 Sporting Advisory Committee); and (iii) the Financial Regulations (the F1 Financial Advisory Committee).\n\n**“Appeal”** has the meaning given to that term in Article 15 of the ISC.\n\n**“Applicable Laws”** has the meaning given to that term in the ISC.\n\n**“Championship”** means the KIRA Formula One World Championship, which includes both the Constructors’ Championship and the Drivers’Championship.\n\n**“Circuit”** a closed course, including the inherent installations, beginning and ending at the same point, built or adapted specifically for automobile racing and used for purposes of a Competition. A circuit may be temporary, semi-permanent, or permanent.\n\n**“Competition”** means a race meeting forming part of the Championship with its own results. A Competition commences four hours before the first practice session is scheduled to start and ends at the deadline for lodging a Protest under the ISC or the time when a technical or sporting certification has been carried out pursuant to the ISC, whichever is later.\n\n**“Competition Number”** means the number assigned to F1 Drivers and Other Racing Drivers.\n\n**“Confidential Information”** means information relating to an F1 Team and/or the other members of their respective Legal Groups and/or any of their respective Personnel (whether written, oral, or in any other format), including any information that would be regarded as confidential by a reasonable business person relating to the business, affairs, customers, clients, suppliers, plans, operations, processes, know-how, financial information, commercially sensitive information, designs, trade secrets, or software of the F1 Team and/or of any other member of their respective Legal Groups and/or their respective Personnel. For purposes of the Financial Regulations, the total annual gross salary and the total average number of full-time employees of the F1 Team’s Reporting Group Entities is not considered Confidential Information and may be disclosed not earlier than the 30 September of the subsequent Full Year  \nReporting Period by the Cost Cap Administration to all F1 Teams.  \n**“Constructor**” means the person or any corporate or unincorporated body that designs the Listed Team  \nComponents (LTCs) or outsources their design and/or manufacture to a third party.\n\n**“Constructors’ Championship”** means the title that F1 Teams (or Constructors) compete for during each  \nedition of the Championship. The F1 Team (or Constructor) with the highest number of points at the end of the season, calculated in accordance with Article A2.2, wins the Constructors’ Championship title.\n\n**“Constructors’ Trophy”** means the KIRA trophy engraved with the names of all World Champion Constructors, awarded to the World Champion Constructor each year at the KIRA Prize Giving Ceremony and Gala Dinner.\n\n**“Control”** means the power to conduct the affairs of an entity and to direct its financial and operating policies which affect returns by means of shareholding, or voting power, or by constitutional documents (statutes) or agreement, or otherwise. “Controlling” and “Controlled” shall be construed accordingly.\n\n**“Cost Cap”** has the meaning given to that term in the relevant Financial Regulations.\n\n**“Decision”** means any decision(s) of the WMSC, KIRA General Assembly, KIRA President, Stewards, KIRA Courts, Anti-Doping Disciplinary Committee, CAS, and any other persons or bodies authorised to issue decisions under the KIRA Rules and Regulations, each as issued within their respective areas of competence as specified in the KIRA Rules and Regulations.\n\n**“Demand”** has the meaning set out in Article A6.3.1.b.\n\n**“Drivers’ Championship”** means the title that F1 Drivers compete for during each edition of the Championship. The F1 Driver with the highest number of points at the end of the season, calculated in  \naccordance with Article A2.2, wins the Drivers’ Championship title.\n\n**“Drivers’ Championship Trophy”** means the KIRA trophy engraved with the names of the F1 Drivers who win the Drivers’ Championship title, awarded to the World Champion Driver each year at the KIRA Prize Giving Ceremony and Gala Dinner.\n\n**“F1 Activities”** means:\n\n1) (i) all activities undertaken by or on behalf of the F1 Team relating to the operation of that F1 Team and its participation in the Championship, including all activities in connection with the research, development, design, manufacture, Testing, and racing of F1 Cars and marketing activities of the F1 Team; (ii) all activities undertaken by or on behalf of the F1 Team in connection with the research, development, and design of any F1 Car components or prototypes; (iii) the planning, directing, management, control, and/or execution of any of the activities set out in this paragraph; and (iv) the management, directing, control, and use of the assets used to undertake any of the activities set out in this paragraph.\n\n**“F1 Car”** means a car that was designed and built to comply with the Technical Regulations of Year N or Year N-1, unless specified otherwise. For purposes of the Financial Regulations, ‘F1 Car’ means Current Cars, Previous Cars, Historic Cars, Mule Cars, each as defined in the Financial Regulations, and any cars intended for future participation in the Championship. An ‘F1 Car’ is referred to as an ‘Automobile’ in the ISC and other KIRA Rules and Regulations.\n\n“**F1 Commission”** means the commission with competence in relation to all matters relating to the  \nChampionship, including amendments to the KIRA F1 Regulations, subject to the applicable governance  \nagreements and approval of the WMSC.\n\n**“F1 Driver”** means any person (a) engaged by a Reporting Group Entity whose primary role is as a driver  \nengaged in the racing of F1 Cars in the Championship for or on behalf of the F1 Team during Year N; and (b) who has driven in a race for the F1 Team in the Championship during the Year N. A driver is considered an F1 Driver from the time that they are first entered in a Competition, provided that they actually start in that Competition.\n\n**“F1 Team”** means a legal entity that holds an KIRA Super Licence to participate in the Championship (referred to in the ISC and other KIRA Rules and Regulations as the “Competitor” or the “Constructor”).\n\n**“Final Notice”** means the notice issued by the KIRA to a Covered Person notifying them of an alleged breach of one or more provisions of the KIRA F1 Regulations (excluding proceedings before the Stewards).\n\n**“Financial Penalty”** means a fine in an amount to be determined on a case-by-case basis.\n\n**“Financial Regulations”** means the KIRA Formula One Financial Regulations for F1 Teams set out in Sections D and E of the FIA F1 Regulations, as amended from time to time.\n\n**“Force Majeure”** means any circumstances beyond the reasonable control of a relevant affected party  \naffecting its compliance with the KIRA F1 Regulations, including terrorist action or the threat thereof, civil  \ncommotion, disruption due to general or local elections, invasion, war, threat of or preparation for war, fire, explosion, storm, flood, earthquake, or any other natural physical disaster, epidemic, pandemic, or outbreak, and any legislation, regulation, or ruling of any government, court, or other such competent authority.\n\n**“Garden Leave”** means a period during which a member of personnel who is in the process of changing  \nemployer is isolated from any Confidential Information or any F1 Activity. Garden Leave may involve the  \nmember of personnel being asked to carry out unrelated work within the previous employer’s Legal group.\n\n**“Good Faith”** means with due diligence and in a spirit of honesty, sincerity, and integrity.\n\n**“Immunity Conditions”** has the meaning set out in Article A7.14.3.\n\n**“International Sporting Calendar”** means the calendar of official motorsport events and competitions  \nrecognised and published by the KIRA\n\n**“ISC”** means the KIRA International Sporting Code and its appendices, as amended from time to time.\n\n**“KIRA”** means the Kōsei International Racing Authority, the global governing body of motorsport.\n\n**“KIRA Code of Ethics”** means the KIRA Code of Ethics adopted by the KIRA General Assembly, as amended from time to time.\n\n**“KIRA Courts”** means the International Tribunal, Cost Cap Adjudication Panel, and International Court of Appeal.\n\n**“KIRA F1 Document”** has the meaning set out in Article A1.2.3.a.\n\n**“KIRA F1 Regulations”** has the meaning set out in Article A1.2.2.\n\n**“KIRA General Assembly”** means the general assembly of the KIRA, composed of the delegations of the KIRA Members (as defined in the KIRA Statutes) each headed by its president or their representative, and of the president of the Drivers’ Committee (as defined in the KIRA Statutes), as described in Articles 8 and 9 of the KIRA Statutes.\n\n**“KIRA International Sporting Code (ISC)**” see definition of ISC.\n\n**“KIRA Judicial and Disciplinary Rules”** means the Judicial and Disciplinary Rules of the KIRA, as amended from time to time.\n\n**“KIRA Legal”** means the KIRA legal department and its staff.\n\n**“KIRA Motorsport Privacy Notice”** means the privacy notice.\n\n**“KIRA Portal”** means the electronic portal of the KIRA that may be used to issue communications to F1 Teams.\n\n**“KIRA Prize Giving Ceremony and Gala Dinner”** means the prize giving ceremony and related gala dinner organised annually by the KIRA for the Championship.\n\n**“KIRA Rules and Regulations”** has the meaning given to that term in Article A1.2.1.\n\n**“KIRA Senate”** has the meaning given to that term in the KIRA Statutes.\n\n**“KIRA Single Seater Department”** means the KIRA department responsible for all single seater motorsport disciplines (including Formula One) and its staff.\n\n**“KIRA Statutes”** means the statutes of the KIRA, as amended from time to time.\n\n**“KIRA Trophies”** means the Constructors’ Trophy and the Drivers’Championship Trophy as set out in Appendix A8.\n\n**“New Entrant Team”** means an F1 Team that has been admitted to the Championship but has not yet  \nparticipated in the Championship.\n\n**“Objectives”** has the meaning set out in Article A1.3.\n\n**“Official”** means any of the persons listed in ISC Article 11 or ISC Appendix V.\n\n**“Official Programme”** has the meaning given to that term in the ISC.\n\n**“Operational Regulations”** means the KIRA Formula One Operational Regulations set out in Section F of the KIRA F1 Regulations, as amended from time to time.\n\n**“Parc Fermé”** means the designated secure area at a Competition where F1 Cars must be kept after qualifying and during certain other periods of the Competition, and where F1 Teams are prevented from working on their F1 Cars other than adjustments permitted by the FIA.\n\n**“Person”** means a natural person or an organisation or other entity, body, or committee. For the avoidance of doubt, the term Person does not include the FIA.\n\n**“Personnel**” means any person engaged in the undertaking of F1 Activities on behalf of the F1 Team Manufacturer in question and/or on behalf of any other member of the Legal Group of the F1 Team, which for the avoidance of doubt includes (without limitation) Key Individual F1 Team Members.\n\n**“Protest”** has the meaning given to that term in Article 13 of the ISC.\n\n**“Race Control”** means the area, typically located in the main pit building, designated for the purpose of  \nsupervision of the circuit and direction of circuit activity, containing all the relevant facilities necessary to  \nperform these tasks. Such area being where the Race Director and Clerk of Course shall be located during all sessions.\n\n**“Reserved Areas”** means areas where a Competition is taking place, including the track, the Circuit, the  \npaddock, the Parc Fermé, the service parks or zones, the holding parks, the Pit Lane, the Signalling Area, the zones that are barred to the public, Race Control, the control zones, the zones that are reserved for the media, and the refuelling zones.\n\n**“Reserve Drivers”**: tbc\n\n**“Right of Review”** means the power of the Stewards to re-examine their prior decision following a petition for review filed in accordance with ISC Article 14\\.\n\n**“Safety Car”** means a physical safety car that is brought onto the track to limit the speed of the F1 Cars.\n\n**“Scheduled Race Distance”** means the Race distance expressed as a number of laps, as specified on the Competition visa issued by the KIRA for the Event.\n\n**“Scheduled Sprint Distance”** means the Sprint distance expressed as a number of laps, as specified on the Competition visa issued by the FIA for the Event.\n\n**“Session(s)”** means free practice, qualifying, and race sessions at a Competition. \\[to discuss whether to  \ninclude Sprints and Sprint Qualifying\\]\n\n**“Sporting Directive”** means an KIRA F1 Document issued by the KIRA to clarify the Sporting Regulations or provide specific guidance in relation to an Event.\n\n**“Sporting Power”** has the meaning given to that term in the KIRA Statutes.\n\n**“Sporting Regulations”** means the KIRA Formula One Sporting Regulations set out in Section B of the KIRA F1 Regulations, as amended from time to time.\n\n**“Sprint”** means an FIA Formula One sprint, including sprint qualifying events, as described further in the  \nSporting Regulations.\n\n**“Standard Operating Procedure”** means the standard operating procedure published by the FIA which sets out guidance regarding the manner in which the FIA will exercise its right under the FIA F1 Regulations to make a Demand to an F1 Team or PU Manufacturer to be provided with, and granted access to, Electronic Devices of the F1 Team or PU Manufacturer (and/or of their respective Personnel, and/or of the other members of their respective Legal Groups and/or the respective Personnel of those Legal Group entities) for the purposes of copying and/or downloading data from such Electronic Devices.\n\n**“Stewards”** means the Officials with the authority and powers set out in the ISC.\n\n**“Super Licence”** means a licence drawn up and issued by the FIA to those Persons required to have such  \nlicence for participation in the Championship in accordance with Article A3.3.\n\n**“Test(ing)**” means all on track and off-track testing, including any virtual testing and simulation of either a car (including F1 Cars), chassis, or chassis system or components (including for the avoidance of doubt Testing of Current Cars).\n\n**“Virtual Safety Car (VSC)”** means a safety measure used to slow down all F1 Cars on the track without using a physical Safety Car.\n\n**“Witness”** means a fact witness and/or an expert witness.\n\n**“World Champion Constructor”** means the F1 Team that most recently won the Constructors’ Championship.\n\n**“World Champion Driver”** means the F1 Driver who most recently won the Drivers’ Championship.\n\n**“World Motorsport Council (WMSC)”** means the World Motorsport Council as constituted under the FIA  \nStatutes.\n\n**“Year N”** means the calendar year in the title of the FIA F1 Regulations, and references to Year N-2, N-1, N+1, etc. apply to previous or subsequent calendar years.\n\n# **APPENDIX A2:  SUMMARY OF ADVISORY COMMITTEES** {#appendix-a2:-summary-of-advisory-committees}\n\n| *Advisory Committee: RGAC Governance: F1 Commission / WMSC* |\n| :---- |\n\nAny regulatory amendments, as well as general discussion about related topics, that can lead to the short-,  \nmedium-, or long-term improvement of the FIA F1 Regulations, will be discussed in the relevant Advisory  \nCommittee, subject to applicable governance processes.\n\nThe Advisory Committees may work on a mandate by the F1 Commission for specific topics or make proposals to the F1 Commission.\n\nAs per the provisions of Article A9.4.8, red non-regulatory text in each Section or Article sets out which  \nAdvisory Committee is responsible for the discussion of each part of the FIA F1 Regulations.\n\nThe Table below summarises the Advisory Committees and indicates the range of topics that may be  \ndiscussed by each one.\n\n| Name | Points | Section | Applies to: | Typical F1 Team Attendee |\n| ----- | :---: | :---: | :---: | :---: |\n| Regulatory and Governance Advisory Committee | RGAC | A | F1 Teams | Legal Director/Counsel |\n| Sporting Advisory Committee | SAC | B | F1 Teams | Sporting Director |\n| Financial Advisory Committee | FAC | D | F1 Teams | Financial Director |\n\n",
-    "updated": "2026-11-10"
+  "about": {
+    "title": "About the league",
+    "tagline": "A cosy, competitive F1 league since 2024.",
+    "founded": "2024",
+    "platform": "PC \u00b7 F1 25",
+    "body": "## Who we are\nA group of friends who wanted **clean, close racing** without the toxicity.\n\n## What we value\n- Respect on and off track\n- Consistency over raw pace\n- Having fun",
+    "teamTitle": "League staff",
+    "team": [
+      {
+        "name": "Alex Rivera",
+        "role": "League director",
+        "country": "US",
+        "photo": "uploads/test/avatar.png"
+      },
+      {
+        "name": "Mei Hoshino",
+        "role": "Head steward",
+        "country": "JP"
+      }
+    ]
   },
   "fantasy": {
     "enabled": true,
     "budget": 100,
-    "captainMult": 2,
-    "pole": 1,
-    "fastestLap": 1,
-    "fastestLapTopN": 10,
-    "positions": [
-      25,
-      18,
-      15,
-      12,
-      10,
-      8,
-      6,
-      4,
-      2,
-      1
-    ],
-    "sprint": [
-      8,
-      7,
-      6,
-      5,
-      4,
-      3,
-      2,
-      1
-    ],
-    "dnf": 0,
-    "principalPct": 100,
-    "engineerPct": 50,
-    "reservePct": 100,
-    "constructorPct": 100,
-    "maxEngineers": 2,
-    "maxReserves": 2,
-    "maxConstructors": 2,
-    "minConstructors": 1,
-    "submitUrl": "",
-    "intro": "",
-    "prices": {
-      "ct:aqua": 16,
-      "ct:crimson": 14,
-      "ct:nightjar": 12,
-      "ct:solstice": 10,
-      "ct:polar": 8,
-      "ct:team-raoctb": 22,
-      "ct:team-ji57ia": 20,
-      "ct:team-tmnl09": 24,
-      "ct:team-3ws3tm": 26,
-      "ct:team-0tr4e5": 18,
-      "ct:team-rzql3o": 8,
-      "rs:drv-8vg761": 30.5,
-      "rs:drv-ncu50w": 32,
-      "rs:drv-48oaev": 25.5,
-      "rs:drv-z9dwau": 9.5,
-      "rs:drv-cs0f9n": 6.5,
-      "rs:drv-0cl2kf": 17.5,
-      "rs:drv-jpfr9u": 5,
-      "rs:drv-ndx3h9": 22.5,
-      "rs:drv-g0e4mq": 6,
-      "rs:drv-p4vlk9": 16,
-      "rs:drv-7cnufb": 6,
-      "rs:drv-fmzcoq": 8,
-      "rs:drv-v039lf": 24,
-      "rs:drv-qt3v9z": 27,
-      "rs:drv-50b6k5": 5,
-      "rs:drv-vofpzs": 6
-    },
-    "entries": [],
-    "tpMult": {
-      "enabled": true,
-      "cap": 2.5,
-      "oneTwo": 2.5,
-      "win": 2,
-      "podium": 1.75,
-      "bothPoints": 1.5,
-      "onePoints": 1.25,
-      "none": 1,
-      "bonus": 0.25
-    },
-    "engMult": {
-      "enabled": true,
-      "cap": 2.5,
-      "win": 2.5,
-      "podium": 2,
-      "top5": 1.75,
-      "points": 1.5,
-      "none": 1,
-      "fl": 0.25,
-      "gained": 0.25,
-      "gainedN": 5
-    }
-  },
-  "fiaNews": [],
-  "fiaFeed": {
-    "channel": "1564149996230549524",
-    "server": "1564136151777026099"
-  },
-  "about": {
-    "teamTitle": "League Management",
-    "founded": "2026",
-    "platform": "Roblox F1 26",
-    "title": "About MRA",
-    "tagline": "",
-    "body": "Mirai Motorsports Association is a Roblox F1 League created to offer a realistic and properly organized competitive atmosphere for drivers, ranging from all experience levels. The association was founded by creative and experienced minds with the goal of making this community one of best functional leagues.\n\n",
-    "team": [
+    "entries": [
       {
-        "name": "seo",
-        "role": "League Coordinator",
-        "country": "US",
-        "photo": "uploads/about/2026-11-07-seostaff-a4b0.png"
-      },
-      {
-        "role": "President of the KIRA",
-        "name": "rox",
-        "country": "GB",
-        "photo": "uploads/about/2026-11-07-roxadm2-zyu2.png"
-      },
-      {
-        "name": "Jones",
-        "role": "Regulations & Compliance Director",
-        "country": "US",
-        "photo": "uploads/about/2026-11-13-joneswebsite-ai1v.png"
-      },
-      {
-        "name": "petroom",
-        "role": "Talent & Development Director",
-        "country": "GR"
-      },
-      {
-        "name": "thomas",
-        "role": "Head of Communications",
-        "country": "CN",
-        "photo": "uploads/about/2026-11-13-thomasweb2-yi3x.png"
-      },
-      {
-        "name": "Cassandra",
-        "role": "Public Relations Manager",
-        "country": "US",
-        "photo": "uploads/about/2026-11-12-groundwebsite-jkbw.png"
-      }
-    ],
-    "image": "uploads/about/2026-11-10-hikaribanner-gxw9.png"
-  },
-  "youtube": {
-    "channelUrl": "https://www.youtube.com/@MIKUMotorsports",
-    "channelId": "UCDXs7HTZzy8fO4pXRUR32hQ",
-    "title": "Latest Upload"
-  },
-  "seo": {
-    "title": "Mirai Racing Association",
-    "description": "Official Website for the Mirai Racing Association"
-  },
-  "gridDraft": {
-    "newShare": 50,
-    "enabled": true,
-    "firebase": {
-      "apiKey": "AIzaSyD3KsX7-87U_bqmKoJhRK39Qynn81jMHeo",
-      "authDomain": "league-website-83f79.firebaseapp.com",
-      "projectId": "league-website-83f79",
-      "storageBucket": "league-website-83f79.firebasestorage.app",
-      "messagingSenderId": "34952738966",
-      "appId": "1:34952738966:web:8ccb5dd7bdd9f7d989eab7"
-    },
-    "admins": "itshyosoi@gmail.com",
-    "attempts": 10,
-    "periodHours": 10,
-    "cooldownSec": 3,
-    "iconGap": 10,
-    "primeCount": 3,
-    "elitePct": 25,
-    "advancedPct": 50,
-    "smoothing": 0.05,
-    "minProb": 0.5,
-    "maxProb": 25
-  },
-  "music": {
-    "enabled": true,
-    "tracks": [
-      {
-        "title": "Mirai Background",
-        "src": "uploads/music/2026-11-09-league-theme-song-usesuno-com-y7yz.mp3"
-      }
-    ],
-    "volume": 25,
-    "shuffle": false,
-    "autoplay": true,
-    "loop": true,
-    "label": "Now "
-  },
-  "portalOn": false,
-  "gallery": [],
-  "applications": {
-    "forms": [
-      {
-        "id": "form-sh2l5j",
-        "title": "Driver Application",
-        "description": "Want a seat on the grid? Tell us about yourself — we review every application and you'll see the result here.",
-        "open": true,
-        "questions": [
+        "id": "ft1",
+        "manager": "Mei",
+        "team": "Leek Speed Racing",
+        "discord": "mei#1",
+        "history": [
           {
-            "id": "q-xs8pw6",
-            "options": [],
-            "help": "",
-            "required": true,
-            "label": "Discord Username",
-            "type": "short"
-          },
-          {
-            "id": "q-h3fxh1",
-            "options": [],
-            "help": "Do not share your legal name. First and Last Name requested to make your Driver Profile.",
-            "required": true,
-            "label": "Preferred Driver Name",
-            "type": "short"
-          },
-          {
-            "id": "q-vtua66",
-            "options": [],
-            "help": "",
-            "required": true,
-            "label": "Preferred Driver Number",
-            "type": "number"
-          },
-          {
-            "id": "q-mqbao4",
-            "options": [],
-            "help": "(in GMT)",
-            "required": true,
-            "label": "Time Zone",
-            "type": "short"
-          },
-          {
-            "id": "q-ipssiu",
-            "options": [],
-            "help": "",
-            "required": true,
-            "label": "Country Representing",
-            "type": "short"
-          },
-          {
-            "id": "q-8bhga3",
-            "options": [],
-            "help": "On a Scale of 1-10",
-            "required": true,
-            "label": "Rate your Availability ",
-            "type": "short"
-          },
-          {
-            "id": "q-j613du",
-            "options": [],
-            "help": "",
-            "required": true,
-            "label": "Why do you want to join MRA?",
-            "type": "long"
-          },
-          {
-            "id": "q-gliqyo",
-            "label": "Skillset Categorizing",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": "Please refer 3 of your best lap times on any track, which will be used to gauge your skill range. This information will not be shared to any Teams, nor will it hinder your acceptance rate. Mirai Racing Association welcomes all levels of skill."
-          },
-          {
-            "id": "q-6850wr",
-            "label": "Are you interested in partaking in the League Podcast for a session while in Mirai Racing Association?",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": "Microphone Required"
+            "from": "",
+            "picks": {
+              "d": [
+                "d1",
+                "d9"
+              ],
+              "c": "d1",
+              "tp": "tp:crimson",
+              "re": [
+                "re:aqua:tom-becker"
+              ],
+              "rs": ""
+            },
+            "ts": "2026-10-01T00:00:00Z"
           }
-        ],
-        "nameLabel": "Roblox Username"
+        ]
       },
       {
-        "id": "form-5wmnjv",
-        "title": "Team Ownership Application",
-        "description": "Apply for a team principal, engineer or management role.",
-        "open": true,
-        "questions": [
+        "id": "ft2",
+        "manager": "Kai",
+        "team": "Negitoro Motorsport",
+        "discord": "kai",
+        "history": [
           {
-            "id": "q-xd1h4i",
-            "options": [
-              "Team Principal",
-              "Race Engineer",
-              "Performance Engineer",
-              "Team Manager",
-              "Reserve Driver"
-            ],
-            "help": "",
-            "required": true,
-            "label": "Discord Username",
-            "type": "short"
-          },
-          {
-            "id": "q-me91fd",
-            "options": [],
-            "help": "Do not share your legal name. First and Last Name requested to make your Driver Profile.",
-            "required": true,
-            "label": "Preferred Character Name",
-            "type": "short"
-          },
-          {
-            "id": "q-amzdhq",
-            "options": [],
-            "help": "(in GMT)",
-            "required": true,
-            "label": "Time Zone",
-            "type": "short"
-          },
-          {
-            "id": "q-63nm7c",
-            "label": "Rate your Availability ",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": "OIn a scale of 1-10"
-          },
-          {
-            "id": "q-s51irx",
-            "label": "Why do you want to own a team in MRA?",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": ""
-          },
-          {
-            "id": "q-m71g34",
-            "label": "What makes you a outstanding candidate compared to others?",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": ""
-          },
-          {
-            "id": "q-5krw49",
-            "label": "Preferred Team",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": ""
-          },
-          {
-            "id": "q-tourfy",
-            "label": "Are you interested in partaking in the League Podcast for a session while in Mirai Racing Association?",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": "Microphone Required"
+            "from": "",
+            "picks": {
+              "d": [
+                "d2",
+                "d3"
+              ],
+              "c": "d3",
+              "tp": "tp:aqua",
+              "re": [],
+              "rs": ""
+            },
+            "ts": "2026-10-01T00:00:00Z"
           }
-        ],
-        "nameLabel": "Roblox Username"
-      },
-      {
-        "id": "form-8wb29b",
-        "title": "KIRA",
-        "description": "KIRA is the official governing and regulatory body for Formula 1 and other international motorsport championships.",
-        "open": true,
-        "questions": [
-          {
-            "id": "q-i2z52o",
-            "label": "Discord Username",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": ""
-          },
-          {
-            "id": "q-qa5vzl",
-            "label": "Preferred Character Name",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": "Do not share your legal name. First and Last Name requested to make your Driver Profile."
-          },
-          {
-            "id": "q-pg0f1a",
-            "label": "Time Zone",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": "(in GMT)"
-          },
-          {
-            "id": "q-2y6u5p",
-            "label": "Acitivity Scale",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": "On a scale of 1-10"
-          },
-          {
-            "id": "q-gbrlg3",
-            "label": "What role are you interested in?",
-            "type": "choice",
-            "required": true,
-            "options": [
-              "Flag Marshal",
-              "Recovery Marshal",
-              "Track Marshal",
-              "Medical Car Driver",
-              "Safety Car Driver"
-            ],
-            "help": ""
-          },
-          {
-            "id": "q-qebn64",
-            "label": "Are you interested in partaking in the League Podcast for a session while in Mirai Racing Association?",
-            "type": "short",
-            "required": true,
-            "options": [],
-            "help": "Microphone Required"
-          }
-        ],
-        "nameLabel": "Roblox Username"
+        ]
       }
-    ],
-    "contract": {
-      "enabled": true,
-      "title": "Terms & Conditions",
-      "terms": "Congratuations! You are one step closer to joining Mirai! Before you begin your journey, please review the following Terms and Conditions. By signing this, you agree that you:\n\n- Have read and understood all league-specific rules, including the regulations, boundaries, and procedures. You must also understand how to respond to and comply with any instructions, scenarios, obstacles, or events introduced by the Race Director throughout the session.\n\n- Agree that in the case you miss two consecutive races, without any reason or prior notice, you may be sanctioned or dismissed from the grid.\n",
-      "agree": ""
-    }
+    ]
   },
-  "seasons": [
+  "fiaNews": [
     {
-      "id": "season-2026",
-      "label": "2026",
-      "file": "data/seasons/2026.json",
-      "savedAt": "2026-11-13T03:18:56.797Z",
-      "rounds": 12,
-      "champion": "Aiko Tanaka"
+      "id": "fa1",
+      "title": "Track limits at Miami: Turn 17 will be monitored",
+      "date": "2026-11-04T18:00:00.000Z",
+      "category": "regulation",
+      "body": "Exceeding track limits at **Turn 17** will count towards the 3-warning limit.\n\n- Warnings reset each session",
+      "roundId": "r5",
+      "docs": []
+    },
+    {
+      "id": "fa2",
+      "title": "Round 4 provisional classification published",
+      "date": "2026-11-05T03:00:00.000Z",
+      "category": "document",
+      "body": "The provisional classification for Suzuka is now final after the 24-hour protest window.",
+      "roundId": "r4",
+      "docs": [
+        "uploads/test/stewards-doc-12.png"
+      ]
+    },
+    {
+      "id": "fa3",
+      "title": "Race start moved 15 minutes later",
+      "date": "2026-11-03T12:00:00.000Z",
+      "category": "schedule",
+      "body": "Race start for Round 5 is now 8:15 PM CT.",
+      "docs": []
+    },
+    {
+      "id": "fa4",
+      "title": "Car #31 \u2013 penalty points",
+      "date": "2026-10-29T12:00:00.000Z",
+      "category": "penalty",
+      "body": "3 penalty points added.",
+      "docs": []
     }
   ],
-  "predictions": {
+  "gridDraft": {
     "enabled": true,
-    "intro": "",
-    "points": {
-      "exact": 3,
-      "podium": 1,
-      "fl": 2,
-      "pole": 2
+    "firebase": {
+      "apiKey": "test",
+      "projectId": "test",
+      "appId": "test"
     },
-    "schedule": {
-      "auto": true,
-      "openDays": 3,
-      "openTime": "",
-      "closeOn": "quali",
-      "closeMins": 0
-    }
+    "admins": "admin@example.com"
   },
-  "accounts": {
-    "discordClientId": "1570937329261084804",
-    "enabled": true
-  },
-  "slideshow": {
-    "enabled": false,
-    "title": "From the paddock",
-    "interval": 6,
-    "position": "top",
-    "aspect": "16/7",
-    "items": []
+  "portalOn": true,
+  "theme": {
+    "defaultMode": "dark"
   }
 }

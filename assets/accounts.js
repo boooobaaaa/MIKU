@@ -31,7 +31,7 @@ function catchReturn() {
 catchReturn();
 window.addEventListener('hashchange', catchReturn, true);
 
-const DEF = { verifiedLabel: 'MRA Verified', enabled: false, discordClientId: '', fantasyApproved: true, gdApproved: false };
+const DEF = { verifiedLabel: 'MRA Verified', enabled: false, discordClientId: '', fantasyApproved: true, gdApproved: false, predApproved: false };
 const cfg = d => Object.assign({}, DEF, d.accounts || {});
 const redirectUri = () => location.origin + location.pathname;
 const avatarUrl = (id, av, size = 64) => av ? `https://cdn.discordapp.com/avatars/${encodeURIComponent(id)}/${encodeURIComponent(av)}.${String(av).startsWith('a_') ? 'gif' : 'png'}?size=${size}` : `https://cdn.discordapp.com/embed/avatars/${Number(BigInt.asUintN(64, BigInt(id || 0)) >> 22n) % 6}.png`;
@@ -77,11 +77,38 @@ function approved(d) {
   return AP.map;
 }
 const refreshApproved = () => { AP.at = 0; AP.map = null; };
-function badge(d, uid, opts = {}) {
-  const m = approved(d); const l = m && m[uid];
-  if (!l) return '';
-  return `<span class="ac-badge" title="${esc(cfg(d).verifiedLabel || 'MRA Verified')} · @${esc(l.discordUser || l.discordName)}">${dcFace(l)}${opts.name ? `<span>${esc(l.discordName)}</span>` : ''}<i>✓</i></span>`;
+/* the little sakura "verified" mark that sits right after a name; hover / focus shows "Verified as …" */
+const SAKURA = '<svg viewBox="0 0 24 24" aria-hidden="true">' + [0, 72, 144, 216, 288].map(a => `<path transform="rotate(${a} 12 12)" d="M12 11.2C9.4 9.2 8.9 5.6 10.6 3.1l1.4 1.5 1.4-1.5c1.7 2.5 1.2 6.1-1.4 8.1Z"/>`).join('') + '<circle cx="12" cy="12" r="2.1"/></svg>';
+function mark(dc, d, size) {
+  if (!dc) return '';
+  const name = dc.name || dc.discordName || '', user = dc.user || dc.discordUser || '';
+  const lbl = (d && cfg(d).verifiedLabel) || 'MRA Verified';
+  return `<span class="vmark ${size || ''}" tabindex="0" role="img" aria-label="Verified as ${esc(name || '@' + user)}${user && name ? ' (@' + esc(user) + ')' : ''}" data-vl="${esc(lbl)}" data-vn="${esc(name)}" data-vu="${esc(user)}">${SAKURA}</span>`;
 }
+function badge(d, uid) {
+  const m = approved(d); const l = m && m[uid];
+  return l ? mark(l, d) : '';
+}
+// one floating tooltip for every mark, so it never gets clipped by a table or card
+let VT = null;
+function vtShow(el) {
+  if (!VT) { VT = document.createElement('div'); VT.className = 'vtip'; VT.setAttribute('role', 'tooltip'); document.body.appendChild(VT); }
+  const n = el.dataset.vn, u = el.dataset.vu;
+  VT.innerHTML = `<span class="vtip-h">${SAKURA}${esc(el.dataset.vl)}</span><span>Verified as <b>${esc(n || '@' + u)}</b></span>${n && u ? `<small>@${esc(u)} on Discord</small>` : ''}`;
+  VT.classList.remove('in', 'below'); VT.style.left = '0px'; VT.style.top = '0px';
+  const r = el.getBoundingClientRect(), w = VT.offsetWidth, h = VT.offsetHeight, pad = 8;
+  let left = Math.max(pad, Math.min(innerWidth - pad - w, r.left + r.width / 2 - w / 2)), top = r.top - h - 10, below = top < pad;
+  if (below) top = r.bottom + 10;
+  VT.style.left = left + 'px'; VT.style.top = top + 'px'; VT.style.setProperty('--ax', (r.left + r.width / 2 - left) + 'px');
+  VT.classList.toggle('below', below); requestAnimationFrame(() => VT && VT.classList.add('in'));
+}
+const vtHide = () => { if (VT) VT.classList.remove('in'); };
+document.addEventListener('mouseover', e => { const m = e.target.closest && e.target.closest('.vmark'); if (m) vtShow(m); });
+document.addEventListener('mouseout', e => { const m = e.target.closest && e.target.closest('.vmark'); if (m && !m.contains(e.relatedTarget)) vtHide(); });
+document.addEventListener('focusin', e => { if (e.target.classList && e.target.classList.contains('vmark')) vtShow(e.target); });
+document.addEventListener('focusout', e => { if (e.target.classList && e.target.classList.contains('vmark')) vtHide(); });
+document.addEventListener('click', e => { const m = e.target.closest && e.target.closest('.vmark'); if (m) { e.preventDefault(); e.stopPropagation(); vtShow(m); } }, true);
+addEventListener('scroll', vtHide, true); addEventListener('hashchange', vtHide);
 function isApproved(d, uid) { const m = approved(d); return !!(m && m[uid]); }
 
 /* ---- 4. My account page ---- */
@@ -103,7 +130,7 @@ function driverOptions(d, cur, takenBy) {
 
 function page(d) {
   const c = cfg(d), s = store(d);
-  const top = head('Your account', 'My account', 'Link your Discord, claim your driver profile and keep your Grid Draft and Fantasy teams in one place.');
+  const top = head('Your account', 'My account', 'Link your Discord, Claim your Profile, and keep your Grid Draft, Predictions, and Fantasy Drafts in one place.');
   if (!s) return `<div class="page">${top}<div class="empty"><b>Accounts aren’t set up yet</b><p>An admin needs to finish the Firebase setup first.</p></div></div>`;
   if (s.error) return `<div class="page">${top}<div class="empty"><b>Can’t connect right now</b><p>${esc(s.error)}</p></div></div>`;
   if (!s.ready) return `<div class="page">${top}<div class="loading">Loading…</div></div>`;
@@ -115,9 +142,13 @@ function page(d) {
   const drv = l && l.driverId ? byId(d.drivers, l.driverId) : null;
   let link;
   if (l === undefined) link = '<p class="muted">Checking your Discord link…</p>';
-  else if (l && l.status === 'approved') link = `<div class="ac-linked ok">${dcFace(l, 'lg')}<div><b>${esc(l.discordName)}</b><span class="muted">@${esc(l.discordUser)}</span><span class="ac-st ok">✓ ${esc(c.verifiedLabel || 'MRA Verified')}</span></div></div>
-      ${drv ? `<p class="ac-claim"><span class="muted">Driver profile</span><a href="#/driver/${esc(drv.id)}" style="--tc:${esc(teamColor(byId(d.teams, drv.teamId)))}">${LG.avatar(drv, byId(d.teams, drv.teamId), 'sm')}${nameHTML(drv.name)}</a></p>` : '<p class="muted">Not linked to a driver profile.</p>'}
-      ${(() => { const st = LG.staffOf && LG.staffOf(d, s.user.uid); return st ? `<p class="ac-claim"><span class="muted">Team role</span><a href="#/team/${esc(st.team.id)}" style="--tc:${esc(teamColor(st.team))}"><b>${esc(st.roles.join(', '))}</b>&nbsp;· ${esc(st.team.name)}</a></p>` : ''; })()}
+  else if (l && l.status === 'approved') link = `<div class="ac-linked ok">${dcFace(l, 'lg')}<div><b>${esc(l.discordName)}</b><span class="muted">@${esc(l.discordUser)}</span><span class="ac-st ok ac-st-sk">${SAKURA}${esc(c.verifiedLabel || 'MRA Verified')}</span></div></div>
+      ${(() => {
+        const st = LG.staffOf && LG.staffOf(d, s.user.uid), dt = drv && byId(d.teams, drv.teamId);
+        const drvRow = drv ? `<div class="ac-prof-block"><div class="ac-prof-h">Driver Profile</div><a class="ac-prof" href="#/driver/${esc(drv.id)}" style="--tc:${esc(teamColor(dt))}">${LG.avatar(drv, dt, 'sm')}<span><b>${nameHTML(drv.name)}</b><small>${dt ? esc(dt.name) : drv.reserve ? 'Reserve driver' : 'Driver'}</small></span></a></div>` : '';
+        const stRows = st ? `<div class="ac-prof-block"><div class="ac-prof-h">Team Profile</div>${st.entries.map(e => `<a class="ac-prof" href="#/team/${esc(e.team.id)}" style="--tc:${esc(teamColor(e.team))}">${LG.teamLogo(e.team)}<span><b>${esc(e.role)}</b><small>${esc(e.team.name)}</small></span></a>`).join('')}</div>` : '';
+        return drvRow || stRows ? `<div class="ac-profs">${drvRow}${stRows}</div>` : '<p class="muted">Not linked to a Driver or Team Profile yet — an admin links it when they approve you.</p>';
+      })()}
       <div class="toolbar"><button class="btn sm ghost" data-ac="unlink">Unlink Discord</button></div>`;
   else if (l && l.status === 'pending') link = `<div class="ac-linked">${dcFace(l, 'lg')}<div><b>${esc(l.discordName)}</b><span class="muted">@${esc(l.discordUser)}</span><span class="ac-st wait">⏳ Waiting for an admin to approve</span></div></div>
       <p class="muted">${drv ? `You asked to claim <b>${esc(drv.name)}</b>. ` : ''}You’ll see the verified tick here once it's approved.</p><div class="toolbar"><button class="btn sm ghost" data-ac="unlink">Cancel request</button></div>`;
@@ -142,6 +173,11 @@ function page(d) {
     const row = window.Fantasy.accountRow ? window.Fantasy.accountRow(d, s.user.uid) : null;
     ft = `<a class="ac-game" href="#/fantasy/team"><span class="ac-gi">★</span><span><b>Fantasy</b><small>${row ? esc(row.entry.team) + ' · ' + (row.rank ? 'P' + row.rank + ' · ' : '') + fmtPts(row.total) + ' pts' : 'No team saved yet'}</small></span><span class="ac-go">›</span></a>`;
   }
+  let pr = '';
+  if (window.Predictions && d.predictions && d.predictions.enabled) {
+    const sm = window.Predictions.summary(d, s.user.uid);
+    pr = `<a class="ac-game" href="#/predictions"><span class="ac-gi">🔮</span><span><b>Predictions</b><small>${sm === 'loading' ? 'Loading…' : sm ? (sm.pos ? 'P' + sm.pos + ' · ' : '') + fmtPts(sm.pts) + ' pts · ' + sm.picks + ' round' + (sm.picks === 1 ? '' : 's') : 'No picks yet'}</small></span><span class="ac-go">›</span></a>`;
+  }
   // names shown on the leaderboards
   const gs = window.GridDraft && d.gridDraft && d.gridDraft.enabled ? window.GridDraft.store(d) : null, gp = gs && gs.profile;
   const fdoc = window.Fantasy && d.fantasy && d.fantasy.enabled ? (window.Fantasy.accountDocs(d) || []).find(x => x.uid === s.user.uid) : null;
@@ -161,7 +197,7 @@ function page(d) {
     <div class="ac-grid">
       <section class="card"><h3>Signed in</h3><p class="ac-who"><b>${esc(s.user.displayName || 'Google account')}</b><span class="muted">Google · your email stays private</span></p><button class="btn sm ghost" data-ac="signout">Sign out</button></section>
       <section class="card ac-dc"><h3>${DCLOGO} Discord</h3>${link}</section>
-      ${gd || ft ? `<section class="card"><h3>Your games</h3><div class="ac-games">${gd}${ft}</div>${!(l && l.status === 'approved') && (c.fantasyApproved || c.gdApproved) ? `<p class="hint">${[c.fantasyApproved && 'Fantasy', c.gdApproved && 'Grid Draft'].filter(Boolean).join(' and ')} leaderboard${c.fantasyApproved && c.gdApproved ? 's only show' : ' only shows'} approved accounts — link your Discord to appear.</p>` : ''}</section>` : ''}
+      ${gd || ft || pr ? `<section class="card"><h3>Your games</h3><div class="ac-games">${gd}${pr}${ft}</div>${(() => { const only = [c.gdApproved && 'Grid Draft', c.predApproved && 'Predictions', c.fantasyApproved && 'Fantasy'].filter(Boolean); return !(l && l.status === 'approved') && only.length ? `<p class="hint">${only.length > 1 ? only.slice(0, -1).join(', ') + ' and ' + only[only.length - 1] + ' leaderboards only show' : only[0] + ' leaderboard only shows'} approved accounts — link your Discord to appear.</p>` : ''; })()}</section>` : ''}
     </div>${names}</div>`;
 }
 
@@ -225,5 +261,5 @@ document.addEventListener('submit', async e => {
 let hooked = false;
 setInterval(() => { if (hooked) return; const d = LG.S && LG.S.data; const s = d && store(d); if (s && s.on) { hooked = true; s.on(() => { ME.for = ''; if (/^#\/(account|fantasy|griddraft)/.test(location.hash)) LG.render(false); }); } }, 400);
 
-window.Accounts = { page, cfg, badge, isApproved, approved, refreshApproved, avatarUrl, dcFace, redirectUri, driverOptions, DEF };
+window.Accounts = { page, cfg, badge, mark, isApproved, approved, refreshApproved, avatarUrl, dcFace, redirectUri, driverOptions, DEF };
 })();

@@ -1052,8 +1052,8 @@ function pageDriver(d, id) {
     <div class="profile-hero" style="--tc:${esc(teamColor(t))}">
       ${D.photo ? `<img class="ph-photo" src="${esc(asset(D.photo))}" alt="" onerror="this.remove()">` : `<div class="ph-num">${esc(D.number ?? '')}</div>`}
       <div class="eyebrow">${x.position ? `P${x.position} · ` : ''}${esc(t ? t.name : 'Free agent')}</div>
-      <h1>${nameHTML(D.name).replace('class="dname"', 'class="dname"')}</h1>
-      <div class="ph-meta">${flag(D.country, 'lg')}${D.number !== undefined && D.number !== '' ? `<span class="mono">#${esc(D.number)}</span>` : ''}${D.active === false ? '<span class="pill-inactive">Inactive</span>' : ''}${D.discord && D.discord.id && window.Accounts ? `<span class="ph-claim" title="This profile is claimed by a verified Discord account">${window.Accounts.dcFace({ discordId: D.discord.id, discordAvatar: D.discord.avatar })}<span>${esc(D.discord.name || '')}</span><i>✓</i></span>` : ''}</div>
+      <h1>${nameHTML(D.name)}${D.discord && D.discord.id && window.Accounts ? window.Accounts.mark(D.discord, d, 'lg') : ''}</h1>
+      <div class="ph-meta">${flag(D.country, 'lg')}${D.number !== undefined && D.number !== '' ? `<span class="mono">#${esc(D.number)}</span>` : ''}${D.active === false ? '<span class="pill-inactive">Inactive</span>' : ''}</div>
     </div>
     <div class="stats stats-drv">
       <div class="stat"><b>${x.position || '—'}</b><span>Position</span></div>
@@ -1302,7 +1302,7 @@ function staffCard(d, x, role, T) {
   const ini = String(x.name || '').split(/\s+/).map(z => z[0] || '').join('').slice(0, 2).toUpperCase();
   return `<div class="st-card" style="--tc:${esc(teamColor(T))}">
     <span class="avatar st-av">${x.photo ? `<img src="${esc(asset(x.photo))}" alt="" loading="lazy" onerror="this.remove()">` : esc(ini)}</span>
-    <div class="st-txt"><div class="st-role">${esc(role)}</div><div class="st-name">${nameHTML(x.name)}${x.discord && x.discord.id && window.Accounts ? `<span class="ac-badge st-claim" title="Verified Discord · @${esc(x.discord.user || x.discord.name || '')}">${window.Accounts.dcFace({ discordId: x.discord.id, discordAvatar: x.discord.avatar })}<i>✓</i></span>` : ''}</div>
+    <div class="st-txt"><div class="st-role">${esc(role)}</div><div class="st-name">${nameHTML(x.name)}${x.discord && x.discord.id && window.Accounts ? window.Accounts.mark(x.discord, d) : ''}</div>
       ${w || x.country ? `<div class="st-sub">${flag(x.country)}${w ? `<span>with <a href="#/driver/${esc(w.id)}">#${esc(w.number ?? '')} ${esc(w.name.split(' ').pop())}</a></span>` : ''}</div>` : ''}</div>
   </div>`;
 }
@@ -2354,7 +2354,7 @@ document.getElementById('nav-toggle').addEventListener('click', () => document.g
 window.addEventListener('hashchange', () => render(true));
 
 /* expose helpers for the admin console */
-window.LG = { staffEntries, staffPeople, staffOf, lookFor, slideImg, slideLabel, S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
+window.LG = { teamLogo, staffEntries, staffPeople, staffOf, lookFor, slideImg, slideLabel, S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
   rcName, HIST_ROLES, autoHistory, lapSecs, seasonName, countries, countryName, flagEmoji, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
   DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, titleCaseText, applyTitleCase, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 

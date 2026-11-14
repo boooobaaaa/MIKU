@@ -1336,7 +1336,7 @@ function accReviewer(d, s) {
 }
 function secAccounts(d) {
   const AC = window.Accounts, c = AC.cfg(d), s = window.Portal.store(d);
-  const top = head('Accounts', 'People sign in with Google and link their Discord. You approve every link here — approved accounts get a ✓ verified badge, can claim their driver profile, and can be the only ones shown on the Fantasy and Grid Draft leaderboards.', '<a class="btn" href="#/account">Open My account page</a>');
+  const top = head('Accounts', 'People sign in with Google and link their Discord. You approve every link here — approved accounts get the 🌸 verified mark, can be linked to their Driver Profile and any Team Personnel cards, and can be the only ones shown on the Grid Draft, Predictions and Fantasy leaderboards.', '<a class="btn" href="#/account">Open My account page</a>');
   const setup = `<div class="a-card"><h3>Discord setup (one time, about 5 minutes)</h3>
     <ol class="steps gd-steps">
       <li>Open <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">discord.com/developers/applications</a> → <b>New Application</b> → name it after your league → Create.</li>
@@ -1350,6 +1350,7 @@ function secAccounts(d) {
       ${F.check('Show the 👤 My account button in the top bar', 'accounts.enabled', c.enabled)}
       ${F.check('Fantasy leaderboard: only show approved accounts', 'accounts.fantasyApproved', c.fantasyApproved)}
       ${F.check('Grid Draft leaderboard: only show approved accounts', 'accounts.gdApproved', c.gdApproved)}
+      ${F.check('Predictions leaderboard: only show approved accounts', 'accounts.predApproved', c.predApproved)}
     </div>
     <p class="hint">Players can always play and save; these switches only decide who appears on the public leaderboards. Existing entry-code fantasy teams are unaffected.</p></div>`;
   if (!s) return top + `<div class="warn">Accounts use the same Firebase project as Grid Draft. Finish the setup in <a href="#/admin/griddraft">Grid Draft</a> first.</div>` + setup;
@@ -1376,9 +1377,8 @@ function secAccounts(d) {
       ${AC.dcFace(x, 'lg')}
       <div class="acc-who"><b>${esc(x.discordName)}</b><span class="muted">@${esc(x.discordUser)}</span><span class="muted acc-id-line">ID <span class="mono">${esc(x.discordId)}</span></span><span class="muted" style="font-size:12px">${x.status === 'pending' ? 'Requested' : x.status === 'approved' ? 'Approved' : 'Denied'} ${when(x.status === 'pending' ? x.updatedAt : x.reviewedAt || x.updatedAt)}</span>
         ${warn.map(w => `<span class="warn-sm">⚠ ${w}</span>`).join('')}${x.note ? `<span class="muted" style="font-size:12.5px">Note: ${esc(x.note)}</span>` : ''}</div>
-      <div class="acc-claims"><label class="fld acc-drv"><span>Driver profile${drv && x.status !== 'approved' ? ' (their pick)' : ''}</span><select id="acc-drv-${esc(x.uid)}">${AC.driverOptions(d, x.driverId, y => { const c2 = claimedBy(y.id); return c2 && c2.uid !== x.uid; })}</select></label>
-      <label class="fld acc-drv"><span>Team personnel</span><select id="acc-staff-${esc(x.uid)}"><option value="">— Not team personnel —</option>${LG.staffPeople(d).map(pp => { const mine = pp.entries.some(e => e.x.discord && e.x.discord.uid === x.uid), other = pp.entries.find(e => e.x.discord && e.x.discord.uid !== x.uid); const teams = [...new Set(pp.entries.map(e => e.team.name))].join(', ');
-        return `<option value="${esc(pp.key)}" ${mine ? 'selected' : ''}>${esc(pp.name)} — ${esc(pp.entries.map(e => e.role).join(', '))} · ${esc(teams)}${other ? ' (claimed by ' + esc(other.x.discord.name || 'someone') + ')' : ''}</option>`; }).join('')}</select></label></div>
+      <div class="acc-claims"><label class="fld acc-drv"><span>Driver Profile${drv && x.status !== 'approved' ? ' (their pick)' : ''}</span><select id="acc-drv-${esc(x.uid)}">${AC.driverOptions(d, x.driverId, y => { const c2 = claimedBy(y.id); return c2 && c2.uid !== x.uid; })}</select></label>
+      ${staffPicker(d, x)}</div>
       <div class="acc-act">${x.status !== 'approved' ? `<button class="btn sm primary" data-act="acc-approve" data-uid="${esc(x.uid)}">✓ Approve</button>` : `<button class="btn sm" data-act="acc-approve" data-uid="${esc(x.uid)}">Save</button>`}
         ${x.status === 'pending' ? `<button class="btn sm" data-act="acc-deny" data-uid="${esc(x.uid)}">Deny</button>` : ''}<button class="iconbtn del" data-act="acc-remove" data-uid="${esc(x.uid)}" title="Remove this link">✕</button></div>
     </div>`;
@@ -1426,11 +1426,35 @@ function namesCard(d, approvedLinks) {
     </tbody></table>` : `<p class="muted">${q ? 'No names match that search.' : 'No players yet.'}</p>`}</div>`;
 }
 document.addEventListener('input', e => { if (e.target.id !== 'nm-q') return; ACA.q = e.target.value; const pos = e.target.selectionStart; rerender(); const el = document.getElementById('nm-q'); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (x) { } } });
-function setStaffClaim(d, link, key) {
-  LG.staffEntries(d).forEach(e => { if (e.x.discord && e.x.discord.uid === link.uid) delete e.x.discord; });
-  if (!key) return;
-  const pp = LG.staffPeople(d).find(z => z.key === key); if (!pp) return;
-  pp.entries.forEach(e => { e.x.discord = { uid: link.uid, id: link.discordId, name: link.discordName, user: link.discordUser, avatar: link.discordAvatar }; });
+/* checkbox dropdown: tick every personnel card (role · team) this account is */
+function staffPicker(d, x) {
+  const all = LG.staffEntries(d), mine = all.filter(e => e.x.discord && e.x.discord.uid === x.uid);
+  const sum = mine.length ? mine.map(e => e.role).join(', ') : 'Not team personnel';
+  const byTeam = {}; all.forEach(e => (byTeam[e.team.id] = byTeam[e.team.id] || { t: e.team, list: [] }).list.push(e));
+  return `<div class="fld acc-drv"><span>Team Profile cards</span><details class="ms" id="acc-staff-${esc(x.uid)}">
+    <summary><span class="ms-sum ${mine.length ? '' : 'muted'}">${esc(sum)}</span>${mine.length > 1 ? `<b class="ms-n">${mine.length}</b>` : ''}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+    <div class="ms-pop">${all.length > 8 ? '<input type="text" class="ms-q" placeholder="Search names, roles, teams…" autocomplete="off" spellcheck="false">' : ''}
+      ${Object.values(byTeam).map(g => `<div class="ms-g"><div class="ms-gh">${LG.teamLogo(g.t)}${esc(g.t.name)}</div>${g.list.map(e => { const own = e.x.discord && e.x.discord.uid === x.uid, other = e.x.discord && !own ? e.x.discord : null;
+        return `<label class="ms-o" data-s="${esc((e.x.name + ' ' + e.role + ' ' + e.team.name).toLowerCase())}"><input type="checkbox" value="${esc(e.path)}" data-l="${esc(e.role)}" ${own ? 'checked' : ''}><span><b>${esc(e.role)}</b><small>${esc(e.x.name)}${other ? ' · claimed by ' + esc(other.name || 'someone') : ''}</small></span></label>`; }).join('')}</div>`).join('') || '<p class="muted" style="margin:6px 10px">No personnel added to any team yet.</p>'}
+    </div></details></div>`;
+}
+const staffPicked = uid => { const el = document.getElementById('acc-staff-' + uid); return el ? [...el.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value) : null; };
+document.addEventListener('change', e => {
+  const ms = e.target.closest && e.target.closest('details.ms'); if (!ms || e.target.type !== 'checkbox') return;
+  const on = [...ms.querySelectorAll('input[type=checkbox]:checked')], sum = ms.querySelector('.ms-sum'), n = ms.querySelector('.ms-n');
+  sum.textContent = on.length ? on.map(c => c.dataset.l).join(', ') : 'Not team personnel'; sum.classList.toggle('muted', !on.length);
+  if (on.length > 1) { if (n) n.textContent = on.length; else sum.insertAdjacentHTML('afterend', `<b class="ms-n">${on.length}</b>`); } else if (n) n.remove();
+});
+document.addEventListener('input', e => { if (!e.target.classList || !e.target.classList.contains('ms-q')) return; const q = e.target.value.trim().toLowerCase(), ms = e.target.closest('details.ms');
+  ms.querySelectorAll('.ms-o').forEach(o => { o.hidden = !!q && !o.dataset.s.includes(q); }); ms.querySelectorAll('.ms-g').forEach(g => { g.hidden = ![...g.querySelectorAll('.ms-o')].some(o => !o.hidden); }); });
+document.addEventListener('pointerdown', e => { document.querySelectorAll('details.ms[open]').forEach(m => { if (!m.contains(e.target)) m.open = false; }); }, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('details.ms[open]').forEach(m => { m.open = false; m.querySelector('summary').focus(); }); });
+document.addEventListener('toggle', e => { const m = e.target; if (!m.classList || !m.classList.contains('ms') || !m.open) return; const q = m.querySelector('.ms-q'); if (q && matchMedia('(pointer: fine)').matches) q.focus({ preventScroll: true }); }, true);
+function setStaffClaim(d, link, paths) {
+  const all = LG.staffEntries(d);
+  if (paths === null || paths === undefined) return; // picker not on screen — leave claims as they are
+  all.forEach(e => { if (e.x.discord && e.x.discord.uid === link.uid) delete e.x.discord; });
+  (Array.isArray(paths) ? paths : []).forEach(p => { const e = all.find(z => z.path === p); if (e) e.x.discord = { uid: link.uid, id: link.discordId, name: link.discordName, user: link.discordUser, avatar: link.discordAvatar }; });
 }
 function setDriverClaim(d, link, driverId) {
   d.drivers.forEach(x => { if (x.discord && x.discord.uid === link.uid) delete x.discord; });
@@ -1964,21 +1988,21 @@ document.addEventListener('click', async e => {
     case 'acc-reload': ACA.links = null; return rerender();
     case 'acc-approve': case 'acc-deny': case 'acc-remove': {
       const s = window.Portal.store(d), L = (ACA.links || []).find(x => x.uid === b.dataset.uid); if (!L) return;
-      const sel = document.getElementById('acc-drv-' + L.uid), drvId = sel ? sel.value : L.driverId, sSel = document.getElementById('acc-staff-' + L.uid), staffKey = sSel ? sSel.value : '';
+      const sel = document.getElementById('acc-drv-' + L.uid), drvId = sel ? sel.value : L.driverId, staffPaths = staffPicked(L.uid);
       try {
         if (act === 'acc-approve') {
           const other = drvId && (ACA.links || []).find(x => x.status === 'approved' && x.driverId === drvId && x.uid !== L.uid);
           if (other && !(await Pop.confirm(b, { title: 'Driver already claimed', text: `<b>${esc((byId(d.drivers, drvId) || {}).name)}</b> is claimed by <b>${esc(other.discordName)}</b>. Move the claim to <b>${esc(L.discordName)}</b>?`, ok: 'Move claim' }))) return;
           if (other) { await s.reviewLink(other.uid, 'approved', other.note || '', ''); other.driverId = ''; }
           await s.reviewLink(L.uid, 'approved', '', drvId); Object.assign(L, { status: 'approved', driverId: drvId, reviewedAt: Date.now(), note: '' });
-          setDriverClaim(d, L, drvId); setStaffClaim(d, L, staffKey); toast(`${L.discordName} ${L.status === 'approved' && b.textContent.includes('Save') ? 'updated' : 'approved'}${drvId || staffKey ? ' — Publish to show the badge on their profile' : ''}`);
+          setDriverClaim(d, L, drvId); setStaffClaim(d, L, staffPaths); toast(`${L.discordName} ${L.status === 'approved' && b.textContent.includes('Save') ? 'updated' : 'approved'}${drvId || (staffPaths && staffPaths.length) ? ' — Publish to show the badge on their profile' : ''}`);
         } else if (act === 'acc-deny') {
           const r = await Pop.form(b, { title: `Deny ${L.discordName}'s link?`, fields: [{ name: 'note', label: 'Note they’ll see (optional)', value: '', max: 500 }], ok: 'Deny', danger: true }); if (!r) return; const note = r.note;
           await s.reviewLink(L.uid, 'denied', note.slice(0, 500), L.driverId); Object.assign(L, { status: 'denied', note, reviewedAt: Date.now() });
-          setDriverClaim(d, L, ''); setStaffClaim(d, L, ''); toast('Request denied');
+          setDriverClaim(d, L, ''); setStaffClaim(d, L, []); toast('Request denied');
         } else {
           if (!(await Pop.confirm(b, { title: 'Remove this link?', text: `<b>${esc(L.discordName)}</b> loses the verified badge and driver claim. They can request again.`, ok: 'Remove', danger: true }))) return;
-          await s.deleteLink(L.uid); ACA.links = ACA.links.filter(x => x.uid !== L.uid); setDriverClaim(d, L, ''); setStaffClaim(d, L, ''); toast('Link removed');
+          await s.deleteLink(L.uid); ACA.links = ACA.links.filter(x => x.uid !== L.uid); setDriverClaim(d, L, ''); setStaffClaim(d, L, []); toast('Link removed');
         }
         window.Accounts.refreshApproved(); return commit();
       } catch (x) { toast('Couldn’t update: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase.' : ''), 'err'); return; }

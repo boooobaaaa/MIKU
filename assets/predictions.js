@@ -126,7 +126,7 @@ function roundView(d, s) {
   const pod = (mine && mine.podium) || [];
   return hdr + `<form class="card pr-form" data-pr-form="${esc(r.id)}">
       <div class="pr-who">Signed in as <b>${esc(s.user.email)}</b> · <a href="javascript:void 0" data-pr="signout">Sign out</a>${mine ? ' · <span class="ok-txt">✓ Your picks are saved — you can change them until it closes</span>' : ''}</div>
-      <label class="fld"><span>Your name on the leaderboard</span><input name="name" maxlength="40" value="${esc((mine && mine.name) || getName())}" placeholder="e.g. Miku Fan 39" required autocomplete="off"></label>
+      <label class="fld"><span>Your name on the leaderboard</span><input name="name" maxlength="40" value="${esc((mine && mine.name) || getName() || linkedName(d, s.user.uid))}" placeholder="e.g. Miku Fan 39" required autocomplete="off"></label>
       <div class="pr-podium">
         <div class="pr-step p2">${sel('p2', pod[1], '🥈 P2', 'Second place…')}</div>
         <div class="pr-step p1">${sel('p1', pod[0], '🥇 Winner', 'Race winner…')}</div>
@@ -184,24 +184,44 @@ function entriesTable(d, r, s) {
   const mark = (id, i, sc) => act ? chipD(d, id, act.podium[i] === id ? true : act.podium.includes(id) ? 'near' : false) : chipD(d, id);
   return `<div class="card" style="overflow-x:auto">${act ? `<div class="pr-actual"><span class="muted">Result</span>${act.podium.map((id, i) => `<span>${['🥇', '🥈', '🥉'][i]} ${esc(drvName(d, id))}</span>`).join('')}<span>⏱ ${esc(act.fl ? drvName(d, act.fl) : '—')}</span><span>⚡ ${esc(act.pole ? drvName(d, act.pole) : '—')}</span></div>` : ''}
     <table class="tbl pr-tbl"><thead><tr><th>Name</th><th>🥇</th><th>🥈</th><th>🥉</th><th>⏱ FL</th><th>⚡ Pole</th>${act ? '<th class="r">Pts</th>' : ''}</tr></thead><tbody>
-    ${rows.map(({ p, sc }) => `<tr class="${s.user && p.uid === s.user.uid ? 'me' : ''}"><td><b>${esc(p.name)}</b></td>${[0, 1, 2].map(i => `<td>${mark((p.podium || [])[i], i, sc)}</td>`).join('')}<td>${act ? chipD(d, p.fl, p.fl && p.fl === act.fl) : chipD(d, p.fl)}</td><td>${act ? chipD(d, p.pole, p.pole && p.pole === act.pole) : chipD(d, p.pole)}</td>${act ? `<td class="pts">${sc.total}</td>` : ''}</tr>`).join('')}
+    ${rows.map(({ p, sc }) => `<tr class="${s.user && p.uid === s.user.uid ? 'me' : ''}"><td><b>${esc(p.name)}</b>${window.Accounts ? window.Accounts.badge(d, p.uid) : ''}</td>${[0, 1, 2].map(i => `<td>${mark((p.podium || [])[i], i, sc)}</td>`).join('')}<td>${act ? chipD(d, p.fl, p.fl && p.fl === act.fl) : chipD(d, p.fl)}</td><td>${act ? chipD(d, p.pole, p.pole && p.pole === act.pole) : chipD(d, p.pole)}</td>${act ? `<td class="pts">${sc.total}</td>` : ''}</tr>`).join('')}
     </tbody></table></div>`;
 }
 
-function board(d) {
+/* the name a linked account goes by on the site: their team-personnel or driver profile, else their Discord name */
+function linkedName(d, uid) {
+  const st = LG.staffOf && LG.staffOf(d, uid); if (st) return st.name;
+  const l = window.Accounts && (window.Accounts.approved(d) || {})[uid]; if (!l) return '';
+  const drv = l.driverId && byId(d.drivers, l.driverId); return drv ? drv.name : l.discordName || '';
+}
+function boardList(d, all) {
+  const A = window.Accounts, onlyOk = !all && A && A.cfg(d).predApproved, appr = onlyOk ? A.approved(d) : null;
   const by = {};
-  (S.all || []).forEach(p => {
+  (S.all || []).filter(p => !onlyOk || (appr && appr[p.uid])).forEach(p => {
     const sc = score(d, p); if (!sc) return;
     const u = by[p.uid] = by[p.uid] || { name: p.name, pts: 0, rounds: 0, exact: 0, best: 0, last: 0 };
     u.pts += sc.total; u.rounds++; u.exact += sc.exact; u.best = Math.max(u.best, sc.total);
     if ((p.at || 0) >= u.last) { u.name = p.name; u.last = p.at || 0; }
   });
   const list = Object.entries(by).map(([uid, u]) => Object.assign({ uid }, u)).sort((a, b) => b.pts - a.pts || b.exact - a.exact || a.name.localeCompare(b.name));
-  if (!list.length) return '<div class="card"><p class="muted">The leaderboard fills up once the first predicted round has results.</p></div>';
+  let pos = 0, prev = null; list.forEach((u, k) => { if (u.pts !== prev) { pos = k + 1; prev = u.pts; } u.pos = pos; });
+  return list;
+}
+/* for 👤 My account: this person's predictions total and place */
+function summary(d, uid) {
+  const s = window.Portal && window.Portal.store(d); if (!s || !s.ready || s.error) return null;
+  load(s); if (!S.all) return 'loading';
+  const mine = S.all.filter(p => p.uid === uid); if (!mine.length) return null;
+  const me = boardList(d).find(u => u.uid === uid) || boardList(d, true).find(u => u.uid === uid);
+  return { picks: mine.length, pts: me ? me.pts : 0, pos: boardList(d).some(u => u.uid === uid) && me ? me.pos : null, name: (mine.sort((a, b) => (b.at || 0) - (a.at || 0))[0] || {}).name };
+}
+function board(d) {
+  const list = boardList(d), A = window.Accounts, onlyOk = A && A.cfg(d).predApproved;
   const s = window.Portal.store(d), me = s && s.user && s.user.uid;
-  let pos = 0, prev = null;
-  return `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Name</th><th class="r">Rounds</th><th class="r hide-sm">Exact podium picks</th><th class="r hide-sm">Best round</th><th class="r">Pts</th></tr></thead><tbody>
-    ${list.map((u, k) => { if (u.pts !== prev) { pos = k + 1; prev = u.pts; } return `<tr class="${pos <= 3 ? 'top' + pos : ''} ${u.uid === me ? 'me' : ''}"><td class="pos">${pos}</td><td><b>${esc(u.name)}</b>${u.uid === me ? ' <span class="chip">You</span>' : ''}</td><td class="r mono">${u.rounds}</td><td class="r mono hide-sm">${u.exact}</td><td class="r mono hide-sm">${u.best}</td><td class="pts">${u.pts}</td></tr>`; }).join('')}
+  const note = onlyOk && me && !(A.approved(d) || {})[me] ? '<p class="hint">Only verified accounts appear here — <a href="#/account">link your Discord</a> to join the board.</p>' : '';
+  if (!list.length) return note + '<div class="card"><p class="muted">The leaderboard fills up once the first predicted round has results.</p></div>';
+  return note + `<div class="table-wrap"><table class="tbl"><thead><tr><th>Pos</th><th>Name</th><th class="r">Rounds</th><th class="r hide-sm">Exact podium picks</th><th class="r hide-sm">Best round</th><th class="r">Pts</th></tr></thead><tbody>
+    ${list.map(u => `<tr class="${u.pos <= 3 ? 'top' + u.pos : ''} ${u.uid === me ? 'me' : ''}"><td class="pos">${u.pos}</td><td><b>${esc(u.name)}</b>${A ? A.badge(d, u.uid) : ''}${u.uid === me ? ' <span class="chip">You</span>' : ''}</td><td class="r mono">${u.rounds}</td><td class="r mono hide-sm">${u.exact}</td><td class="r mono hide-sm">${LG.fmtPts(u.best)}</td><td class="r mono"><b>${LG.fmtPts(u.pts)}</b></td></tr>`).join('')}
     </tbody></table></div>`;
 }
 
@@ -244,5 +264,5 @@ document.addEventListener('submit', async e => {
 });
 setInterval(() => { if (/^#\/predictions/.test(location.hash) && S.tab === 'round' && !document.activeElement.closest('[data-pr-form]')) { const c = document.querySelector('.pr-count'); if (c) { const { r } = currentRound(LG.S.data); if (r) { const R = (S.rounds || {})[r.id] || {}; c.textContent = 'in ' + until(R.lockAt || lockFor(r, LG.S.data)); } } } }, 30000);
 
-window.Predictions = { page, score, actual, lockFor, openFor, SCHED, cfg, PTS, state: S };
+window.Predictions = { page, score, actual, lockFor, openFor, SCHED, cfg, PTS, state: S, summary, linkedName };
 })();

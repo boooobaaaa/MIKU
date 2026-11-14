@@ -2861,3 +2861,71 @@ button.gd-card:hover .gd-pt.d { transform: translate(-6px, 18px) rotate(90deg); 
 .pg-sw.on i { background: var(--miku); }
 .pg-sw.on i::after { transform: translateX(13px); }
 .pg-sw:focus-visible i { outline: 2px solid var(--miku); outline-offset: 2px; }
+
+/* ---- My Account: Driver Profile / Team Profile ---- */
+.ac-profs{display:grid;gap:14px;margin:14px 0 4px}
+.ac-prof-h{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.ac-prof-block{display:grid;gap:6px}
+.ac-prof{display:flex;align-items:center;gap:12px;padding:8px 12px;border:1px solid var(--line);border-left:3px solid var(--tc,var(--line));border-radius:10px;color:inherit;text-decoration:none;background:transparent;transition:border-color .15s,background .15s}
+.ac-prof:hover{background:color-mix(in srgb,var(--tc,var(--miku)) 8%,transparent)}
+.ac-prof>.avatar,.ac-prof>.tlogo,.ac-prof>.swatch{flex:0 0 auto}
+.ac-prof .tlogo{width:34px;height:34px;margin:0}
+.ac-prof .swatch{width:34px;height:34px;border-radius:8px}
+.ac-prof>span:last-child{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.ac-prof b{font-weight:700}
+.ac-prof small{color:var(--muted);font-size:.82rem}
+
+/* ---- verified sakura mark + its tooltip ---- */
+.vmark { display: inline-grid; place-items: center; width: 1.05em; height: 1.05em; min-width: 15px; min-height: 15px; margin-left: .32em; vertical-align: -0.14em; border-radius: 50%; cursor: help; outline: none; flex: none; transition: transform .18s; }
+.vmark svg { width: 100%; height: 100%; fill: #f4a6c6; filter: drop-shadow(0 0 3px rgba(244, 166, 198, .45)); }
+.vmark svg circle { fill: #fff3b8; }
+.vmark:hover, .vmark:focus-visible { transform: rotate(18deg) scale(1.12); }
+.vmark:focus-visible { box-shadow: 0 0 0 2px var(--miku); }
+.vmark.lg { width: .48em; height: .48em; margin-left: .2em; vertical-align: .16em; }
+.st-name .vmark { width: 15px; height: 15px; vertical-align: -2px; }
+.vtip { position: fixed; z-index: 9200; pointer-events: none; display: flex; flex-direction: column; gap: 2px; max-width: min(260px, calc(100vw - 16px));
+  padding: 9px 12px 10px; border-radius: 12px; font-size: 13px; line-height: 1.35; color: var(--text);
+  background: color-mix(in srgb, var(--card-solid) 92%, #f4a6c6 8%); border: 1px solid color-mix(in srgb, #f4a6c6 45%, var(--line-strong));
+  box-shadow: 0 14px 34px -12px rgba(0, 0, 0, .6); opacity: 0; transform: translateY(4px); transition: opacity .14s, transform .14s; --ax: 50%; }
+.vtip.below { transform: translateY(-4px); }
+.vtip.in { opacity: 1; transform: none; }
+.vtip::after { content: ""; position: absolute; left: var(--ax); bottom: -6px; width: 10px; height: 10px; margin-left: -5px; transform: rotate(45deg);
+  background: inherit; border: inherit; border-top: 0; border-left: 0; }
+.vtip.below::after { bottom: auto; top: -6px; transform: rotate(225deg); }
+.vtip-h { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #e58cb1; }
+.vtip-h svg { width: 13px; height: 13px; fill: #f4a6c6; }
+.vtip-h svg circle { fill: #fff3b8; }
+.vtip b { font-weight: 700; }
+.vtip small { color: var(--muted); font-size: 12px; }
+
+/* ---- Console: personnel cards checkbox dropdown ---- */
+details.ms { position: relative; }
+details.ms > summary { list-style: none; display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 38px; padding: 7px 12px;
+  border: 1px solid var(--line-strong); border-radius: 10px; background: var(--input-bg, transparent); font-size: 14px; }
+details.ms > summary::-webkit-details-marker { display: none; }
+details.ms > summary:focus-visible { outline: 2px solid var(--miku); outline-offset: 1px; }
+.ms-sum { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-n { flex: none; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; font-size: 11.5px; background: var(--miku); color: #06201f; }
+details.ms > summary svg { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; opacity: .7; transition: transform .15s; }
+details.ms[open] > summary svg { transform: rotate(180deg); }
+.ms-pop { position: absolute; z-index: 60; left: 0; right: 0; top: calc(100% + 6px); min-width: 260px; max-height: 340px; overflow: auto; padding: 6px;
+  background: color-mix(in srgb, var(--card-solid) 94%, var(--miku) 6%); border: 1px solid var(--line-strong); border-radius: 14px; box-shadow: 0 18px 50px -14px rgba(0, 0, 0, .65); }
+.ms-q { width: 100%; margin: 2px 0 6px; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: inherit; font: inherit; font-size: 13.5px; }
+.ms-gh { display: flex; align-items: center; gap: 0; padding: 8px 8px 4px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ms-gh .tlogo { width: 20px; height: 20px; border-radius: 6px; margin-right: 8px; }
+.ms-gh .swatch { margin-right: 8px; }
+.ms-o { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 9px; cursor: pointer; }
+.ms-o:hover { background: color-mix(in srgb, var(--miku) 10%, transparent); }
+.ms-o input { flex: none; width: 16px; height: 16px; margin: 0; accent-color: var(--miku); }
+.ms-o > span { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.ms-o b { font-size: 13.5px; font-weight: 600; }
+.ms-o small { font-size: 12px; color: var(--muted); }
+.acc-row details.ms > summary { min-height: 44px; color: var(--text); }
+details.ms > summary { color: var(--text); }
+.acc-claims, .acc-claims > .fld, details.ms, details.ms > summary { min-width: 0; }
+.acc-row .ms-pop { left: auto; right: 0; width: max(100%, 320px); }
+.ac-prof > .avatar { width: 34px; height: 34px; }
+.ac-profs { margin-bottom: 14px; }
+.ac-st-sk { display: inline-flex; align-items: center; gap: 5px; }
+.ac-st-sk svg { width: 14px; height: 14px; fill: #f4a6c6; }
+.ac-st-sk svg circle { fill: #fff3b8; }
