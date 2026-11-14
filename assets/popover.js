@@ -14,12 +14,14 @@ function close(result) {
   const c = cur; cur = null;
   c.el.classList.remove('in');
   setTimeout(() => c.el.remove(), 120);
+  if (c.shade) { c.shade.classList.remove('in'); setTimeout(() => c.shade.remove(), 150); }
   if (c.anchor && c.anchor.classList) c.anchor.classList.remove('pop-open');
   c.resolve(result);
 }
 function place() {
   if (!cur) return;
   const a = cur.anchor, el = cur.el;
+  if (cur.centre) { el.classList.add('centre'); el.style.left = Math.max(10, (innerWidth - el.offsetWidth) / 2) + 'px'; el.style.top = Math.max(16, innerHeight * .22) + 'px'; return; }
   if (!a || !a.isConnected) return close(null);
   const r = a.getBoundingClientRect(), vw = innerWidth, vh = innerHeight, pad = 10, gap = 8;
   const w = Math.min(el.offsetWidth || 320, vw - pad * 2);
@@ -41,7 +43,7 @@ function form(anchor, o = {}) {
     el.className = 'pop' + (o.danger ? ' danger' : '');
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-label', o.title || 'Edit');
-    const fields = (o.fields || []).map((f, i) => `<label class="pop-f"><span>${esc(f.label)}</span><input type="text" name="${esc(f.name)}" value="${esc(f.value || '')}" ${f.max ? `maxlength="${f.max}"` : ''} autocomplete="off" spellcheck="false" ${i === 0 ? 'data-first' : ''}>${f.max ? `<small class="pop-n"><b>${String(f.value || '').length}</b>/${f.max}</small>` : ''}</label>`).join('');
+    const fields = (o.fields || []).map((f, i) => `<label class="pop-f">${f.label ? `<span>${esc(f.label)}</span>` : ''}<input type="text" name="${esc(f.name)}" value="${esc(f.value || '')}" ${f.max ? `maxlength="${f.max}"` : ''} autocomplete="off" spellcheck="false" ${i === 0 ? 'data-first' : ''}>${f.max ? `<small class="pop-n"><b>${String(f.value || '').length}</b>/${f.max}</small>` : ''}</label>`).join('');
     const checks = (o.checks || []).map(c => `<label class="pop-c"><input type="checkbox" name="${esc(c.name)}" ${c.checked ? 'checked' : ''}><span>${esc(c.label)}</span></label>`).join('');
     el.innerHTML = `<form class="pop-in" novalidate>
       ${o.title ? `<div class="pop-t">${esc(o.title)}</div>` : ''}${o.text ? `<p class="pop-x">${o.text}</p>` : ''}
@@ -50,7 +52,8 @@ function form(anchor, o = {}) {
     </form>`;
     document.body.appendChild(el);
     const ds = anchor && anchor.dataset || {}, sel = ds.act ? `[data-act="${ds.act}"]${ds.uid ? `[data-uid="${ds.uid}"]` : ''}${ds.id ? `[data-id="${ds.id}"]` : ''}` : '';
-    cur = { el, anchor, resolve, sel };
+    cur = { el, anchor, resolve, sel, centre: !anchor || !anchor.isConnected || !anchor.getBoundingClientRect().width };
+    if (cur.centre) { const sh = document.createElement('div'); sh.className = 'pop-shade'; document.body.appendChild(sh); cur.shade = sh; requestAnimationFrame(() => sh.classList.add('in')); }
     if (anchor && anchor.classList) anchor.classList.add('pop-open');
     place();
     requestAnimationFrame(() => { el.classList.add('in'); place(); });
@@ -71,17 +74,30 @@ function form(anchor, o = {}) {
   });
 }
 const confirm = (anchor, o = {}) => form(anchor, Object.assign({ ok: 'Yes' }, o, { fields: [] }));
+/* drop-in for confirm(message): resolves true / false. Picks a sensible button label and red styling for destructive actions. */
+function ask(anchor, message, o = {}) {
+  const msg = String(message || ''), first = msg.split(/\n/)[0];
+  const verb = (msg.match(/^(Delete|Remove|Clear|Disconnect|Reset|Replace|Withdraw|Archive|Hide|Stop sharing|Start a new season|Throw away|Import)/i) || [])[1];
+  const danger = o.danger !== undefined ? o.danger : /delete|remove|throw away|clear|disconnect|reset|withdraw|stop sharing|replace|permanent|can.t be undone/i.test(msg);
+  const ok = o.ok || (verb ? (/^throw away/i.test(verb) ? 'Discard' : /^stop sharing/i.test(verb) ? 'Stop sharing' : /^start a new season/i.test(verb) ? 'Start season' : verb.charAt(0).toUpperCase() + verb.slice(1).toLowerCase()) : 'Yes');
+  const rest = msg.slice(first.length).trim();
+  return confirm(anchor, { title: o.title || first, text: rest ? rest.split(/\n+/).map(esc).join('<br>') : (o.text || ''), ok, danger }).then(r => !!r);
+}
+/* drop-in for prompt(message, value): resolves the text, or null when cancelled */
+function promptBox(anchor, message, value = '', o = {}) {
+  return form(anchor, { title: o.title || message, fields: [{ name: 'v', label: o.label || '', value, max: o.max }], ok: o.ok || 'OK' }).then(r => r ? r.v : null);
+}
 
-document.addEventListener('pointerdown', e => { if (cur && !cur.el.contains(e.target) && !(cur.anchor && cur.anchor.contains && cur.anchor.contains(e.target))) close(null); }, true);
+document.addEventListener('pointerdown', e => { if (cur && !cur.el.contains(e.target) && !(cur.centre && !e.target.classList.contains('pop-shade')) && !(cur.anchor && cur.anchor.contains && cur.anchor.contains(e.target))) close(null); }, true);
 document.addEventListener('keydown', e => { if (cur && e.key === 'Escape') { e.preventDefault(); close(null); } }, true);
 addEventListener('scroll', () => place(), true);
 addEventListener('resize', () => place());
 addEventListener('hashchange', () => close(null));
 new MutationObserver(() => {
-  if (!cur || !cur.anchor || cur.anchor.isConnected) return;
+  if (!cur || cur.centre || !cur.anchor || cur.anchor.isConnected) return;
   const again = cur.sel && document.querySelector(cur.sel); // the page re-drew: follow the same button
   if (again) { cur.anchor = again; again.classList.add('pop-open'); place(); } else close(null);
 }).observe(document.documentElement, { childList: true, subtree: true });
 
-window.Pop = { form, confirm, close };
+window.Pop = { form, confirm, ask, prompt: promptBox, close };
 })();

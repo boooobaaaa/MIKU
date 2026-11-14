@@ -2814,3 +2814,23 @@ button.gd-card:hover .gd-pt.d { transform: translate(-6px, 18px) rotate(90deg); 
 
 /* anything the site hides with the hidden attribute stays hidden, even when a style gives it display:flex/grid */
 [hidden] { display: none !important; }
+.pop.centre::before { display: none; }
+.pop.centre { width: min(420px, calc(100vw - 20px)); transform-origin: center top; }
+.pop-shade { position: fixed; inset: 0; z-index: 9050; background: rgba(8, 4, 10, .45); backdrop-filter: blur(2px); opacity: 0; transition: opacity .15s; }
+.pop-shade.in { opacity: 1; }
+
+/* ===== Driver photos per team / round (console) ===== */
+.looks-ed { border-top: 1px solid var(--line); padding-top: 14px; }
+.look-row { display: grid; grid-template-columns: 96px 1fr auto; gap: 14px; align-items: start; padding: 12px; margin-bottom: 10px; border: 1px solid var(--line); border-left: 3px solid var(--tc, var(--miku)); border-radius: 14px; background: color-mix(in srgb, var(--tc, var(--miku)) 5%, transparent); }
+.look-pic { width: 96px; height: 96px; border-radius: 12px; overflow: hidden; display: grid; place-items: center; background: color-mix(in srgb, var(--tc, var(--miku)) 18%, var(--card-solid)); border: 1px solid var(--line); }
+.look-pic img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 10%; }
+.look-pic span { font-size: 11.5px; color: var(--muted); text-align: center; padding: 6px; }
+.look-body .fgrid { margin: 0; }
+.look-rounds { margin-top: 10px; display: grid; gap: 6px; font-size: 13px; }
+.look-rounds small { font-size: 12px; }
+.look-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.look-chip { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line-strong); font: 600 12px var(--f-mono); color: var(--text-2); cursor: pointer; user-select: none; }
+.look-chip input { display: none; }
+.look-chip.on { background: color-mix(in srgb, var(--tc, var(--miku)) 30%, transparent); border-color: var(--tc, var(--miku)); color: var(--text); }
+.look-sum { margin: 8px 0 0; }
+@media (max-width: 700px) { .look-row { grid-template-columns: 64px 1fr auto; } .look-pic { width: 64px; height: 64px; } }

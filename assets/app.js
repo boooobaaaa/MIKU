@@ -128,6 +128,13 @@ const teamColor = t => (t && t.color) || '#39c5bb';
 const ASSET_CACHE = {};
 const asset = u => ASSET_CACHE[u] || u;
 const isImg = u => /\.(png|jpe?g|gif|webp|avif|svg)(\?.*)?$/i.test(String(u || '')) || /^data:image\//.test(String(u || ''));
+/* a driver's photo for a given round / team — uses their extra "looks" (Console → Drivers → Photos for other teams or rounds) */
+function lookFor(d, drv, rid, tid) {
+  const L = drv && drv.looks; if (!L || !L.length) return drv;
+  const ok = l => l && (l.photo || l.headshot);
+  const hit = (rid && L.find(l => ok(l) && (l.rounds || []).includes(rid))) || (tid && L.find(l => ok(l) && !(l.rounds || []).length && l.teamId === tid));
+  return hit ? Object.assign({}, drv, { photo: hit.photo || drv.photo, headshot: hit.headshot || (hit.photo ? '' : drv.headshot) }) : drv;
+}
 function avatar(drv, t, size = '') {
   const src = drv && (drv.headshot || drv.photo);
   return `<span class="avatar ${size}" style="--tc:${esc(teamColor(t))}">${src ? `<img src="${esc(asset(src))}" alt="" loading="lazy" onerror="this.remove()">` : esc(drv && drv.number !== undefined ? drv.number : '')}</span>`;
@@ -788,7 +795,7 @@ function detailedTable(d, r, sess, cl, isQ) {
   const total = Number(r.laps) || Math.max(0, ...cl.map(e => Number(e.laps) || 0));
   const usage = {}; let anyTyre = false; const anyBest = cl.some(e => e.bestLap);
   const rows = cl.map(e => {
-    const drv = driverLabel(d, e.driverId), t = teamLabel(d, e.teamId), st = parseTyres(e.tyres);
+    const drv = lookFor(d, driverLabel(d, e.driverId), r.id, e.teamId), t = teamLabel(d, e.teamId), st = parseTyres(e.tyres);
     if (st.length) anyTyre = true;
     st.forEach(x => { usage[x.c] = (usage[x.c] || 0) + 1; });
     const g = gridOf(e.driverId), gained = g && e.pos ? g - e.pos : null;
@@ -834,7 +841,7 @@ function pageRound(d, rid, sess) {
   const flE = !isQ && cl.find(e => e.fastestLap);
 
   const rows = cl.map(e => {
-    const drv = driverLabel(d, e.driverId), t = teamLabel(d, e.teamId);
+    const drv = lookFor(d, driverLabel(d, e.driverId), rid, e.teamId), t = teamLabel(d, e.teamId);
     return `<tr class="${e.pos && e.pos <= 3 ? 'top' + e.pos : ''}">
       <td class="pos">${e.pos ? e.pos : `<span class="status">${esc(e.label)}</span>`}</td>
       <td class="num muted hide-sm">${esc(drv.number ?? '')}</td>
@@ -1552,7 +1559,7 @@ const dotdOf = (d, rid) => { const v = d.results[rid] && d.results[rid].dotd; re
 const teamAt = (d, rid, did) => { const e = [...session(d, rid, 'race'), ...session(d, rid, 'sprint')].find(x => x.driverId === did); return teamLabel(d, (e && e.teamId) || (byId(d.drivers, did) || {}).teamId); };
 function dotdCard(d, rid, withRound) {
   const v = dotdOf(d, rid); if (!v) return '';
-  const r = byId(d.calendar, rid), drv = driverLabel(d, v.driverId), t = teamAt(d, rid, v.driverId);
+  const r = byId(d.calendar, rid), t = teamAt(d, rid, v.driverId), drv = lookFor(d, driverLabel(d, v.driverId), rid, t && t.id);
   const has = x => x !== '' && x !== null && x !== undefined;
   const rows = [{ driverId: v.driverId, pct: v.pct }, ...(v.runners || []).filter(x => x && x.driverId)];
   const bars = rows.length > 1 && rows.some(x => has(x.pct)) ? `<div class="dotd-bars">${rows.map(x => {
@@ -2273,7 +2280,7 @@ function render(resetScroll) {
 
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act="discard-draft"]');
-  if (b && confirm('Throw away all unpublished changes in this browser?')) discardDraft();
+  if (b) Pop.ask(b, 'Throw away all unpublished changes in this browser?').then(ok => { if (ok) discardDraft(); });
 });
 document.addEventListener('click', e => {
   const more = e.target.closest('[data-act="more"]');
@@ -2286,7 +2293,7 @@ document.addEventListener('click', e => {
   const rj = e.target.closest('[data-rule-jump]');
   if (rj) { ruleJump(rj.dataset.ruleJump); return; }
   const rc = e.target.closest('[data-rule-copy]');
-  if (rc) { const url = location.href.split('#')[0] + '#/rules/' + rc.dataset.ruleCopy; (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast('Link to this rule copied')).catch(() => prompt('Copy this link:', url)); return; }
+  if (rc) { const url = location.href.split('#')[0] + '#/rules/' + rc.dataset.ruleCopy; (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast('Link to this rule copied')).catch(() => Pop.prompt(rc, 'Copy this link', url, { ok: 'Done' })); return; }
   const rv = e.target.closest('[data-rv]');
   if (rv) { lsSet(RV_KEY, rv.dataset.rv); render(false); return; }
   const sw = e.target.closest('[data-h2h-swap]');
@@ -2318,7 +2325,7 @@ document.getElementById('nav-toggle').addEventListener('click', () => document.g
 window.addEventListener('hashchange', () => render(true));
 
 /* expose helpers for the admin console */
-window.LG = { slideImg, slideLabel, S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
+window.LG = { lookFor, slideImg, slideLabel, S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
   rcName, HIST_ROLES, autoHistory, lapSecs, seasonName, countries, countryName, flagEmoji, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
   DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, titleCaseText, applyTitleCase, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 

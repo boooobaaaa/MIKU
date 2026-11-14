@@ -431,11 +431,11 @@ document.addEventListener('click', async e => {
     if (k === 'signout') { await s.signOut(); P.subs = null; return; }
     if (k === 'rmimg') { P.form.image = ''; saveDraft(); return LG.render(false); }
     if (k === 'rmphoto') { P.form.images.splice(Number(b.dataset.k), 1); saveDraft(); return LG.render(false); }
-    if (k === 'clear') { if (confirm('Clear this article?')) { clearDraft(); LG.render(false); } return; }
+    if (k === 'clear') { if (await Pop.ask(b, 'Clear this article?')) { clearDraft(); LG.render(false); } return; }
     if (k === 'cancel') { clearDraft(); P.tab = 'mine'; return LG.render(false); }
     if (k === 'clear' && P.tab === 'photos') { clearDraft(); P.form.kind = 'photos'; return LG.render(false); }
     if (k === 'edit') { const x = P.subs.find(z => z.id === b.dataset.id); P.form = { kind: x.kind || 'article', title: x.title, tag: x.tag || '', body: x.body || '', image: x.image || '', images: x.images || [], roundId: x.roundId || '' }; P.editId = x.id; P.tab = P.form.kind === 'photos' ? 'photos' : 'new'; saveDraft(); return LG.render(false); }
-    if (k === 'withdraw') { if (!confirm('Remove this article?')) return; await s.withdraw(b.dataset.id); P.subs = null; toast('Removed'); return LG.render(false); }
+    if (k === 'withdraw') { if (!await Pop.ask(b, 'Remove this article?')) return; await s.withdraw(b.dataset.id); P.subs = null; toast('Removed'); return LG.render(false); }
     if (k === 'submit') {
       const f = P.form, photos = P.tab === 'photos';
       if (photos ? (!f.title.trim() || !(f.images || []).length) : (!f.title.trim() || !f.body.trim())) return toast(photos ? 'Add a caption and at least one photo' : 'Add a headline and some article text first', 'err');

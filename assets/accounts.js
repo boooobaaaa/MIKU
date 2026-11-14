@@ -171,7 +171,7 @@ document.addEventListener('click', async e => {
     if (k === 'discord') return startDiscord(d);
     if (k === 'redo') { forgetDiscord(); return startDiscord(d); }
     if (k === 'unlink') {
-      if (!confirm(ME.link && ME.link.status === 'approved' ? 'Unlink your Discord? You’ll lose the verified tick until an admin approves a new link.' : 'Cancel your link request?')) return;
+      if (!await Pop.ask(b, ME.link && ME.link.status === 'approved' ? 'Unlink your Discord? You’ll lose the verified tick until an admin approves a new link.' : 'Cancel your link request?')) return;
       await s.unlink(); ME.link = null; forgetDiscord(); refreshApproved(); toast('Discord unlinked'); return LG.render(false);
     }
   } catch (x) { toast('Something went wrong: ' + (x.code || x.message), 'err'); }

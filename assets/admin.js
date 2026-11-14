@@ -229,6 +229,7 @@ function secDrivers(d) {
         ${F.check('Reserve driver (shows under Reserves, not a race seat)', p + '.reserve', !!x.reserve, 'data-reload')}
         ${F.image('Driver photo (driver cards, team page & profile)', p + '.photo', x.photo, 'drivers', 1400, 'driverPhoto')}
         ${F.image('Headshot for the small circles (optional — the photo is used if empty)', p + '.headshot', x.headshot, 'drivers', 500, 'headshot')}
+        ${looksEditor(d, x, i, p)}
         ${F.area('Biography — shown on their profile (# headings, **bold**, - lists, [links](https://…))', p + '.bio', x.bio)}
         <div class="wide th-ed"><div class="fld"><span>Team history</span></div>
           ${F.check(`Work out this season's spells automatically from results`, p + '.autoHistory', x.autoHistory !== false)}
@@ -876,6 +877,38 @@ function secGallery(d) {
         <div class="prow-act">${mvBtns('gallery', k, g.length)}<button class="iconbtn del" data-act="gal-del" data-i="${k}" title="Remove from gallery">✕</button></div></div>`).join('')}</div>` : '<p class="muted">No photos yet.</p>'}</div>`;
 }
 
+/* ---------------- extra driver photos per team / round ---------------- */
+function looksEditor(d, x, i, p) {
+  const L = x.looks || [], rs = LG.rounds(d);
+  const rows = L.map((l, k) => {
+    const lp = `${p}.looks.${k}`, on = new Set(l.rounds || []), t = byId(d.teams, l.teamId);
+    const src = l.headshot || l.photo;
+    return `<div class="look-row" style="--tc:${esc(LG.teamColor(t))}">
+      <div class="look-pic">${src ? `<img src="${esc(LG.asset(src))}" alt="" onerror="this.remove()">` : '<span>No photo yet</span>'}</div>
+      <div class="look-body">
+        <div class="fgrid">
+          ${F.select('When they drove for', `${lp}.teamId`, l.teamId || '', [['', '— any team —'], ...d.teams.map(t2 => [t2.id, t2.name])])}
+          ${F.image('Photo', `${lp}.photo`, l.photo, 'drivers', 1400, 'driverPhoto')}
+          ${F.image('Headshot (optional)', `${lp}.headshot`, l.headshot, 'drivers', 500, 'headshot')}
+        </div>
+        ${rs.length ? `<div class="look-rounds"><span class="muted">Only on these rounds <small>(leave all off = every round with ${t ? esc(t.name) : 'that team'})</small></span>
+          <div class="look-chips">${rs.map(r => `<label class="look-chip ${on.has(r.id) ? 'on' : ''}" title="${esc(r.name)}"><input type="checkbox" data-look="${esc(lp)}" value="${esc(r.id)}" ${on.has(r.id) ? 'checked' : ''}>R${esc(r.round)}</label>`).join('')}</div></div>` : ''}
+        <p class="hint look-sum">${!l.photo && !l.headshot ? 'Upload a photo to use this.' : on.size ? `Used on ${[...on].map(id => { const r = byId(d.calendar, id); return r ? 'R' + r.round : ''; }).filter(Boolean).join(', ')}.` : l.teamId ? `Used whenever ${esc(x.name.split(' ')[0])} races for ${esc(t ? t.name : 'this team')}.` : 'Pick a team or some rounds.'}</p>
+      </div>
+      <button class="iconbtn del" data-act="look-del" data-i="${i}" data-k="${k}" title="Remove this photo">✕</button>
+    </div>`;
+  }).join('');
+  return `<div class="wide looks-ed"><div class="fld"><span>Photos for other teams or rounds</span></div>
+    <p class="hint" style="margin:0 0 10px">Changed teams mid-season? Add a photo for the rounds they drove for another team (or pick exact rounds). Race results, Driver of the Day and Grid Draft cards use the matching photo — everywhere else uses the main photo above.</p>
+    ${rows}<div class="toolbar"><button class="btn sm" data-act="look-add" data-i="${i}">+ Add a team / round photo</button></div></div>`;
+}
+document.addEventListener('change', e => {
+  const c = e.target.closest && e.target.closest('input[data-look]'); if (!c) return;
+  const d = D(), l = getPath(d, c.dataset.look); if (!l) return;
+  const set = new Set(l.rounds || []); if (c.checked) set.add(c.value); else set.delete(c.value);
+  l.rounds = LG.rounds(d).map(r => r.id).filter(id => set.has(id)); commit();
+});
+
 /* ---------------- home page slideshow ---------------- */
 const SSA = { gal: false };
 function secSlideshow(d) {
@@ -992,7 +1025,7 @@ async function seasonArchive(d, startNew, btn) {
     next = (document.getElementById('sea-next').value || '').trim();
     if (!next) return toast('Type the new season label first', 'err');
     if (String(next) === String(d.league.season)) return toast('The new season needs a different label', 'err');
-    if (!confirm(`Archive ${LG.seasonName(d.league.season)} and start ${next}?\n\nA backup downloads first. Results, penalties, race control decisions and the calendar will be cleared (nothing goes live until you publish).`)) return;
+    if (!await Pop.ask(btn, `Archive ${LG.seasonName(d.league.season)} and start ${next}?\n\nA backup downloads first. Results, penalties, race control decisions and the calendar will be cleared (nothing goes live until you publish).`)) return;
   }
   if (!ghReady()) return;
   btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving…';
@@ -1532,7 +1565,7 @@ document.addEventListener('change', e => {
     const fr = new FileReader();
     fr.onload = async () => {
       let src; try { src = LG.normalize(JSON.parse(fr.result)); } catch (x) { return toast('That isn\'t a league backup file', 'err'); }
-      if (String(src.league.season) === String(D().league.season) && !confirm(`That file is labelled ${LG.seasonName(src.league.season)}, the same as your current season. Import it as an archive anyway?`)) return;
+      if (String(src.league.season) === String(D().league.season) && !await Pop.ask(null, `That file is labelled ${LG.seasonName(src.league.season)}, the same as your current season. Import it as an archive anyway?`)) return;
       try { const e = await saveArchive(D(), src); if (!e) return; const h = D().history; if (!h.some(x => String(x.season) === String(e.label))) h.push(Object.assign(LG.snapshotSeason(src), { season: e.label })); toast(`${LG.seasonName(e.label)} added — Publish to show it`); commit(); }
       catch (x) { toast('Couldn\'t import: ' + x.message, 'err'); }
     };
@@ -1588,16 +1621,16 @@ document.addEventListener('click', async e => {
     case 'del-driver': {
       const x = d.drivers[i];
       const msg = usedInResults(d, 'driverId', x.id) ? `${x.name} has race results. Deleting removes them from the roster but their results will show as "Unknown driver". Usually it's better to untick "Active" instead.\n\nDelete anyway?` : `Delete ${x.name}?`;
-      if (confirm(msg)) { d.drivers.splice(i, 1); commit(); } return;
+      if (await Pop.ask(b, msg)) { d.drivers.splice(i, 1); commit(); } return;
     }
     case 'add-team': { const t = { id: uid('team'), name: 'New Team', color: '#39c5bb' }; d.teams.push(t); A.open['team-' + t.id] = true; return commit(); }
     case 'del-team': {
       const t = d.teams[i];
       const msg = usedInResults(d, 'teamId', t.id) ? `${t.name} has scored in results. Deleting it will show those as "Unknown team" in constructor standings. Delete anyway?` : `Delete ${t.name}?`;
-      if (confirm(msg)) { d.drivers.forEach(x => { if (x.teamId === t.id) x.teamId = ''; }); d.teams.splice(i, 1); commit(); } return;
+      if (await Pop.ask(b, msg)) { d.drivers.forEach(x => { if (x.teamId === t.id) x.teamId = ''; }); d.teams.splice(i, 1); commit(); } return;
     }
     case 'add-round': { const n = Math.max(0, ...d.calendar.map(r => Number(r.round) || 0)) + 1; const r = { id: uid('rnd'), round: n, name: 'New Grand Prix', track: '', country: '', start: '', laps: '', sprint: false }; d.calendar.push(r); A.open['rnd-' + r.id] = true; return commit(); }
-    case 'del-round': { const r = d.calendar[i]; if (confirm(`Delete ${r.name}${LG.isDone(d, r) ? ' AND its results' : ''}?`)) { d.calendar.splice(i, 1); delete d.results[r.id]; d.adjustments.forEach(a => { if (a.roundId === r.id) a.roundId = ''; }); commit(); } return; }
+    case 'del-round': { const r = d.calendar[i]; if (await Pop.ask(b, `Delete ${r.name}${LG.isDone(d, r) ? ' AND its results' : ''}?`)) { d.calendar.splice(i, 1); delete d.results[r.id]; d.adjustments.forEach(a => { if (a.roundId === r.id) a.roundId = ''; }); commit(); } return; }
     case 'sort-rounds': sortRounds(); return commit();
     case 'goto-round': e.preventDefault(); A.roundId = b.dataset.id; A.session = 'race'; location.hash = '#/admin/results'; if (A.section === 'results') rerender(); return;
     case 'session': A.session = b.dataset.s; return rerender();
@@ -1605,7 +1638,7 @@ document.addEventListener('click', async e => {
     case 'fill-all': { const l = sessList(); const used = new Set(l.map(x => x.driverId)); d.drivers.filter(x => x.active !== false && !used.has(x.id)).forEach(x => l.push(newEntry(x))); return commit(); }
     case 'copy-quali': {
       const q = (d.results[A.roundId] || {})[b.dataset.from || 'quali'] || [];
-      if (sessList().length && !confirm('Replace this session\'s order with the ' + (b.dataset.from === 'sprintQuali' ? 'sprint qualifying' : 'qualifying') + ' order?')) return;
+      if (sessList().length && !await Pop.ask(b, 'Replace this session\'s order with the ' + (b.dataset.from === 'sprintQuali' ? 'sprint qualifying' : 'qualifying') + ' order?')) return;
       d.results[A.roundId][A.session] = q.map(x => ({ driverId: x.driverId, teamId: x.teamId, status: 'FIN', time: '', laps: '' })); return commit();
     }
     case 'fl-auto': {
@@ -1622,7 +1655,7 @@ document.addEventListener('click', async e => {
       add.forEach(x => L.push({ driverId: x.id, teamId: x.teamId || '', status: 'NS', time: '', laps: '' }));
       toast(`${add.length} driver${add.length === 1 ? '' : 's'} marked NS (no show)`); return commit();
     }
-    case 'clear-session': if (confirm('Remove every entry from this session?')) { d.results[A.roundId][A.session] = []; commit(); } return;
+    case 'clear-session': if (await Pop.ask(b, 'Remove every entry from this session?')) { d.results[A.roundId][A.session] = []; commit(); } return;
     case 'move': { const l = sessList(), j = i + Number(b.dataset.dir); if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; return commit(); }
     case 'del-entry': sessList().splice(i, 1); return commit();
     case 'flag': { const l = sessList(), f = b.dataset.flag, was = !!l[i][f]; l.forEach(x => { x[f] = false; }); l[i][f] = !was; return commit(); }
@@ -1631,7 +1664,7 @@ document.addEventListener('click', async e => {
     case 'del-adj': d.adjustments.splice(i, 1); return commit();
     case 'new-news': { e.preventDefault(); const n = { id: uid('news'), title: 'New post', date: new Date().toISOString().slice(0, 10), author: '', tag: '', body: '', image: '' }; d.news.push(n); A.newsId = n.id; LG.saveDraft(); if (A.section !== 'news') location.hash = '#/admin/news'; else rerender(); return; }
     case 'edit-news': A.newsId = b.dataset.id; return rerender();
-    case 'del-news': if (confirm('Delete this post?')) { d.news = d.news.filter(n => n.id !== b.dataset.id); A.newsId = null; commit(); } return;
+    case 'del-news': if (await Pop.ask(b, 'Delete this post?')) { d.news = d.news.filter(n => n.id !== b.dataset.id); A.newsId = null; commit(); } return;
     case 'set-pass': {
       const v = document.getElementById('new-pass').value;
       if (v.length < 4) return toast('Use at least 4 characters', 'err');
@@ -1653,13 +1686,13 @@ document.addEventListener('click', async e => {
     case 'theme-reset': d.theme = clone(LG.DEFAULT_THEME); return commit();
     case 'clear-mode': try { localStorage.removeItem(LG.MODE_KEY); } catch (x) { } toast('Using the site default mode again'); return rerender();
     case 'add-sd': { const x = newSD(d); d.stewards.push(x); A.open['sd-' + x.id] = true; return commit(); }
-    case 'del-sd': if (confirm('Delete this report?')) { d.stewards.splice(i, 1); commit(); } return;
+    case 'del-sd': if (await Pop.ask(b, 'Delete this report?')) { d.stewards.splice(i, 1); commit(); } return;
     case 'archive-now': {
-      if (d.history.some(h => String(h.season) === String(d.league.season)) && !confirm(`${LG.seasonName(d.league.season)} is already in the Hall of fame. Add another entry anyway?`)) return;
+      if (d.history.some(h => String(h.season) === String(d.league.season)) && !await Pop.ask(b, `${LG.seasonName(d.league.season)} is already in the Hall of fame. Add another entry anyway?`)) return;
       d.history.push(LG.snapshotSeason(d)); toast(`${LG.seasonName(d.league.season)} saved to the Hall of fame`); return commit();
     }
     case 'add-hist': { const h = { id: uid('season'), season: '', driverChampion: '', driverTeam: '', driverColor: '#39c5bb', driverPoints: '', teamChampion: '', teamColor: '#39c5bb', teamPoints: '', notes: '' }; d.history.push(h); A.open['hist-' + h.id] = true; return commit(); }
-    case 'del-hist': if (confirm('Remove this season from the Hall of fame?')) { d.history.splice(i, 1); commit(); } return;
+    case 'del-hist': if (await Pop.ask(b, 'Remove this season from the Hall of fame?')) { d.history.splice(i, 1); commit(); } return;
     case 'drop-snapshot': delete d.history[i].standings; delete d.history[i].winners; return commit();
     case 'upload': if (!ghReady()) return; return pickFiles({ spec: b.dataset.spec, mode: b.dataset.mode, target: b.dataset.target, folder: b.dataset.folder || 'misc', maxDim: Number(b.dataset.max) || 1920, multiple: !!b.dataset.multiple, accept: b.dataset.accept || 'image/*' });
     case 'clear-field': setPath(d, b.dataset.target, ''); return commit();
@@ -1670,7 +1703,7 @@ document.addEventListener('click', async e => {
     case 'sess-preset': {
       const r = d.calendar[i];
       if (!r.start) return toast('Set the race start first', 'err');
-      if ((r.sessions || []).length && !confirm('Replace this round\'s schedule?')) return;
+      if ((r.sessions || []).length && !await Pop.ask(b, 'Replace this round\'s schedule?')) return;
       const R = new Date(r.start).getTime(), H = 36e5, D = 24 * H;
       const mk = (name, off, len) => ({ name, start: new Date(R + off).toISOString(), end: len ? new Date(R + off + len).toISOString() : '' });
       const P = {
@@ -1687,7 +1720,7 @@ document.addEventListener('click', async e => {
       const r = byId(d.calendar, b.dataset.r), s = teamStore(); if (!r || !s) return;
       const PRx = window.Predictions, auto = d.predictions.schedule && d.predictions.schedule.auto !== false;
       const x = b.dataset.act === 'pr-open' ? { open: true, lockAt: PRx.lockFor(r, d), openAt: auto ? PRx.openFor(r, d) : 0, manual: !auto } : b.dataset.act === 'pr-lock' ? { open: true, lockAt: Date.now(), openAt: 0, manual: true } : { open: false, lockAt: PRx.lockFor(r, d) || Date.now(), openAt: 0, manual: true };
-      if (b.dataset.act === 'pr-hide' && !confirm('Hide predictions for this round? Picks already made are kept.')) return;
+      if (b.dataset.act === 'pr-hide' && !await Pop.ask(b, 'Hide predictions for this round? Picks already made are kept.')) return;
       b.disabled = true;
       try { await s.setPredRound(r.id, x); PRA.rounds = Object.assign({}, PRA.rounds, { [r.id]: x }); toast({ 'pr-open': `Predictions open for R${r.round} — they lock ${LG.fmtDate(x.lockAt)} ${LG.fmtTime(x.lockAt)}`, 'pr-lock': 'Locked — everyone\'s picks are now visible', 'pr-hide': 'Hidden' }[b.dataset.act]); }
       catch (e2) { toast('Could not save: ' + (e2.code || e2.message) + (/permission/.test(e2.code || e2.message) ? ' — re-copy the rules from Grid Draft ③' : ''), 'err'); }
@@ -1698,7 +1731,7 @@ document.addEventListener('click', async e => {
     case 'drv-save-order': { const st = LG.computeStandings(d); const order = driverOrder(d, st); d.drivers = order.map(k => d.drivers[k]); ADS.sort = 'custom'; saveADS(); toast('Saved as your order — Publish to use it on the site'); return commit(); }
     case 'drv-expand': case 'drv-collapse': document.querySelectorAll('#drv-list details.item').forEach(el => { if (!el.hidden) { el.open = b.dataset.act === 'drv-expand'; A.open[el.dataset.key] = el.open; } }); return;
     case 'apf-add': { const f = b.dataset.tpl === 'blank' ? { id: window.Apps.uidOf('form'), title: 'New application', description: '', open: false, questions: [{ id: window.Apps.uidOf('q'), label: 'Discord username', type: 'short', required: true, options: [], help: '' }] } : window.Apps.fromTemplate(b.dataset.tpl); d.applications.forms.push(f); A.open['apf-' + f.id] = true; toast('Form added — tick "Open" when it\'s ready, then Publish'); return commit(); }
-    case 'apf-del': if (confirm('Delete this form? Applications already sent stay in Firebase.')) { d.applications.forms.splice(i, 1); commit(); } return;
+    case 'apf-del': if (await Pop.ask(b, 'Delete this form? Applications already sent stay in Firebase.')) { d.applications.forms.splice(i, 1); commit(); } return;
     case 'apq-add': d.applications.forms[i].questions.push({ id: window.Apps.uidOf('q'), label: 'New question', type: 'short', required: false, options: [], help: '' }); return commit();
     case 'apq-del': d.applications.forms[i].questions.splice(Number(b.dataset.k), 1); return commit();
     case 'ap-filter': APA.filter = b.dataset.f; return rerender();
@@ -1718,7 +1751,7 @@ document.addEventListener('click', async e => {
       b.disabled = false; return rerender();
     }
     case 'ap-delete': {
-      if (!confirm('Delete this application permanently? The applicant will no longer see it.')) return;
+      if (!await Pop.ask(b, 'Delete this application permanently? The applicant will no longer see it.')) return;
       try { await teamStore().deleteApp(b.dataset.id); APA.list = (APA.list || []).filter(x => x.id !== b.dataset.id); toast('Deleted'); } catch (x) { toast('Could not delete: ' + (x.code || x.message), 'err'); }
       return rerender();
     }
@@ -1726,7 +1759,7 @@ document.addEventListener('click', async e => {
       const s = teamStore(), cur = APA.hook || {};
       let url = b.dataset.act === 'ap-hook-clear' ? '' : document.getElementById('ap-hook').value.trim() || cur.url || '';
       if (url && !/^https:\/\/(?:\w+\.)?discord(?:app)?\.com\/api\/webhooks\//.test(url)) return toast('That doesn\'t look like a Discord webhook link', 'err');
-      if (b.dataset.act === 'ap-hook-clear' && !confirm('Disconnect Discord? New applications will no longer be posted.')) return;
+      if (b.dataset.act === 'ap-hook-clear' && !await Pop.ask(b, 'Disconnect Discord? New applications will no longer be posted.')) return;
       const x = { url, ping: b.dataset.act === 'ap-hook-clear' ? '' : document.getElementById('ap-ping').value.trim(), decisions: b.dataset.act === 'ap-hook-clear' ? true : document.getElementById('ap-decisions').checked };
       try { await s.setAppHook(x); APA.hook = x; toast(url ? 'Discord settings saved' : 'Discord disconnected'); } catch (e2) { toast('Could not save: ' + (e2.code || e2.message) + (/permission/.test(e2.code || e2.message) ? ' — re-copy the rules from Grid Draft ③' : ''), 'err'); }
       return rerender();
@@ -1757,7 +1790,7 @@ document.addEventListener('click', async e => {
       b.disabled = false; return rerender();
     }
     case 'ac-rm': {
-      const m = (ACT.members || []).find(x => x.email === b.dataset.email); if (!m || !confirm(`Remove ${m.name} from the admin team?`)) return;
+      const m = (ACT.members || []).find(x => x.email === b.dataset.email); if (!m || !await Pop.ask(b, `Remove ${m.name} from the admin team?`)) return;
       try { await teamStore().removeSiteAdmin(m.email); teamStore().log('Removed from admin team', m.name, team() ? team().name : '').catch(() => { }); toast('Removed'); ACT.members = null; } catch (x) { toast('Could not remove: ' + (x.code || x.message), 'err'); }
       return rerender();
     }
@@ -1778,11 +1811,11 @@ document.addEventListener('click', async e => {
       b.disabled = false; return rerender();
     }
     case 'ac-unshare': {
-      if (!confirm('Stop sharing the publishing key? The team will be able to edit but not publish. (Also delete the token on GitHub if you think it was copied.)')) return;
+      if (!await Pop.ask(b, 'Stop sharing the publishing key? The team will be able to edit but not publish. (Also delete the token on GitHub if you think it was copied.)')) return;
       try { await teamStore().clearKey(); teamStore().log('Stopped sharing publishing key', '', team() ? team().name : '').catch(() => { }); toast('Key removed'); ACT.members = null; } catch (x) { toast('Could not remove: ' + (x.code || x.message), 'err'); }
       return rerender();
     }
-    case 'gal-del': if (confirm('Remove this photo from the gallery?')) { d.gallery.splice(i, 1); commit(); } return;
+    case 'gal-del': if (await Pop.ask(b, 'Remove this photo from the gallery?')) { d.gallery.splice(i, 1); commit(); } return;
     case 'th-add': { const x = d.drivers[i]; (x.history = x.history || []).push({ teamId: x.teamId || '', role: 'Race Driver', fromSeason: String(d.league.season), fromRound: 1, toSeason: '', toRound: '' }); A.open['drv-' + x.id] = true; return commit(); }
     case 'th-del': d.drivers[i].history.splice(Number(b.dataset.k), 1); return commit();
     case 'th-auto': {
@@ -1798,7 +1831,7 @@ document.addEventListener('click', async e => {
     case 'mu-move': { const t = d.music.tracks, j = i + Number(b.dataset.dir); if (j < 0 || j >= t.length) return; [t[i], t[j]] = [t[j], t[i]]; return commit(); }
     case 'sea-save': return seasonArchive(d, false, b);
     case 'sea-new': return seasonArchive(d, true, b);
-    case 'sea-rm': if (confirm('Remove this season from the Seasons list? (The saved file stays in your GitHub repo.)')) { d.seasons = (d.seasons || []).filter(x => x.id !== b.dataset.id); commit(); } return;
+    case 'sea-rm': if (await Pop.ask(b, 'Remove this season from the Seasons list? (The saved file stays in your GitHub repo.)')) { d.seasons = (d.seasons || []).filter(x => x.id !== b.dataset.id); commit(); } return;
     case 'pt-signin': { try { await window.Portal.store(d).signIn(); } catch (x) { toast('Sign-in failed: ' + (x.code || x.message), 'err'); } return; }
     case 'pt-reload': PTA.subs = null; PTA.members = null; return rerender();
     case 'pt-add': {
@@ -1808,14 +1841,14 @@ document.addEventListener('click', async e => {
       try { await window.Portal.store(d).setMember(email, { name, role, teamId }); toast(`${name} can now use the portal`); PTA.members = null; } catch (x) { toast('Couldn\'t save: ' + (x.code || x.message), 'err'); }
       return rerender();
     }
-    case 'pt-rm': if (!confirm('Remove portal access for ' + b.dataset.email + '?')) return; try { await window.Portal.store(d).removeMember(b.dataset.email); PTA.members = null; } catch (x) { toast('Couldn\'t remove: ' + (x.code || x.message), 'err'); } return rerender();
+    case 'pt-rm': if (!await Pop.ask(b, 'Remove portal access for ' + b.dataset.email + '?')) return; try { await window.Portal.store(d).removeMember(b.dataset.email); PTA.members = null; } catch (x) { toast('Couldn\'t remove: ' + (x.code || x.message), 'err'); } return rerender();
     case 'pt-changes': case 'pt-reject': {
-      const note = prompt(act === 'pt-changes' ? 'What should they change? (they\'ll see this)' : 'Reason (optional — they\'ll see this):', '');
+      const note = await Pop.prompt(b, act === 'pt-changes' ? 'What should they change?' : 'Reason (optional)', '', { label: 'They’ll see this note', max: 2000, ok: act === 'pt-changes' ? 'Request changes' : 'Reject' });
       if (note === null) return;
       try { await window.Portal.store(d).review(b.dataset.id, act === 'pt-changes' ? 'changes' : 'rejected', note.trim(), ''); toast(act === 'pt-changes' ? 'Sent back for changes' : 'Rejected'); PTA.subs = null; } catch (x) { toast('Failed: ' + (x.code || x.message), 'err'); }
       return rerender();
     }
-    case 'pt-delete': if (!confirm('Delete this submission permanently?')) return; try { await window.Portal.store(d).withdraw(b.dataset.id); PTA.subs = null; } catch (x) { toast('Failed: ' + (x.code || x.message), 'err'); } return rerender();
+    case 'pt-delete': if (!await Pop.ask(b, 'Delete this submission permanently?')) return; try { await window.Portal.store(d).withdraw(b.dataset.id); PTA.subs = null; } catch (x) { toast('Failed: ' + (x.code || x.message), 'err'); } return rerender();
     case 'pt-approve': {
       const x = (PTA.subs || []).find(z => z.id === b.dataset.id); if (!x) { PTA.subs = null; toast('That list was out of date — refreshed, please try again', 'err'); return rerender(); }
       b.disabled = true;
@@ -1866,7 +1899,7 @@ document.addEventListener('click', async e => {
     case 'gd-adminsignin': { const s = window.GridDraft.store(d); try { await s.signIn(); } catch (x) { toast('Sign-in failed: ' + (x.code || x.message) + (/unauthorized-domain/.test(x.code || '') ? ' — add this site in Firebase → Authentication → Settings → Authorized domains.' : ''), 'err'); } return; }
     case 'gd-loadplayers': { const s = window.GridDraft.store(d); GDA.err = ''; try { GDA.players = await s.players(); GDA.drafts = await s.allDrafts(); } catch (x) { GDA.err = 'Couldn\'t load: ' + (x.code || x.message); } return rerender(); }
     case 'gd-saveset': { const st = gdKeepSeasonBackup(d); if (!st) return toast('No cards yet — they appear once drivers have race results.', 'err'); toast(`${LG.seasonName(st.label)} cards saved (${st.drivers.length} drivers, ${st.constructors.length} teams)`); return commit(); }
-    case 'gd-delset': { const k = b.dataset.key; if (!confirm('Delete this saved card set? Its cards leave the pool, and players who own them will show a missing card (0 pts). This can\'t be undone after you publish.')) return; d.gridDraft.sets = (d.gridDraft.sets || []).filter(x => x.key !== k); return commit(); }
+    case 'gd-delset': { const k = b.dataset.key; if (!await Pop.ask(b, 'Delete this saved card set? Its cards leave the pool, and players who own them will show a missing card (0 pts). This can\'t be undone after you publish.')) return; d.gridDraft.sets = (d.gridDraft.sets || []).filter(x => x.key !== k); return commit(); }
     case 'acc-reload': ACA.links = null; return rerender();
     case 'acc-approve': case 'acc-deny': case 'acc-remove': {
       const s = window.Portal.store(d), L = (ACA.links || []).find(x => x.uid === b.dataset.uid); if (!L) return;
@@ -1913,7 +1946,7 @@ document.addEventListener('click', async e => {
     }
     case 'ft-reloadacct': window.Fantasy.AC.docs = null; return rerender();
     case 'ft-delacct': {
-      if (!confirm(`Remove the fantasy team “${b.dataset.name}”? This deletes it from their account and the leaderboard.`)) return;
+      if (!await Pop.ask(b, `Remove the fantasy team “${b.dataset.name}”? This deletes it from their account and the leaderboard.`)) return;
       try { await window.Portal.store(d).deleteFantasy(b.dataset.uid); window.Fantasy.AC.docs = null; toast('Team removed'); } catch (x) { toast('Couldn’t remove: ' + (x.code || x.message), 'err'); }
       return rerender();
     }
@@ -1925,37 +1958,39 @@ document.addEventListener('click', async e => {
       return gdPlayerAct(act === 'gd-resetpick' ? 'rolls' : 'wipe', fake, d);
     }
     case 'gd-wipe': return gdPlayerAct('wipe', b, d);
+    case 'look-add': { const x = d.drivers[i]; x.looks = x.looks || []; x.looks.push({ id: uid('look'), teamId: x.teamId || '', rounds: [], photo: '', headshot: '' }); return commit(); }
+    case 'look-del': { if (!(await Pop.ask(b, 'Remove this photo?', { ok: 'Remove' }))) return; d.drivers[i].looks.splice(Number(b.dataset.k), 1); return commit(); }
     case 'ss-del': { const x = d.slideshow.items[i]; if (!(await Pop.confirm(b, { title: 'Remove this photo?', text: 'It leaves the slideshow. The file stays in your uploads (and in the Gallery if it came from there).', ok: 'Remove', danger: true }))) return; d.slideshow.items.splice(i, 1); return commit(); }
     case 'ss-center': Object.assign(d.slideshow.items[i], { fx: 50, fy: 50, zoom: 1 }); return commit();
     case 'ss-galtoggle': SSA.gal = !SSA.gal; return rerender();
     case 'ss-fromgal': { const g = (d.gallery || [])[i]; if (!g) return; d.slideshow = Object.assign({ enabled: true, items: [] }, d.slideshow || {}); d.slideshow.items.push({ id: uid('sl'), src: g.src, caption: g.caption || '', roundId: g.roundId || '', event: '', credit: g.credit || '', fx: 50, fy: 50, zoom: 1 }); toast('Added to the slideshow'); return commit(); }
     case 'gd-resetone': return gdPlayerAct('rolls', b, d);
-    case 'gd-reset': { if (!confirm('Reset everyone\'s attempts now? Unfinished drafts expire. Completed teams and the leaderboard are kept.')) return; const s = window.GridDraft.store(d); try { await s.adminReset(); toast('Global reset done'); } catch (x) { toast('Reset failed: ' + (x.code || x.message), 'err'); } return; }
+    case 'gd-reset': { if (!await Pop.ask(b, 'Reset everyone\'s attempts now? Unfinished drafts expire. Completed teams and the leaderboard are kept.')) return; const s = window.GridDraft.store(d); try { await s.adminReset(); toast('Global reset done'); } catch (x) { toast('Reset failed: ' + (x.code || x.message), 'err'); } return; }
     case 'seo-now': { const g = ghReady(); if (!g) return; b.disabled = true; try { const ch = await updateIndexMeta(g, d); toast(ch ? 'Link preview updated — live in about a minute' : 'Link preview was already up to date'); } catch (err) { toast('Couldn\'t update: ' + err.message, 'err'); } b.disabled = false; return; }
     case 'add-fia': { d.fiaNews = d.fiaNews || []; const x = { id: uid('fia'), title: 'New announcement', date: new Date().toISOString(), category: 'notice', body: '', roundId: '', docs: [] }; d.fiaNews.push(x); A.open['fia-' + x.id] = true; return commit(); }
-    case 'del-fia': if (confirm('Delete this announcement?')) { d.fiaNews.splice(i, 1); commit(); } return;
+    case 'del-fia': if (await Pop.ask(b, 'Delete this announcement?')) { d.fiaNews.splice(i, 1); commit(); } return;
     case 'del-fia-doc': d.fiaNews[i].docs.splice(Number(b.dataset.k), 1); return commit();
     case 'post-fia': { b.disabled = true; const ok = await postToDiscord(d.fiaNews[i], d); if (ok) { d.fiaNews[i].posted = new Date().toISOString(); toast('Sent to Discord ✓'); commit(); } else b.disabled = false; return; }
     case 'save-wh': { const v = document.getElementById('wh-url').value.trim(); if (v && !/^https:\/\/(?:\w+\.)?discord(?:app)?\.com\/api\/webhooks\//.test(v)) return toast('That doesn\'t look like a Discord webhook link', 'err'); ls.set(WH_KEY, v); toast(v ? 'Webhook saved in this browser' : 'Webhook removed'); return rerender(); }
     case 'forget-wh': try { localStorage.removeItem(WH_KEY); } catch (x) { } return rerender();
     case 'test-wh': { const ok = await postToDiscord({ title: 'Test message', body: 'If you can see this, the website can post announcements here. ✅', category: 'notice' }, d); if (ok) toast('Test sent — check your Discord channel'); return; }
     case 'ft-import': return importFantasy(d);
-    case 'ft-del': if (confirm('Remove this fantasy team from the league?')) { d.fantasy.entries.splice(i, 1); commit(); } return;
+    case 'ft-del': if (await Pop.ask(b, 'Remove this fantasy team from the league?')) { d.fantasy.entries.splice(i, 1); commit(); } return;
     case 'ft-autoprice': {
       const S = window.Fantasy.standings(d);
       S.assets.forEach(a => { if (a.kind === 'driver') { const x = byId(d.drivers, a.id); if (x && !LG.S.data.drivers.find(z => z.id === a.id).fantasyValue) x.fantasyValue = a.price; } else if (d.fantasy.prices[a.id] === undefined || d.fantasy.prices[a.id] === '') d.fantasy.prices[a.id] = a.price; });
       toast('Suggested prices filled in — edit any of them'); return commit();
     }
-    case 'ft-clearprice': if (confirm('Clear every custom price?')) { d.fantasy.prices = {}; d.drivers.forEach(x => { delete x.fantasyValue; }); commit(); } return;
+    case 'ft-clearprice': if (await Pop.ask(b, 'Clear every custom price?')) { d.fantasy.prices = {}; d.drivers.forEach(x => { delete x.fantasyValue; }); commit(); } return;
     case 'add-person': { const arr = getPath(d, b.dataset.list) || []; arr.push({}); setPath(d, b.dataset.list, arr); return commit(); }
     case 'del-person': { const arr = getPath(d, b.dataset.list) || []; arr.splice(Number(b.dataset.k), 1); return commit(); }
-    case 'rb-clear': if (confirm('Remove the imported rulebook? (The Rules page goes back to your simple rules text.)')) { d.rulebook.md = ''; commit(); } return;
+    case 'rb-clear': if (await Pop.ask(b, 'Remove the imported rulebook? (The Rules page goes back to your simple rules text.)')) { d.rulebook.md = ''; commit(); } return;
     case 'publish': return publish(b);
-    case 'discard-draft': if (confirm('Throw away all unpublished changes?')) LG.discardDraft(); return;
+    case 'discard-draft': if (await Pop.ask(b, 'Throw away all unpublished changes?')) LG.discardDraft(); return;
     case 'reload-live': return reloadLive();
     case 'download': return download(d, 'league.json');
     case 'new-season': {
-      if (!confirm('Start a new season? A backup will download first. Results, penalties and the calendar will be cleared (nothing goes live until you publish).')) return;
+      if (!await Pop.ask(b, 'Start a new season? A backup will download first. Results, penalties and the calendar will be cleared (nothing goes live until you publish).')) return;
       download(d, `league-${String(d.league.season).replace(/[^\w-]+/g, '_')}-backup.json`);
       d.history.push(LG.snapshotSeason(d));
       gdKeepSeason(d);
@@ -2022,11 +2057,11 @@ function secRulebook(d) {
       ${rb.md ? '<div class="item-actions"><button class="btn sm danger" data-act="rb-clear">Remove rulebook</button></div>' : ''}
     </div>`;
 }
-function importRulebook(mdText) {
+async function importRulebook(mdText) {
   const d = D(); d.rulebook = d.rulebook || {};
   const parsed = LG.parseRulebook(mdText, d.rulebook);
-  if (!parsed.chapters.length && !confirm('No chapters were detected (use Heading 1 for chapters, Heading 2 for points). Import anyway?')) return;
-  if (d.rulebook.md && !confirm('Replace the current rulebook with this one?')) return;
+  if (!parsed.chapters.length && !await Pop.ask(null, 'No chapters were detected (use Heading 1 for chapters, Heading 2 for points). Import anyway?')) return;
+  if (d.rulebook.md && !await Pop.ask(null, 'Replace the current rulebook with this one?')) return;
   d.rulebook.md = mdText;
   if (parsed.title && !d.rulebook.title) d.rulebook.title = parsed.title;
   d.rulebook.updated = new Date().toISOString().slice(0, 10);
@@ -2292,7 +2327,7 @@ function changedParts(a, b) {
   return Object.keys(Object.assign({}, a, b)).filter(k => k !== 'meta' && JSON.stringify(a[k]) !== JSON.stringify(b[k])).map(k => PART_NAMES[k] || k).slice(0, 12);
 }
 async function reloadLive() {
-  if (LG.S.isDraft && !confirm('This throws away your unpublished draft and loads what is live right now. Continue?')) return;
+  if (LG.S.isDraft && !await Pop.ask(document.querySelector('[data-act="reload-live"]'), 'This throws away your unpublished draft and loads what is live right now. Continue?')) return;
   try {
     const r = await fetch('data/league.json?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) throw new Error(r.status);

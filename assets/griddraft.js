@@ -38,7 +38,7 @@ function liveRows(d) {
     if (e.teamId && !t.includes(e.teamId)) t.push(e.teamId);
   })));
   const drivers = st.drivers.filter(x => raced[x.id]).map(x => {
-    const m = byId(d.drivers, x.id) || {};
+    const m0 = byId(d.drivers, x.id) || {}, m = LG.lookFor ? LG.lookFor(d, m0, '', raced[x.id][raced[x.id].length - 1]) || m0 : m0;
     const teams = raced[x.id].map(id => byId(d.teams, id)).filter(Boolean).map(t => ({ name: t.name, color: teamColor(t) }));
     return { key: x.id, name: m.name || 'Unknown driver', country: m.country || '', photo: m.photo || '', headshot: m.headshot || m.photo || '', number: hasVal(m.number) ? m.number : '', rating: hasVal(m.rating) ? m.rating : null, teams, points: x.points };
   });
@@ -724,7 +724,7 @@ async function act(kind, el) {
     if (kind === 'signin') { await s.signIn(); return; }
     if (kind === 'signout') { await s.signOut(); G.lb = null; G.hist = null; G.draft = null; G.draftFor = ''; return LG.render(false); }
     if (kind === 'rename' && s.profile && s.profile.nameLocked) return toast('An admin has locked your username.', 'err');
-    if (kind === 'rename') { const n = prompt('New public username (2–24 characters):', s.profile.name || ''); if (n && n.trim().length >= 2) { await s.rename(n.trim().slice(0, 24)); G.lb = null; } return LG.render(false); }
+    if (kind === 'rename') { const n = await Pop.prompt(el, 'Change your public username', s.profile.name || '', { label: '2–24 characters', max: 24, ok: 'Save' }); if (n && n.trim().length >= 2) { await s.rename(n.trim().slice(0, 24)); G.lb = null; } return LG.render(false); }
     if (kind === 'resume') { location.hash = '#/griddraft/play'; return; }
     if (kind === 'openpack') { openPack(el); return; }
     if (kind === 'play') {

@@ -361,7 +361,7 @@ document.addEventListener('click', async e => {
   try {
     if (k === 'signin') { await s.signIn(); P.mine = null; }
     if (k === 'signout') { await s.signOut(); P.mine = null; P.tab = ''; }
-    if (k === 'withdraw') { if (!confirm('Withdraw this application? This can\'t be undone.')) return; await s.withdrawApp(b.dataset.id); toast('Application withdrawn'); P.mine = null; }
+    if (k === 'withdraw') { if (!await Pop.ask(b, 'Withdraw this application? This can\'t be undone.')) return; await s.withdrawApp(b.dataset.id); toast('Application withdrawn'); P.mine = null; }
   } catch (err) { toast((err.code || err.message), 'err'); }
   LG.render(false);
 });
