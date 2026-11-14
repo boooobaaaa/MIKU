@@ -2811,3 +2811,6 @@ button.gd-card:hover .gd-pt.d { transform: translate(-6px, 18px) rotate(90deg); 
 .gd-card.r-icon     { padding: 8px; }
 .gd-card.r-icon::before { background: radial-gradient(circle, rgba(255, 255, 255, .5) 0.8px, transparent 1.3px) 0 0 / 7px 7px, conic-gradient(from var(--gd-ang), #ffe7b8, #ffc6dc, #d6c9ff, #b9ebe0, #fff0b0, #ffc6dc, #ffe7b8); }
 .gd-back { inset: 8px; }
+
+/* anything the site hides with the hidden attribute stays hidden, even when a style gives it display:flex/grid */
+[hidden] { display: none !important; }

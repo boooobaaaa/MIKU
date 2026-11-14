@@ -1289,8 +1289,11 @@ function teamLineup(d, T, st) {
   if (tp) people.push([tp, 'Team principal']);
   (S2.race || []).filter(named).forEach(x => people.push([x, 'Race engineer']));
   (S2.perf || []).filter(named).forEach(x => people.push([x, 'Performance engineer']));
-  const resolve = x => { const r = x.driverId ? byId(d.drivers, x.driverId) : null; return r ? { ...r } : { id: '', name: x.name, number: x.number, country: x.country, photo: x.photo }; };
-  const benchIds = new Set((S2.reserves || []).map(x => x && x.driverId).filter(Boolean));
+  // a personnel entry typed in by hand is matched to the driver with the same name, so it links to their profile and isn't shown twice
+  const byName = n => d.drivers.find(z => String(z.name || '').trim().toLowerCase() === String(n || '').trim().toLowerCase());
+  const linkId = x => x && (x.driverId || ((byName(x.name) || {}).id) || '');
+  const resolve = x => { const r = linkId(x) ? byId(d.drivers, linkId(x)) : null; return r ? { ...r } : { id: '', name: x.name, number: x.number, country: x.country, photo: x.photo }; };
+  const benchIds = new Set((S2.reserves || []).map(linkId).filter(Boolean));
   const bench = [...(S2.reserves || []).filter(named).map(x => [resolve(x), 'Reserve driver']), ...lineup.extra.filter(p => !benchIds.has(p.id)).map(p => [{ ...p }, 'Reserve driver']), ...(S2.academy || []).filter(named).slice(0, 1).map(x => [resolve(x), 'Academy driver'])];
   return `<div class="dw-grid">${drs.length ? drs.map(p => wideDriverCard(d, p, T, st)).join('') : empty('No drivers signed')}</div>
     ${people.length ? `<div class="section-title" style="margin-top:34px"><h2>Team personnel</h2></div><div class="st-grid">${people.map(([x, r]) => staffCard(d, x, r, T)).join('')}</div>` : ''}
