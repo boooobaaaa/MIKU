@@ -155,7 +155,7 @@ function openDP(btn) {
   closeDP();
   const d = LG.S.data, form = btn.closest('form'), inp = form.querySelector(`input[name="${btn.dataset.dpick}"]`);
   const drivers = d.drivers.filter(x => x.active !== false).slice().sort((a, b) => (parseInt(a.number, 10) || 999) - (parseInt(b.number, 10) || 999));
-  const taken = btn.dataset.dpick.startsWith('p') ? ['p1', 'p2', 'p3'].filter(k => k !== btn.dataset.dpick).map(k => form.querySelector(`input[name="${k}"]`).value) : [];
+  const taken = ['p1', 'p2', 'p3'].includes(btn.dataset.dpick) ? ['p1', 'p2', 'p3'].filter(k => k !== btn.dataset.dpick).map(k => form.querySelector(`input[name="${k}"]`).value) : [];
   const el = document.createElement('div'); el.className = 'dpick-pop';
   el.innerHTML = `<input type="search" placeholder="Search drivers…" autocomplete="off"><div class="dpick-list">${drivers.map(x => { const t = byId(d.teams, x.teamId); return `<button type="button" data-id="${esc(x.id)}" class="${x.id === inp.value ? 'on' : ''} ${taken.includes(x.id) ? 'taken' : ''}" data-s="${esc((x.name + ' ' + (x.number ?? '') + ' ' + (t ? t.name : '')).toLowerCase())}" style="--tc:${esc(LG.teamColor(t))}">${LG.avatar(x, t)}<span class="dp-num mono">${esc(numTxt(x))}</span><span class="dp-nm">${LG.nameHTML(x.name)}<small>${esc(t ? t.name : x.reserve ? 'Reserve' : '')}${taken.includes(x.id) ? ' · already on your podium' : ''}</small></span></button>`; }).join('')}</div>`;
   document.body.appendChild(el);

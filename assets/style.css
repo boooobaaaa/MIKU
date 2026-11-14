@@ -2958,3 +2958,12 @@ details.ms[open] .ms-car { transform: rotate(180deg); }
 .acc-claims, .acc-claims > .fld { min-width: 0; }
 .ms-qw .ms-q { border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 9px 0 !important; height: auto !important; border-radius: 0 !important; }
 .ms-qw:focus-within { border-color: var(--miku); }
+
+/* home: Predictions game card */
+.game-btn.pr { background: linear-gradient(120deg, color-mix(in srgb, #e9c98a 16%, var(--card-solid)), color-mix(in srgb, #f4a6c6 10%, var(--card))); }
+.game-btn.pr .game-ic { background: color-mix(in srgb, #e9c98a 22%, transparent); color: #e9c98a; }
+.game-btn.pr .game-ic svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.game-btn.pr .game-ic svg .fill { fill: currentColor; stroke: none; }
+:root[data-theme="light"] .game-btn.pr .game-ic { color: #a67c2e; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .game-btn.pr .game-ic { color: #a67c2e; } }
+@media (min-width: 1100px) { .games:has(.game-btn:nth-child(3)) { grid-template-columns: repeat(3, 1fr); } .games:has(.game-btn:nth-child(3)) .game-btn { padding: 18px 20px; gap: 14px; } }

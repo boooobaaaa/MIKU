@@ -691,7 +691,7 @@ function pageHome(d) {
       </div>
       ${nextCard}
     </section>
-    ${(() => { const g = [d.fantasy && d.fantasy.enabled ? ['#/fantasy', 'Fantasy', `Build a ${d.fantasy.budget || 100}M team and climb the global leaderboard.`, '★', 'ft'] : null, d.gridDraft && d.gridDraft.enabled ? ['#/griddraft', 'Grid Draft', 'Two cards, one choice, three times. Draft the highest-scoring team.', '⇄', 'gd'] : null].filter(Boolean);
+    ${(() => { const g = [d.fantasy && d.fantasy.enabled ? ['#/fantasy', 'Fantasy', `Build a ${d.fantasy.budget || 100}M team and climb the global leaderboard.`, '★', 'ft'] : null, d.gridDraft && d.gridDraft.enabled ? ['#/griddraft', 'Grid Draft', 'Two cards, one choice, three times. Draft the highest-scoring team.', '⇄', 'gd'] : null, d.predictions && d.predictions.enabled ? ['#/predictions', 'Predictions', 'Call the podium, pole and fastest lap before every race.', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 20V10h6v10M3 20v-6h6M15 20v-8h6v8M2 20h20"/><path d="m12 3 .9 1.9 2.1.3-1.5 1.5.4 2.1-1.9-1-1.9 1 .4-2.1L9 5.2l2.1-.3Z" class="fill"/></svg>', 'pr'] : null].filter(Boolean);
       return g.length ? `<section class="games">${g.map(([h, t, sub, ic, k]) => `<a class="game-btn ${k}" href="${h}"><span class="game-ic">${ic}</span><span><b>${t.toUpperCase()}</b><small>${sub}</small></span><span class="game-go">PLAY →</span></a>`).join('')}</section>` : ''; })()}
 
     ${homeSlides(d, 'top')}
