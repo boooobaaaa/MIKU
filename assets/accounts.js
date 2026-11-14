@@ -12,19 +12,32 @@
 const LG = window.LG;
 const { esc, byId, toast, nameHTML, teamColor, fmtPts } = LG;
 const TOK = 'league.dc.token', USR = 'league.dc.user', STATE = 'league.dc.state', ERR = 'league.dc.err';
+// the login "state" is kept in localStorage (not just this tab) so it survives Discord sending people back in a new tab
+const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }, del(k) { try { localStorage.removeItem(k); } catch (e) { } } };
 const ss = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { } }, del(k) { try { sessionStorage.removeItem(k); } catch (e) { } } };
 
 /* ---- 1. catch Discord's redirect back (before the router sees the #access_token=… hash) ---- */
+/* Accept the state we sent from this browser (any tab). If this browser never started a login
+   (phones often finish Discord's login in a different browser or tab), still accept it: the player sees
+   which Discord account came back ("Not you?") and an admin approves every link anyway. */
+function stateOk(st) {
+  if (!st) return false;
+  const saved = [ss.get(STATE)];
+  try { const x = JSON.parse(ls.get(STATE) || 'null'); if (x && x.exp > Date.now()) saved.push(x.v); } catch (e) { }
+  const known = saved.filter(Boolean);
+  return !known.length || known.includes(st);
+}
 function catchReturn() {
   const h = location.hash || '';
   if (!/(^#|&)(access_token|error)=/.test(h)) return;
+  if (catchReturn.done === h) return; catchReturn.done = h; // the same return can arrive twice (load + hashchange)
   const q = new URLSearchParams(h.slice(1));
   if (q.get('error')) ss.set(ERR, q.get('error') === 'access_denied' ? 'You cancelled the Discord sign-in.' : (q.get('error_description') || q.get('error')));
-  else if (q.get('access_token') && q.get('state') && q.get('state') === ss.get(STATE)) {
+  else if (q.get('access_token') && stateOk(q.get('state'))) {
     ss.set(TOK, JSON.stringify({ t: q.get('access_token'), type: q.get('token_type') || 'Bearer', exp: Date.now() + (Number(q.get('expires_in')) || 600) * 1000 }));
     ss.del(USR);
   } else ss.set(ERR, 'That Discord sign-in couldn’t be verified — please try again.');
-  ss.del(STATE);
+  ss.del(STATE); ls.del(STATE);
   history.replaceState(null, '', location.pathname + location.search + '#/account');
   if (window.LG && LG.S && LG.S.data) setTimeout(() => LG.render(false), 0);
 }
@@ -43,7 +56,7 @@ function startDiscord(d) {
   const c = cfg(d);
   if (!c.discordClientId) return toast('Discord linking isn’t set up yet — ask an admin.', 'err');
   const st = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
-  ss.set(STATE, st);
+  ss.set(STATE, st); ls.set(STATE, JSON.stringify({ v: st, exp: Date.now() + 20 * 60 * 1000 }));
   location.href = 'https://discord.com/oauth2/authorize?' + new URLSearchParams({ client_id: c.discordClientId, response_type: 'token', redirect_uri: redirectUri(), scope: 'identify', state: st }).toString();
 }
 const DC = { user: null, loading: false };
@@ -151,11 +164,15 @@ function page(d) {
       })()}
       <div class="toolbar"><button class="btn sm ghost" data-ac="unlink">Unlink Discord</button></div>`;
   else if (l && l.status === 'pending') link = `<div class="ac-linked">${dcFace(l, 'lg')}<div><b>${esc(l.discordName)}</b><span class="muted">@${esc(l.discordUser)}</span><span class="ac-st wait">⏳ Waiting for an admin to approve</span></div></div>
-      <p class="muted">${drv ? `You asked to claim <b>${esc(drv.name)}</b>. ` : ''}You’ll see the verified tick here once it's approved.</p><div class="toolbar"><button class="btn sm ghost" data-ac="unlink">Cancel request</button></div>`;
+      <p class="muted">Your Discord is saved to your account — you won't need to link it again. You’ll see the verified mark here once an admin approves it.</p>
+      <form class="ac-form" data-form="ac-link"><label class="fld"><span>Are you one of the league's drivers? Claim your profile</span><select name="drv">${driverOptions(d, ME.pick || l.driverId || '')}</select></label>
+      <button class="btn">${l.driverId ? 'Update claim' : 'Save claim'}</button></form>
+      <div class="toolbar"><button class="btn sm ghost" data-ac="unlink">Cancel request</button></div>`;
   else {
     const du = discordUser();
     const denied = l && l.status === 'denied' ? `<div class="warn">Your last request wasn't approved${l.note ? `: “${esc(l.note)}”` : '.'} You can try again.</div>` : '';
-    if (du === 'loading') link = denied + '<p class="muted">Reading your Discord profile…</p>';
+    if (du && du !== 'loading' && l !== undefined && !(l && l.status === 'denied')) { autoSave(d, s, du); link = '<p class="muted">Saving your Discord link…</p>'; }
+    else if (du === 'loading') link = denied + '<p class="muted">Reading your Discord profile…</p>';
     else if (du) link = denied + `<div class="ac-linked">${dcFace({ discordId: du.id, discordAvatar: du.avatar }, 'lg')}<div><b>${esc(du.name)}</b><span class="muted">@${esc(du.username)}</span><button class="linkish" data-ac="redo">Not you? Use a different Discord</button></div></div>
       <form class="ac-form" data-form="ac-link"><label class="fld"><span>Are you one of the league's drivers? Claim your profile</span><select name="drv">${driverOptions(d, ME.pick || (l && l.driverId) || '')}</select></label>
       <button class="btn primary">Send for approval</button></form><p class="hint">An admin checks that this Discord account belongs to you before it counts.</p>`;
@@ -244,16 +261,27 @@ document.addEventListener('submit', async e => {
   } catch (x) { toast(x.code === 'name-locked' ? 'An admin has locked this name.' : 'Couldn’t save: ' + (x.message || x.code) + (/permission/i.test(x.code || x.message) ? ' — the league admin may need to update the Firebase rules.' : ''), 'err'); }
   btn.disabled = false; LG.render(false);
 });
+/* as soon as Discord sends someone back, save the link to their account (pending approval) — no extra step to forget */
+const AUTO = { busy: '' };
+function autoSave(d, s, du) {
+  if (AUTO.busy === du.id + s.user.uid) return; AUTO.busy = du.id + s.user.uid;
+  s.requestLink({ discordId: du.id, discordName: du.name.slice(0, 80), discordUser: du.username.slice(0, 40), discordAvatar: du.avatar.slice(0, 80), driverId: ME.pick || '' }, ME.link)
+    .then(() => s.myLink()).then(l => { ME.link = l; ss.del(TOK); ss.del(USR); DC.user = null; toast('Discord linked — an admin will approve it soon.'); })
+    .catch(x => { AUTO.busy = ''; ss.del(TOK); ss.del(USR); DC.user = null; toast('Couldn’t save your Discord link: ' + (x.code || x.message) + (/permission/i.test(x.code || x.message) ? ' — the league admin may need to update the Firebase rules.' : ''), 'err'); })
+    .finally(() => LG.render(false));
+}
 document.addEventListener('submit', async e => {
   if (e.target.dataset.form !== 'ac-link') return;
   e.preventDefault();
-  const d = LG.S.data, s = store(d), du = discordUser();
-  if (!s || !s.user || !du || du === 'loading') return;
+  const d = LG.S.data, s = store(d), du = discordUser(), L = ME.link;
+  if (!s || !s.user) return;
+  const src = du && du !== 'loading' ? { discordId: du.id, discordName: du.name, discordUser: du.username, discordAvatar: du.avatar } : L && L.status === 'pending' ? L : null;
+  if (!src) return;
   const btn = e.target.querySelector('button'); btn.disabled = true;
   try {
-    await s.requestLink({ discordId: du.id, discordName: du.name.slice(0, 80), discordUser: du.username.slice(0, 40), discordAvatar: du.avatar.slice(0, 80), driverId: e.target.drv.value || '' }, ME.link);
+    await s.requestLink({ discordId: src.discordId, discordName: String(src.discordName || '').slice(0, 80), discordUser: String(src.discordUser || '').slice(0, 40), discordAvatar: String(src.discordAvatar || '').slice(0, 80), driverId: e.target.drv.value || '' }, L);
     ME.link = await s.myLink(); ME.pick = '';
-    toast('Sent! An admin will approve your link soon.');
+    toast(L && L.status === 'pending' ? 'Saved — your claim is updated.' : 'Sent! An admin will approve your link soon.');
     LG.render(false);
   } catch (x) { btn.disabled = false; toast('Couldn’t send: ' + (x.code || x.message) + (/permission/i.test(x.code || x.message) ? ' — the league admin may need to update the Firebase rules.' : ''), 'err'); }
 });
