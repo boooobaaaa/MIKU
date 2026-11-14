@@ -2213,6 +2213,37 @@ function applyTitleCase(root) {
   });
 }
 
+/* ---- in-place page updates (Console) ----
+   Instead of throwing the whole page away on every edit (which makes photos flicker and loses focus),
+   compare the new HTML with what's on screen and only touch what changed. */
+function morphHTML(root, html) {
+  const tpl = document.createElement('div'); tpl.innerHTML = html;
+  morphChildren(root, tpl);
+}
+function morphChildren(from, to) {
+  const a = [...from.childNodes], b = [...to.childNodes];
+  b.forEach((t, i) => {
+    const f = a[i];
+    if (!f) { from.appendChild(t); return; }
+    if (f.nodeType !== t.nodeType || (f.nodeType === 1 && (f.tagName !== t.tagName || (f.getAttribute('data-key') || '') !== (t.getAttribute('data-key') || '') || f.tagName === 'SCRIPT'))) { from.replaceChild(t, f); return; }
+    if (f.nodeType === 3 || f.nodeType === 8) { if (f.nodeValue !== t.nodeValue) f.nodeValue = t.nodeValue; return; }
+    morphEl(f, t);
+  });
+  for (let i = b.length; i < a.length; i++) a[i].remove();
+}
+function morphEl(f, t) {
+  for (const at of [...f.attributes]) if (!t.hasAttribute(at.name)) f.removeAttribute(at.name);
+  for (const at of [...t.attributes]) if (f.getAttribute(at.name) !== at.value) f.setAttribute(at.name, at.value);
+  const tag = f.tagName;
+  if (tag === 'TEXTAREA') { if (document.activeElement !== f && f.value !== t.value) f.value = t.value; return; }
+  morphChildren(f, t);
+  if (tag === 'INPUT') {
+    if (f.type === 'checkbox' || f.type === 'radio') f.checked = t.checked;
+    else if (document.activeElement !== f && f.type !== 'file' && f.value !== t.value) f.value = t.value;
+  } else if (tag === 'SELECT') { if (f.selectedIndex !== t.selectedIndex) f.selectedIndex = t.selectedIndex; }
+  else if (tag === 'DETAILS') f.open = t.open;
+}
+
 function render(resetScroll) {
   if (!S.data) return;
   const path = decodeURIComponent(location.hash.replace(/^#\/?/, '')).replace(/\/$/, '');
@@ -2221,7 +2252,10 @@ function render(resetScroll) {
   const data = S.archive && X && !X.LIVE_ROUTES.test(path) ? S.archive.data : S.data;
   for (const [re, fn] of ROUTES) { const m = path.match(re); if (m) { html = fn(data, m); break; } }
   chrome();
-  document.getElementById('app').innerHTML = html ?? notFound();
+  const appEl = document.getElementById('app');
+  if (/^admin/.test(path) && appEl.dataset.route === path.split('/')[0] + '/' + (path.split('/')[1] || '') && appEl.firstElementChild) morphHTML(appEl, html ?? notFound());
+  else appEl.innerHTML = html ?? notFound();
+  appEl.dataset.route = path.split('/')[0] + '/' + (path.split('/')[1] || '');
   document.getElementById('nav').classList.remove('open');
   updateDraftBanner();
   tick();
