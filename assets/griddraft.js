@@ -487,6 +487,8 @@ const rarityBadge = r => `<span class="gd-rar r-${r}">${R_LABEL[r] || ''}</span>
 const SAKURA_PETAL = 'M0 0C-7.5-5-9-14.5-4.2-20.5L0-17.2L4.2-20.5C9-14.5 7.5-5 0 0Z';
 const sakuraMark = (cls = '') => `<svg class="gd-sakura ${cls}" viewBox="-24 -24 48 48" aria-hidden="true">${[0, 72, 144, 216, 288].map(a => `<path d="${SAKURA_PETAL}" transform="rotate(${a})"/>`).join('')}<circle r="3.4"/></svg>`;
 const cardBack = () => `<div class="gd-back" aria-hidden="true"><div class="gd-back-in">${sakuraMark()}<b>GRID<br>DRAFT</b><span>${esc((LG.S.data.league || {}).name || '')}</span></div></div>`;
+/* sakura decoration shared by every card face: a faint watermark blossom, corner blossoms and a few drifting petals */
+const cardDeco = () => `<div class="gd-deco" aria-hidden="true">${sakuraMark('gd-wm')}${sakuraMark('gd-c1')}${sakuraMark('gd-c2')}<i class="gd-pt a"></i><i class="gd-pt b"></i><i class="gd-pt c"></i><i class="gd-pt d"></i></div>`;
 const edStamp = x => x.edition ? `<span class="gd-ed">${esc(x.edition)}</span>` : '';
 const R_ORDER = { icon: 5, prime: 4, elite: 3, advanced: 2, basic: 1 };
 function cardHTML(x, opts = {}) {
@@ -496,9 +498,9 @@ function cardHTML(x, opts = {}) {
   const attrs = opts.button ? `data-gd-pick="${esc(x.id)}" ${opts.selected ? 'aria-pressed="true"' : ''}` : '';
   if (x.type === 'driver') {
     return `<${tag} class="gd-card r-${x.rarity} ${opts.selected ? 'sel' : ''} ${opts.cls || ''}" style="--tc:${esc(x.color)}" ${attrs}>${cardBack()}
-      <div class="gd-card-in"><i class="gd-holo"></i>
+      <div class="gd-card-in"><i class="gd-holo"></i>${cardDeco()}
         <div class="gd-top">${rarityBadge(x.rarity)}<span class="gd-season">${esc(LG.seasonName(x.season))}</span></div>
-        <div class="gd-photo">${edStamp(x)}${x.photo ? `<img src="${esc(LG.asset(x.photo))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
+        <div class="gd-photo"><i class="gd-moon"></i><i class="gd-floor"></i>${edStamp(x)}${x.photo ? `<img src="${esc(LG.asset(x.photo))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
         <div class="gd-info">
           <div class="gd-name">${nameHTML(x.name)}${hasVal(x.number) ? `<span class="gd-no">#${esc(x.number)}</span>` : ''}</div>
           <div class="gd-meta">${flag(x.country)}${x.country ? `<span>${esc(String(x.country).toUpperCase())}</span>` : ''}${x.rating !== null ? `<span class="gd-rating">${esc(x.rating)} OVR</span>` : ''}</div>
@@ -508,9 +510,9 @@ function cardHTML(x, opts = {}) {
       </div></${tag}>`;
   }
   return `<${tag} class="gd-card con r-${x.rarity} ${opts.selected ? 'sel' : ''} ${opts.cls || ''}" style="--tc:${esc(x.color)}" ${attrs}>${cardBack()}
-    <div class="gd-card-in"><i class="gd-holo"></i>
+    <div class="gd-card-in"><i class="gd-holo"></i>${cardDeco()}
       <div class="gd-top">${rarityBadge(x.rarity)}<span class="gd-season">${esc(LG.seasonName(x.season))}</span></div>
-      <div class="gd-photo con"><span class="gd-ctag">Constructor</span>${edStamp(x)}${x.logo ? `<img class="gd-logo" src="${esc(LG.asset(x.logo))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${x.car ? `<img class="gd-car" src="${esc(LG.asset(x.car))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
+      <div class="gd-photo con"><i class="gd-moon"></i><span class="gd-ctag">Constructor</span>${edStamp(x)}${x.logo ? `<img class="gd-logo" src="${esc(LG.asset(x.logo))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${x.car ? `<img class="gd-car" src="${esc(LG.asset(x.car))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>
       <div class="gd-info">
         <div class="gd-name con">${esc(x.name)}</div>
         <div class="gd-meta">${flag(x.country)}${x.country ? `<span>${esc(String(x.country).toUpperCase())}</span>` : ''}</div>
@@ -803,5 +805,5 @@ setInterval(() => {
 }, 1000);
 window.addEventListener('hashchange', () => { if (/^#\/griddraft\/?$/.test(location.hash)) { G.lb = null; } if (/^#\/griddraft\/history/.test(location.hash)) G.hist = null; });
 
-window.GridDraft = { page, buildCards, snapshotSet, saveSet, seasonOpt, assignRarity, probabilities, drawPair, teamScore, rulesText, parseFirebaseConfig, store, cfg, DEFAULTS, R_LABEL, RARITIES, periodInfo, G };
+window.GridDraft = { cardHTML, page, buildCards, snapshotSet, saveSet, seasonOpt, assignRarity, probabilities, drawPair, teamScore, rulesText, parseFirebaseConfig, store, cfg, DEFAULTS, R_LABEL, RARITIES, periodInfo, G };
 })();
