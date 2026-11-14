@@ -1429,21 +1429,27 @@ document.addEventListener('input', e => { if (e.target.id !== 'nm-q') return; AC
 /* checkbox dropdown: tick every personnel card (role · team) this account is */
 function staffPicker(d, x) {
   const all = LG.staffEntries(d), mine = all.filter(e => e.x.discord && e.x.discord.uid === x.uid);
-  const sum = mine.length ? mine.map(e => e.role).join(', ') : 'Not team personnel';
+  const chip = e => `<span class="ms-chip" style="--tc:${esc(LG.teamColor(e.team))}">${LG.teamLogo(e.team, 'xs')}<span>${esc(e.role)}</span></span>`;
+  const ini = n => String(n || '').split(/\s+/).map(z => z[0] || '').join('').slice(0, 2).toUpperCase();
   const byTeam = {}; all.forEach(e => (byTeam[e.team.id] = byTeam[e.team.id] || { t: e.team, list: [] }).list.push(e));
+  const tick = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
   return `<div class="fld acc-drv"><span>Team Profile cards</span><details class="ms" id="acc-staff-${esc(x.uid)}">
-    <summary><span class="ms-sum ${mine.length ? '' : 'muted'}">${esc(sum)}</span>${mine.length > 1 ? `<b class="ms-n">${mine.length}</b>` : ''}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
-    <div class="ms-pop">${all.length > 8 ? '<input type="text" class="ms-q" placeholder="Search names, roles, teams…" autocomplete="off" spellcheck="false">' : ''}
-      ${Object.values(byTeam).map(g => `<div class="ms-g"><div class="ms-gh">${LG.teamLogo(g.t)}${esc(g.t.name)}</div>${g.list.map(e => { const own = e.x.discord && e.x.discord.uid === x.uid, other = e.x.discord && !own ? e.x.discord : null;
-        return `<label class="ms-o" data-s="${esc((e.x.name + ' ' + e.role + ' ' + e.team.name).toLowerCase())}"><input type="checkbox" value="${esc(e.path)}" data-l="${esc(e.role)}" ${own ? 'checked' : ''}><span><b>${esc(e.role)}</b><small>${esc(e.x.name)}${other ? ' · claimed by ' + esc(other.name || 'someone') : ''}</small></span></label>`; }).join('')}</div>`).join('') || '<p class="muted" style="margin:6px 10px">No personnel added to any team yet.</p>'}
+    <summary><span class="ms-sum">${mine.length ? mine.map(chip).join('') : '<span class="ms-none">Not team personnel</span>'}</span><svg class="ms-car" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+    <div class="ms-pop"><div class="ms-top"><span class="ms-title">Team Profile cards</span><span class="ms-count">${mine.length} selected</span></div>
+      ${all.length > 6 ? '<label class="ms-qw"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg><input type="text" class="ms-q" placeholder="Search names, roles, teams…" autocomplete="off" spellcheck="false"></label>' : ''}
+      <div class="ms-list">${Object.values(byTeam).map(g => `<div class="ms-g" style="--tc:${esc(LG.teamColor(g.t))}"><div class="ms-gh">${LG.teamLogo(g.t, 'xs')}<span>${esc(g.t.name)}</span></div>${g.list.map(e => { const own = e.x.discord && e.x.discord.uid === x.uid, other = e.x.discord && !own ? e.x.discord : null, w = e.x.driverId && LG.byId(d.drivers, e.x.driverId);
+        return `<label class="ms-o" data-s="${esc((e.x.name + ' ' + e.role + ' ' + e.team.name).toLowerCase())}"><input type="checkbox" value="${esc(e.path)}" ${own ? 'checked' : ''}>
+          <span class="avatar ms-av">${e.x.photo ? `<img src="${esc(LG.asset(e.x.photo))}" alt="" loading="lazy" onerror="this.remove()">` : esc(ini(e.x.name))}</span>
+          <span class="ms-txt"><span class="ms-role">${esc(e.role)}</span><span class="ms-name">${LG.nameHTML(e.x.name)}</span>${w || other ? `<span class="ms-sub">${w ? `with #${esc(w.number ?? '')} ${esc(String(w.name).split(' ').pop())}` : ''}${w && other ? ' · ' : ''}${other ? `<span class="ms-taken">Linked to ${esc(other.name || 'someone')}</span>` : ''}</span>` : ''}</span>
+          <span class="ms-box">${tick}</span>${chip(e)}</label>`; }).join('')}</div>`).join('') || '<p class="muted" style="margin:10px">No personnel added to any team yet.</p>'}</div>
     </div></details></div>`;
 }
 const staffPicked = uid => { const el = document.getElementById('acc-staff-' + uid); return el ? [...el.querySelectorAll('input[type=checkbox]:checked')].map(c => c.value) : null; };
 document.addEventListener('change', e => {
   const ms = e.target.closest && e.target.closest('details.ms'); if (!ms || e.target.type !== 'checkbox') return;
-  const on = [...ms.querySelectorAll('input[type=checkbox]:checked')], sum = ms.querySelector('.ms-sum'), n = ms.querySelector('.ms-n');
-  sum.textContent = on.length ? on.map(c => c.dataset.l).join(', ') : 'Not team personnel'; sum.classList.toggle('muted', !on.length);
-  if (on.length > 1) { if (n) n.textContent = on.length; else sum.insertAdjacentHTML('afterend', `<b class="ms-n">${on.length}</b>`); } else if (n) n.remove();
+  const on = [...ms.querySelectorAll('input[type=checkbox]:checked')], sum = ms.querySelector('.ms-sum');
+  sum.innerHTML = on.length ? on.map(c => c.parentNode.querySelector('.ms-chip').outerHTML).join('') : '<span class="ms-none">Not team personnel</span>';
+  ms.querySelector('.ms-count').textContent = on.length + ' selected';
 });
 document.addEventListener('input', e => { if (!e.target.classList || !e.target.classList.contains('ms-q')) return; const q = e.target.value.trim().toLowerCase(), ms = e.target.closest('details.ms');
   ms.querySelectorAll('.ms-o').forEach(o => { o.hidden = !!q && !o.dataset.s.includes(q); }); ms.querySelectorAll('.ms-g').forEach(g => { g.hidden = ![...g.querySelectorAll('.ms-o')].some(o => !o.hidden); }); });

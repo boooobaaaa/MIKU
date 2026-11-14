@@ -2898,34 +2898,63 @@ button.gd-card:hover .gd-pt.d { transform: translate(-6px, 18px) rotate(90deg); 
 .vtip b { font-weight: 700; }
 .vtip small { color: var(--muted); font-size: 12px; }
 
-/* ---- Console: personnel cards checkbox dropdown ---- */
-details.ms { position: relative; }
-details.ms > summary { list-style: none; display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 38px; padding: 7px 12px;
   border: 1px solid var(--line-strong); border-radius: 10px; background: var(--input-bg, transparent); font-size: 14px; }
-details.ms > summary::-webkit-details-marker { display: none; }
-details.ms > summary:focus-visible { outline: 2px solid var(--miku); outline-offset: 1px; }
-.ms-sum { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ms-n { flex: none; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; font-size: 11.5px; background: var(--miku); color: #06201f; }
-details.ms > summary svg { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; opacity: .7; transition: transform .15s; }
-details.ms[open] > summary svg { transform: rotate(180deg); }
-.ms-pop { position: absolute; z-index: 60; left: 0; right: 0; top: calc(100% + 6px); min-width: 260px; max-height: 340px; overflow: auto; padding: 6px;
   background: color-mix(in srgb, var(--card-solid) 94%, var(--miku) 6%); border: 1px solid var(--line-strong); border-radius: 14px; box-shadow: 0 18px 50px -14px rgba(0, 0, 0, .65); }
-.ms-q { width: 100%; margin: 2px 0 6px; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: inherit; font: inherit; font-size: 13.5px; }
-.ms-gh { display: flex; align-items: center; gap: 0; padding: 8px 8px 4px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.ms-gh .tlogo { width: 20px; height: 20px; border-radius: 6px; margin-right: 8px; }
-.ms-gh .swatch { margin-right: 8px; }
-.ms-o { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 9px; cursor: pointer; }
-.ms-o:hover { background: color-mix(in srgb, var(--miku) 10%, transparent); }
-.ms-o input { flex: none; width: 16px; height: 16px; margin: 0; accent-color: var(--miku); }
-.ms-o > span { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
-.ms-o b { font-size: 13.5px; font-weight: 600; }
-.ms-o small { font-size: 12px; color: var(--muted); }
-.acc-row details.ms > summary { min-height: 44px; color: var(--text); }
-details.ms > summary { color: var(--text); }
-.acc-claims, .acc-claims > .fld, details.ms, details.ms > summary { min-width: 0; }
-.acc-row .ms-pop { left: auto; right: 0; width: max(100%, 320px); }
 .ac-prof > .avatar { width: 34px; height: 34px; }
 .ac-profs { margin-bottom: 14px; }
 .ac-st-sk { display: inline-flex; align-items: center; gap: 5px; }
 .ac-st-sk svg { width: 14px; height: 14px; fill: #f4a6c6; }
 .ac-st-sk svg circle { fill: #fff3b8; }
+
+/* ---- Console: Team Profile cards picker ---- */
+details.ms { position: relative; min-width: 0; }
+details.ms > summary { list-style: none; display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 44px; padding: 6px 10px 6px 8px; min-width: 0;
+  border: 1px solid var(--line-strong); border-radius: 12px; background: color-mix(in srgb, var(--card-solid) 90%, transparent); color: var(--text); transition: border-color .15s, box-shadow .15s; }
+details.ms > summary::-webkit-details-marker { display: none; }
+details.ms > summary:hover { border-color: color-mix(in srgb, var(--miku) 45%, var(--line-strong)); }
+details.ms[open] > summary, details.ms > summary:focus-visible { outline: none; border-color: var(--miku); box-shadow: 0 0 0 3px color-mix(in srgb, var(--miku) 18%, transparent); }
+.ms-sum { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.ms-none { color: var(--muted); padding-left: 4px; font-size: 14px; }
+.ms-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 9px 3px 3px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+  background: color-mix(in srgb, var(--tc) 16%, transparent); border: 1px solid color-mix(in srgb, var(--tc) 45%, transparent); }
+.ms-chip > span { overflow: hidden; text-overflow: ellipsis; }
+.ms-chip .tlogo, .ms-chip .swatch { width: 20px; height: 20px; border-radius: 50%; margin: 0; }
+.ms-chip .tlogo.nologo { width: 20px; }
+.ms-car { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; opacity: .7; transition: transform .2s; }
+details.ms[open] .ms-car { transform: rotate(180deg); }
+.ms-pop { position: absolute; z-index: 60; right: 0; top: calc(100% + 8px); width: max(100%, 360px); max-width: calc(100vw - 24px); display: flex; flex-direction: column; max-height: 420px; overflow: hidden;
+  background: color-mix(in srgb, var(--card-solid) 94%, var(--miku) 6%); border: 1px solid var(--line-strong); border-radius: 16px;
+  box-shadow: 0 22px 60px -16px rgba(0, 0, 0, .7), 0 0 0 1px color-mix(in srgb, var(--miku) 8%, transparent); animation: msIn .16s ease-out; }
+@keyframes msIn { from { opacity: 0; transform: translateY(-4px) scale(.985); } }
+.ms-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 8px; }
+.ms-title { font-size: 10.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--accent-text); }
+.ms-count { font-size: 12px; color: var(--muted); }
+.ms-qw { display: flex; align-items: center; gap: 8px; margin: 0 10px 8px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
+.ms-qw svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; flex: none; }
+.ms-q { flex: 1; min-width: 0; padding: 8px 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13.5px; outline: none; }
+.ms-list { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0 8px 8px; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--miku) 35%, transparent) transparent; }
+.ms-g + .ms-g { margin-top: 6px; }
+.ms-gh { display: flex; align-items: center; gap: 9px; margin: 0 -2px 4px; padding: 8px 10px; border-radius: 10px;
+  font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--text);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 30%, var(--card-solid)), color-mix(in srgb, var(--tc) 8%, var(--card-solid))); border-left: 3px solid var(--tc); }
+.ms-gh > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-gh .tlogo, .ms-gh .swatch { width: 22px; height: 22px; border-radius: 7px; margin: 0; }
+.ms-o { position: relative; display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; transition: background .12s, border-color .12s; }
+.ms-o:hover { background: color-mix(in srgb, var(--tc) 9%, transparent); }
+.ms-o input { position: absolute; left: 12px; top: 50%; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+.ms-o:has(input:checked) { background: color-mix(in srgb, var(--tc) 14%, transparent); border-color: color-mix(in srgb, var(--tc) 50%, transparent); }
+.ms-o:has(input:focus-visible) { box-shadow: 0 0 0 2px var(--miku); }
+.ms-av { width: 38px; height: 38px; flex: none; font-size: 12px; border: 2px solid color-mix(in srgb, var(--tc) 70%, transparent); }
+.ms-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.ms-role { font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-text); }
+.ms-name { font-size: 14.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-sub { font-size: 12px; color: var(--muted); }
+.ms-taken { color: #e58cb1; }
+.ms-box { flex: none; width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; border: 1.5px solid var(--line-strong); transition: background .12s, border-color .12s, transform .12s; }
+.ms-box svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(.6); transition: opacity .12s, transform .12s; }
+.ms-o:has(input:checked) .ms-box { background: #f4a6c6; border-color: #f4a6c6; }
+.ms-o:has(input:checked) .ms-box svg { opacity: 1; transform: none; stroke: #3a1526; }
+.ms-o > .ms-chip { display: none; }
+.acc-claims, .acc-claims > .fld { min-width: 0; }
+.ms-qw .ms-q { border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 9px 0 !important; height: auto !important; border-radius: 0 !important; }
+.ms-qw:focus-within { border-color: var(--miku); }

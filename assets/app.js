@@ -1283,7 +1283,7 @@ function staffEntries(d) {
   const out = [];
   d.teams.forEach((t, ti) => {
     const st = t.staff || {};
-    const add = (x, key, k) => { if (x && x.name && !x.driverId) out.push({ team: t, path: `teams.${ti}.staff.${key}${k === undefined ? '' : '.' + k}`, x, role: key === 'exec' ? (x.title || STAFF_ROLE.exec) : STAFF_ROLE[key] }); };
+    const add = (x, key, k) => { if (x && x.name) out.push({ team: t, path: `teams.${ti}.staff.${key}${k === undefined ? '' : '.' + k}`, x, role: key === 'exec' ? (x.title || STAFF_ROLE.exec) : STAFF_ROLE[key] }); };
     add(st.exec, 'exec'); add(st.principal, 'principal');
     (st.race || []).forEach((x, k) => add(x, 'race', k)); (st.perf || []).forEach((x, k) => add(x, 'perf', k));
   });
