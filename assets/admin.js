@@ -22,7 +22,7 @@ function combo(path, val, options, ph = '') {
 const SECTIONS = [
   ['dashboard', 'Dashboard', '◈'], ['league', 'League & rules', '✦'], ['theme', 'Look & theme', '✿'], ['drivers', 'Drivers', '◉'], ['teams', 'Constructors', '▣'],
   ['calendar', 'Calendar', '◷'], ['results', 'Results', '▤'], ['scoring', 'Scoring system', '✚'], ['adjust', 'Penalties & points', '±'],
-  ['stewards', 'KIRA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['applications', 'Applications', '✍'], ['predictions', 'Predictions', '🔮'], ['gallery', 'Gallery', '▦'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['accounts', 'Accounts', '◎'], ['publish', 'Publish & backup', '⇪']
+  ['stewards', 'KIRA', '⚑'], ['news', 'News posts', '✎'], ['rulebook', 'Rulebook', '§'], ['about', 'About page', 'ⓘ'], ['fantasy', 'Fantasy league', '★'], ['griddraft', 'Grid Draft', '⇄'], ['portal', 'Team portal', '✉'], ['applications', 'Applications', '✍'], ['predictions', 'Predictions', '🔮'], ['gallery', 'Gallery', '▦'], ['slideshow', 'Home slideshow', '◧'], ['seasons', 'Seasons', '⟲'], ['signups', 'Sign-ups', '✋'], ['history', 'Hall of fame', '♛'], ['access', 'Admin team', '⚿'], ['accounts', 'Accounts', '◎'], ['publish', 'Publish & backup', '⇪']
 ];
 const STATUSES = ['FIN', 'DNF', 'DSQ', 'DNS', 'NS'];
 /* recommended image sizes — shown under each upload field and checked on upload */
@@ -35,6 +35,7 @@ const IMG_SPECS = {
   cover: { w: 1600, h: 900, fmt: '16:9 JPG or PNG', note: 'cards crop the edges a little, so keep the subject near the middle', fit: 'cover' },
   og: { w: 1200, h: 630, fmt: 'JPG or PNG', note: 'the standard size for link previews on Discord and social apps', fit: 'cover' },
   clockLogo: { w: 256, h: 256, fmt: 'square PNG, transparent background', note: 'shown small next to the clocks' },
+  slide: { w: 1920, h: 840, fmt: 'wide JPG or PNG', note: 'shown wide across the home page — you can fine-tune the position and zoom afterwards', fit: 'cover' },
   favicon: { w: 256, h: 256, fmt: 'square PNG (transparent is fine)', note: 'shown tiny in the browser tab, so keep it simple and bold — a symbol or 1–2 letters reads best. Leave empty to use the league logo' }
 };
 const TZ_OPTS = [['', 'Auto (from country code)'], ['Asia/Bahrain', 'Bahrain'], ['Asia/Riyadh', 'Saudi Arabia'], ['Australia/Melbourne', 'Melbourne'], ['Asia/Tokyo', 'Japan'], ['Asia/Shanghai', 'China'],
@@ -874,6 +875,65 @@ function secGallery(d) {
         <div class="prow-act">${mvBtns('gallery', k, g.length)}<button class="iconbtn del" data-act="gal-del" data-i="${k}" title="Remove from gallery">✕</button></div></div>`).join('')}</div>` : '<p class="muted">No photos yet.</p>'}</div>`;
 }
 
+/* ---------------- home page slideshow ---------------- */
+const SSA = { gal: false };
+function secSlideshow(d) {
+  const c = d.slideshow = Object.assign({ enabled: false, title: 'From the paddock', interval: 6, position: 'top', aspect: '16/7', items: [] }, d.slideshow || {});
+  const items = c.items = c.items || [], rs = LG.rounds(d), gal = d.gallery || [];
+  const used = new Set(items.map(x => x.src));
+  const card = (x, k) => `<div class="ss-item">
+      <div class="ss-prev" data-ss-drag="${k}" style="--hs-ar:${esc(c.aspect)}" title="Drag to reposition">${LG.slideImg(x, 'ss-img')}<span class="ssa-no">${k + 1}</span><span class="ss-hint">✥ Drag to reposition</span>
+        ${LG.slideLabel(d, x) || x.caption ? `<div class="ss-cap">${LG.slideLabel(d, x) ? `<span class="hs-ev">${LG.slideLabel(d, x)}</span>` : ''}${x.caption ? `<b>${esc(x.caption)}</b>` : ''}</div>` : ''}</div>
+      <div class="ss-zoom"><span>Zoom</span><input type="range" min="1" max="2.5" step="0.05" value="${esc(x.zoom || 1)}" data-ss-zoom="${k}" aria-label="Zoom"><b class="mono">${(Number(x.zoom) || 1).toFixed(2)}×</b>
+        <button class="btn xs" data-act="ss-center" data-i="${k}" title="Back to the middle, no zoom">↺ Reset</button><button class="btn xs" data-act="adjust" data-target="slideshow.items.${k}.src" data-folder="slides" data-spec="slide" title="Crop the photo file itself">✂ Re-crop</button></div>
+      <div class="fgrid ss-fields">
+        ${F.text('Short description', `slideshow.items.${k}.caption`, x.caption || '', 'wide maxlength="120" placeholder="e.g. Lights out at Imola"')}
+        ${F.select('Round', `slideshow.items.${k}.roundId`, x.roundId || '', [['', '— Not a round —'], ...rs.map(r => [r.id, `R${r.round} · ${r.name}`])])}
+        ${x.roundId ? '' : F.text('Event (if not a round)', `slideshow.items.${k}.event`, x.event || '', 'maxlength="40" placeholder="e.g. Pre-season testing"')}
+        ${F.text('Photo credit (optional)', `slideshow.items.${k}.credit`, x.credit || '', 'maxlength="40"')}
+      </div>
+      <div class="ss-act">${F.check('Hide for now', `slideshow.items.${k}.hidden`, !!x.hidden)}<span style="flex:1"></span>${mvBtns('slideshow.items', k, items.length)}<button class="iconbtn del" data-act="ss-del" data-i="${k}" title="Remove from the slideshow">✕</button></div>
+    </div>`;
+  return head('Home slideshow', 'A rotating strip of league photos on the home page. Upload photos (or pick them from the Gallery), drag each one to frame it, add a short description and the round or event it was taken at, and set the order with ↑ ↓.', '<a class="btn" href="#/">View home page</a>') + `
+    <div class="a-card"><div class="fgrid">
+      ${F.check('Show the slideshow on the home page', 'slideshow.enabled', c.enabled)}
+      ${F.text('Section title (optional)', 'slideshow.title', c.title || '', 'placeholder="From the paddock"')}
+      ${F.num('Seconds per photo', 'slideshow.interval', c.interval, 'min="2" max="30" step="1"')}
+      ${F.select('Where on the home page', 'slideshow.position', c.position, [['top', 'Near the top (under the hero)'], ['middle', 'Under the standings'], ['bottom', 'Above Latest news']])}
+      ${F.select('Shape', 'slideshow.aspect', c.aspect, [['16/7', 'Wide (16:7)'], ['16/9', 'Standard (16:9)'], ['21/9', 'Cinematic (21:9)'], ['3/2', 'Photo (3:2)']])}
+    </div></div>
+    <div class="a-card"><div class="toolbar"><button class="btn sm primary" data-act="upload" data-mode="slides" data-folder="slides" data-max="2400" data-multiple="1" data-spec="slide">⬆ Upload photos</button>${gal.length ? `<button class="btn sm" data-act="ss-galtoggle">${SSA.gal ? 'Close Gallery' : '▦ Add from Gallery'}</button>` : ''}<span class="hint" style="margin:0">One photo at a time opens the cropper · several at once upload as they are · best at 1920 × 840</span></div>
+      ${SSA.gal ? `<div class="ss-gal">${gal.map((g, i) => `<button class="ss-gpick ${used.has(g.src) ? 'used' : ''}" data-act="ss-fromgal" data-i="${i}" ${used.has(g.src) ? 'disabled' : ''} title="${esc(g.caption || '')}"><img src="${esc(LG.asset(g.src))}" alt="" loading="lazy"><span>${used.has(g.src) ? '✓ Added' : '+ Add'}</span></button>`).join('')}</div>` : ''}
+    </div>
+    ${items.length ? `<div class="ss-list">${items.map(card).join('')}</div>` : '<div class="a-card"><p class="muted">No photos yet — upload some or add them from the Gallery.</p></div>'}`;
+}
+/* drag to reposition / zoom slider — updates the preview live, saves when you let go */
+(() => {
+  let drag = null;
+  document.addEventListener('pointerdown', e => {
+    const box = e.target.closest && e.target.closest('[data-ss-drag]'); if (!box) return;
+    const k = +box.dataset.ssDrag, x = D().slideshow.items[k]; if (!x) return;
+    e.preventDefault(); box.setPointerCapture(e.pointerId); box.classList.add('dragging');
+    drag = { box, k, x0: e.clientX, y0: e.clientY, fx: +x.fx || 50, fy: +x.fy || 50, w: box.clientWidth, h: box.clientHeight, z: Math.max(1, +x.zoom || 1) };
+  });
+  document.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const k = 140 / drag.z, x = D().slideshow.items[drag.k];
+    x.fx = Math.round(Math.max(0, Math.min(100, drag.fx - (e.clientX - drag.x0) / drag.w * k)) * 10) / 10;
+    x.fy = Math.round(Math.max(0, Math.min(100, drag.fy - (e.clientY - drag.y0) / drag.h * k)) * 10) / 10;
+    const img = drag.box.querySelector('img'); img.style.objectPosition = `${x.fx}% ${x.fy}%`; img.style.transformOrigin = `${x.fx}% ${x.fy}%`;
+  });
+  const end = () => { if (!drag) return; drag.box.classList.remove('dragging'); drag = null; commit(); };
+  document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
+  document.addEventListener('input', e => {
+    const r = e.target.closest && e.target.closest('[data-ss-zoom]'); if (!r) return;
+    const x = D().slideshow.items[+r.dataset.ssZoom]; x.zoom = +r.value;
+    const img = r.closest('.ss-item').querySelector('.ss-prev img'); img.style.transform = `scale(${x.zoom})`;
+    r.nextElementSibling.textContent = x.zoom.toFixed(2) + '×';
+  });
+  document.addEventListener('change', e => { if (e.target.closest && e.target.closest('[data-ss-zoom]')) commit(); });
+})();
+
 /* ---------------- seasons ---------------- */
 const seaSlug = s => 'season-' + (String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'x');
 function secSeasons(d) {
@@ -1126,12 +1186,13 @@ function secFantasy(d) {
     if (a.kind === 'driver') { const i = d.drivers.findIndex(x => x.id === a.id); return `<input type="number" step="0.5" data-num data-path="drivers.${i}.fantasyValue" value="${esc(d.drivers[i].fantasyValue ?? '')}" placeholder="${esc(a.price)}">`; }
     return `<input type="number" step="0.5" data-num data-path="fantasy.prices.${a.id}" value="${esc(f.prices[a.id] ?? '')}" placeholder="${esc(a.price)}">`;
   };
-  const kinds = ['driver', 'principal', 'engineer', 'reserve'];
-  return head('Fantasy league', 'Fans build a team on the site and get an <b>entry code</b>. They post it in Discord, you paste the codes below, then publish — the global leaderboard updates from your race results.', '<a class="btn" href="#/fantasy">View page</a>') + `
+  const kinds = ['driver', 'reserve', 'constructor'];
+  return head('Fantasy league', 'Fans pick <b>2 drivers</b>, up to <b>2 reserve drivers</b> and up to <b>2 constructors</b> within a budget. With accounts set up they save straight to the site; otherwise they send you an entry code. The leaderboard updates from your race results.', '<a class="btn" href="#/fantasy">View page</a>') + `
     <div class="a-card"><h3>Setup</h3><div class="fgrid">
       ${F.check('Fantasy is open (adds the Fantasy tab)', 'fantasy.enabled', f.enabled)}
       ${F.num('Budget (millions)', 'fantasy.budget', f.budget, 'data-reload')}
-      ${F.num('Max race engineers', 'fantasy.maxEngineers', f.maxEngineers, 'data-reload')}
+      ${F.num('Max reserve drivers', 'fantasy.maxReserves', f.maxReserves, 'data-reload min="0" max="4" step="1"')}
+      ${F.num('Max constructors', 'fantasy.maxConstructors', f.maxConstructors, 'data-reload min="0" max="4" step="1"')}
       ${F.text('Where fans send codes (link — defaults to your Discord)', 'fantasy.submitUrl', f.submitUrl || '', 'placeholder="https://discord.gg/…"')}
       ${F.text('Intro line on the Fantasy page', 'fantasy.intro', f.intro || '', 'wide')}
     </div></div>
@@ -1143,28 +1204,21 @@ function secFantasy(d) {
       ${F.num('Fastest lap bonus', 'fantasy.fastestLap', f.fastestLap)}
       ${F.num('…only if finishing top N (0 = any)', 'fantasy.fastestLapTopN', f.fastestLapTopN)}
       ${F.num('DNF / DSQ points (e.g. -5)', 'fantasy.dnf', f.dnf)}
-      ${F.num('Team principal: % of both drivers’ points', 'fantasy.principalPct', f.principalPct)}
-      ${F.num('Race engineer: % of their driver’s points', 'fantasy.engineerPct', f.engineerPct)}
+      ${F.num('Constructor: % of both drivers’ points', 'fantasy.constructorPct', f.constructorPct)}
       ${F.num('Reserve: % of their points when they race', 'fantasy.reservePct', f.reservePct)}
     </div>
     <div class="ft-mult-ed">
-      <div><h4>Team principal multiplier</h4><div class="fgrid">
+      <div><h4>Constructor success multiplier</h4><div class="fgrid">
         ${F.check('On', 'fantasy.tpMult.enabled', f.tpMult.enabled)}${F.num('Cap (max)', 'fantasy.tpMult.cap', f.tpMult.cap)}
         ${F.num('1-2 finish', 'fantasy.tpMult.oneTwo', f.tpMult.oneTwo)}${F.num('Win', 'fantasy.tpMult.win', f.tpMult.win)}${F.num('Podium', 'fantasy.tpMult.podium', f.tpMult.podium)}
         ${F.num('Both cars in points', 'fantasy.tpMult.bothPoints', f.tpMult.bothPoints)}${F.num('One car in points', 'fantasy.tpMult.onePoints', f.tpMult.onePoints)}${F.num('No points', 'fantasy.tpMult.none', f.tpMult.none)}
         ${F.num('Extra for pole / fastest lap', 'fantasy.tpMult.bonus', f.tpMult.bonus)}
       </div></div>
-      <div><h4>Race engineer multiplier</h4><div class="fgrid">
-        ${F.check('On', 'fantasy.engMult.enabled', f.engMult.enabled)}${F.num('Cap (max)', 'fantasy.engMult.cap', f.engMult.cap)}
-        ${F.num('Driver wins', 'fantasy.engMult.win', f.engMult.win)}${F.num('Podium', 'fantasy.engMult.podium', f.engMult.podium)}${F.num('Top 5', 'fantasy.engMult.top5', f.engMult.top5)}
-        ${F.num('Points finish', 'fantasy.engMult.points', f.engMult.points)}${F.num('Outside points / DNF', 'fantasy.engMult.none', f.engMult.none)}
-        ${F.num('Extra for fastest lap', 'fantasy.engMult.fl', f.engMult.fl)}${F.num('Extra for places gained', 'fantasy.engMult.gained', f.engMult.gained)}${F.num('…places needed', 'fantasy.engMult.gainedN', f.engMult.gainedN)}
-      </div></div>
-    </div><p class="hint">Multipliers are worked out each race and capped at the "Cap" value. Changing scoring recalculates the whole leaderboard instantly. Engineers use the "works with" driver set under Constructors → Team personnel (or the team average if none).</p></div>
+    </div><p class="hint">The multiplier is worked out each race from how the team did and capped at the "Cap" value. Changing scoring recalculates the whole leaderboard instantly.</p></div>
     <div class="a-card"><h3>Market prices <span class="muted" style="font-weight:400;font-size:13px">· millions · leave empty to use the suggested price shown in grey</span></h3>
       <div class="toolbar" style="margin-bottom:12px"><button class="btn sm" data-act="ft-autoprice">Fill all with suggested prices</button><button class="btn sm danger" data-act="ft-clearprice">Clear all (back to suggested)</button></div>
       ${kinds.map(k => { const list = S.assets.filter(a => a.kind === k); return list.length ? `<div class="ft-price-h">${FT.KIND_LABEL[k]}s</div><div class="ft-price-grid">${list.map(a => `<label class="ft-price-row"><span class="swatch" style="--tc:${esc(LG.teamColor(a.team))}"></span><span class="ft-pn">${esc(a.name)}<small>${esc(a.team ? a.team.name : '')} · ${LG.fmtPts((S.assetPts[a.id] || {}).total || 0)} pts</small></span>${priceInput(a)}</label>`).join('')}</div>` : ''; }).join('') || '<p class="muted">Add drivers and team personnel first.</p>'}
-      <p class="hint">Principals, race engineers and reserves come from each team's personnel. Prices can change any time — teams already entered keep their picks.</p></div>
+      <p class="hint">Reserve drivers are drivers marked as <b>Reserve</b> (Drivers) plus each team's listed reserves. Prices can change any time — teams already entered keep their picks.</p></div>
     <div class="a-card"><h3>Add entries from Discord</h3>
       <p class="hint" style="margin:-4px 0 10px">Copy the messages from your fantasy channel (several at once is fine) and paste them here. Codes start with <code>FTSY1.</code> A new code from someone already in the league replaces their picks from the next race that hasn't started.</p>
       <textarea id="ft-paste" rows="4" style="width:100%" placeholder="Paste entry codes here…"></textarea>
@@ -1173,7 +1227,7 @@ function secFantasy(d) {
     </div>
     ${ftAccountsCard(d, f)}
     <div class="a-card" style="overflow-x:auto"><h3>Entries from codes (${f.entries.length})</h3>
-      ${S.table.length ? `<table class="rtable"><thead><tr><th>#</th><th>Team</th><th>Manager</th><th>Discord</th><th>Picks now</th><th>Changes</th><th>Pts</th><th></th></tr></thead><tbody>${S.table.map(x => { const pk = x.picks || {}; const nm = id => (S.aById[id] || {}).name || '?'; const i = f.entries.indexOf(x.entry); return `<tr><td class="c-pos">${x.rank}</td><td><b>${esc(x.entry.team)}</b></td><td>${esc(x.entry.manager)}</td><td class="muted">${esc(x.entry.discord || '')}</td><td style="font-size:12.5px">${esc((pk.d || []).map(id => nm(id).split(' ').pop() + (id === pk.c ? '★' : '')).join(', '))}${pk.tp ? ' · TP ' + esc(nm(pk.tp).split(' ').pop()) : ''}</td><td class="mono">${(x.entry.history || []).length}</td><td class="c-pts">${LG.fmtPts(x.total)}</td><td class="c-act"><button class="iconbtn del" data-act="ft-del" data-i="${i}">✕</button></td></tr>`; }).join('')}</tbody></table>` : '<p class="muted">No entries yet.</p>'}
+      ${S.table.length ? `<table class="rtable"><thead><tr><th>#</th><th>Team</th><th>Manager</th><th>Discord</th><th>Picks now</th><th>Changes</th><th>Pts</th><th></th></tr></thead><tbody>${S.table.map(x => { const pk = x.picks || {}; const nm = id => (S.aById[id] || {}).name || '?'; const i = f.entries.indexOf(x.entry); return `<tr><td class="c-pos">${x.rank}</td><td><b>${esc(x.entry.team)}</b></td><td>${esc(x.entry.manager)}</td><td class="muted">${esc(x.entry.discord || '')}</td><td style="font-size:12.5px">${esc((pk.d || []).map(id => nm(id).split(' ').pop() + (id === pk.c ? '★' : '')).join(', '))}${(pk.k || []).length ? ' · ' + esc(pk.k.map(id => nm(id)).join(', ')) : ''}</td><td class="mono">${(x.entry.history || []).length}</td><td class="c-pts">${LG.fmtPts(x.total)}</td><td class="c-act"><button class="iconbtn del" data-act="ft-del" data-i="${i}">✕</button></td></tr>`; }).join('')}</tbody></table>` : '<p class="muted">No entries yet.</p>'}
     </div>`;
 }
 function ftAccountsCard(d, f) {
@@ -1186,7 +1240,7 @@ function ftAccountsCard(d, f) {
     const doc = docs.find(z => z.uid === x.entry.uid), last = doc.history[doc.history.length - 1], v = FT.validate(d, last.picks);
     const ok = appr && appr[x.entry.uid];
     return `<tr><td><b>${esc(x.entry.team)}</b></td><td>${esc(x.entry.manager)}</td><td>${ok ? `<span class="ac-badge">${AC.dcFace(ok)}<span>${esc(ok.discordName)}</span><i>✓</i></span>` : `<span class="chip">${need ? 'Hidden · not approved' : 'Not linked'}</span>`}</td>
-      <td style="font-size:12.5px">${[...(last.picks.d || []), last.picks.tp].filter(Boolean).map(id => esc((A[id] || {}).name || '?')).join(' · ')}</td><td class="mono">${FT.money(FT.teamCost(last.picks, A))}${v.ok ? '' : `<div class="warn-sm" title="${esc(v.errs.join(', '))}">⚠ ${esc(v.errs[0])}</div>`}</td>
+      <td style="font-size:12.5px">${FT.pickIds(last.picks).map(id => esc((A[id] || {}).name || '?')).join(' · ')}</td><td class="mono">${FT.money(FT.teamCost(last.picks, A))}${v.ok ? '' : `<div class="warn-sm" title="${esc(v.errs.join(', '))}">⚠ ${esc(v.errs[0])}</div>`}</td>
       <td class="mono">${doc.history.length}</td><td class="c-pts">${LG.fmtPts(x.total)}</td><td class="c-act"><button class="iconbtn del" data-act="ft-delacct" data-uid="${esc(x.entry.uid)}" data-name="${esc(x.entry.team)}" title="Remove this team">✕</button></td></tr>`;
   }).join('');
   return `<div class="a-card" style="overflow-x:auto"><h3>Teams saved to accounts (${docs.length})</h3>
@@ -1418,7 +1472,7 @@ function render(sec) {
   if (!unlocked()) return lockHTML();
   loadTeamKey();
   const me = team(), lim = limited();
-  const fn = !allowed(A.section) ? noAccess : { access: secAccess, dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, accounts: secAccounts, applications: secApplications, predictions: secPredictions, seasons: secSeasons, gallery: secGallery }[A.section];
+  const fn = !allowed(A.section) ? noAccess : { access: secAccess, dashboard: secDashboard, league: secLeague, drivers: secDrivers, teams: secTeams, calendar: secCalendar, results: secResults, scoring: secScoring, adjust: secAdjust, news: secNews, publish: secPublish, theme: secTheme, stewards: secStewards, history: secHistory, signups: secSignups, rulebook: secRulebook, about: secAbout, fantasy: secFantasy, griddraft: secGridDraft, portal: secPortal, accounts: secAccounts, applications: secApplications, predictions: secPredictions, seasons: secSeasons, gallery: secGallery, slideshow: secSlideshow }[A.section];
   return `<div class="page admin">
     <aside class="admin-side"><h4>Console</h4>
       ${me ? `<div class="side-who"><b>${esc(me.name)}</b><span>${me.owner ? 'Owner' : lim ? 'Admin team' : 'Admin team · passcode'} · <a href="javascript:void 0" data-team="signout">sign out</a></span></div>` : ''}
@@ -1870,6 +1924,10 @@ document.addEventListener('click', async e => {
       return gdPlayerAct(act === 'gd-resetpick' ? 'rolls' : 'wipe', fake, d);
     }
     case 'gd-wipe': return gdPlayerAct('wipe', b, d);
+    case 'ss-del': { const x = d.slideshow.items[i]; if (!(await Pop.confirm(b, { title: 'Remove this photo?', text: 'It leaves the slideshow. The file stays in your uploads (and in the Gallery if it came from there).', ok: 'Remove', danger: true }))) return; d.slideshow.items.splice(i, 1); return commit(); }
+    case 'ss-center': Object.assign(d.slideshow.items[i], { fx: 50, fy: 50, zoom: 1 }); return commit();
+    case 'ss-galtoggle': SSA.gal = !SSA.gal; return rerender();
+    case 'ss-fromgal': { const g = (d.gallery || [])[i]; if (!g) return; d.slideshow = Object.assign({ enabled: true, items: [] }, d.slideshow || {}); d.slideshow.items.push({ id: uid('sl'), src: g.src, caption: g.caption || '', roundId: g.roundId || '', event: '', credit: g.credit || '', fx: 50, fy: 50, zoom: 1 }); toast('Added to the slideshow'); return commit(); }
     case 'gd-resetone': return gdPlayerAct('rolls', b, d);
     case 'gd-reset': { if (!confirm('Reset everyone\'s attempts now? Unfinished drafts expire. Completed teams and the leaderboard are kept.')) return; const s = window.GridDraft.store(d); try { await s.adminReset(); toast('Global reset done'); } catch (x) { toast('Reset failed: ' + (x.code || x.message), 'err'); } return; }
     case 'seo-now': { const g = ghReady(); if (!g) return; b.disabled = true; try { const ch = await updateIndexMeta(g, d); toast(ch ? 'Link preview updated — live in about a minute' : 'Link preview was already up to date'); } catch (err) { toast('Couldn\'t update: ' + err.message, 'err'); } b.disabled = false; return; }
@@ -2125,6 +2183,9 @@ async function handleUpload(files, o) {
     const pos = ta && lastCursor[o.target] !== undefined ? Math.min(lastCursor[o.target], cur.length) : cur.length;
     const snippet = done.map(x => `\n![${prettyName(x.name)}](${x.path})\n`).join('');
     setPath(d, o.target, cur.slice(0, pos) + snippet + cur.slice(pos));
+  } else if (o.mode === 'slides') {
+    const ss = d.slideshow = Object.assign({ enabled: true, items: [] }, d.slideshow || {}); ss.items = ss.items || [];
+    done.forEach(x => ss.items.push({ id: uid('sl'), src: x.path, caption: '', roundId: '', event: '', credit: '', fx: 50, fy: 50, zoom: 1 }));
   } else if (o.mode === 'gallery') {
     d.gallery = d.gallery || []; done.forEach(x => d.gallery.unshift({ id: uid('ph'), src: x.path, caption: prettyName(x.name), credit: '', roundId: '', teamId: '', date: new Date().toISOString().slice(0, 10) }));
   } else if (o.mode === 'new-sd') {

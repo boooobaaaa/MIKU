@@ -594,6 +594,53 @@ function tick() {
 setInterval(tick, 1000);
 
 /* ---------------- pages ---------------- */
+/* ---------------- home page photo slideshow ---------------- */
+const HSS = { i: 0, timer: null, paused: false, touch: null };
+function slideLabel(d, x) {
+  const r = x.roundId ? byId(d.calendar, x.roundId) : null;
+  return r ? `${flag(r.country)} R${esc(r.round)} · ${esc(r.name)}` : x.event ? esc(x.event) : '';
+}
+function slideImg(x, cls = '') {
+  const fx = Number.isFinite(+x.fx) ? +x.fx : 50, fy = Number.isFinite(+x.fy) ? +x.fy : 50, z = Math.max(1, +x.zoom || 1);
+  return `<img class="${cls}" src="${esc(asset(x.src))}" alt="${esc(x.caption || '')}" loading="lazy" draggable="false" style="object-position:${fx}% ${fy}%;transform-origin:${fx}% ${fy}%;transform:scale(${z})" onerror="this.style.opacity=0">`;
+}
+function homeSlides(d, pos) {
+  const c = d.slideshow || {};
+  const items = (c.items || []).filter(x => x && x.src && !x.hidden);
+  if (!c.enabled || !items.length || (c.position || 'top') !== pos) return '';
+  if (HSS.i >= items.length) HSS.i = 0;
+  const one = items.length === 1;
+  return `<section class="hs-wrap">${c.title ? `<div class="section-title"><h2>${esc(c.title)}</h2>${(d.gallery || []).length ? '<a href="#/gallery">Gallery →</a>' : ''}</div>` : ''}
+    <div class="hs" data-hs data-int="${Math.max(2, Number(c.interval) || 6)}" style="--hs-ar:${esc(c.aspect || '16/7')}" aria-roledescription="carousel" aria-label="${esc(c.title || 'League photos')}">
+      ${items.map((x, i) => { const lab = slideLabel(d, x); return `<figure class="hs-slide ${i === HSS.i ? 'on' : ''}" aria-hidden="${i === HSS.i ? 'false' : 'true'}">${slideImg(x)}
+        ${lab || x.caption || x.credit ? `<figcaption>${lab ? `<span class="hs-ev">${lab}</span>` : ''}${x.caption ? `<b>${esc(x.caption)}</b>` : ''}${x.credit ? `<small>📷 ${esc(x.credit)}</small>` : ''}</figcaption>` : ''}</figure>`; }).join('')}
+      ${one ? '' : `<button class="hs-nav prev" data-hs-go="-1" aria-label="Previous photo">‹</button><button class="hs-nav next" data-hs-go="1" aria-label="Next photo">›</button>
+      <div class="hs-dots">${items.map((x, i) => `<button class="${i === HSS.i ? 'on' : ''}" data-hs-to="${i}" aria-label="Photo ${i + 1}"></button>`).join('')}</div>
+      <div class="hs-bar"><i></i></div>`}
+    </div></section>`;
+}
+function hsShow(el, n) {
+  const sl = el.querySelectorAll('.hs-slide'), dots = el.querySelectorAll('.hs-dots button'); if (!sl.length) return;
+  HSS.i = (n + sl.length) % sl.length;
+  sl.forEach((s, i) => { s.classList.toggle('on', i === HSS.i); s.setAttribute('aria-hidden', i === HSS.i ? 'false' : 'true'); });
+  dots.forEach((b, i) => b.classList.toggle('on', i === HSS.i));
+  const bar = el.querySelector('.hs-bar i'); if (bar) { bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = ''; bar.style.animationDuration = el.dataset.int + 's'; }
+  HSS.at = Date.now();
+}
+setInterval(() => {
+  const el = document.querySelector('[data-hs]'); if (!el || el.querySelectorAll('.hs-slide').length < 2) return;
+  if (HSS.paused || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) { HSS.at = Date.now(); return; }
+  if (!el.dataset.started) { el.dataset.started = 1; hsShow(el, HSS.i); return; }
+  if (Date.now() - (HSS.at || 0) >= Number(el.dataset.int) * 1000) hsShow(el, HSS.i + 1);
+}, 250);
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-hs-go],[data-hs-to]'); if (!b) return;
+  const el = b.closest('[data-hs]'); hsShow(el, b.dataset.hsTo !== undefined ? +b.dataset.hsTo : HSS.i + Number(b.dataset.hsGo));
+});
+document.addEventListener('pointerover', e => { HSS.paused = !!(e.target.closest && e.target.closest('[data-hs]')) && e.pointerType === 'mouse'; });
+document.addEventListener('touchstart', e => { const el = e.target.closest && e.target.closest('[data-hs]'); HSS.touch = el ? { x: e.touches[0].clientX, y: e.touches[0].clientY, el } : null; }, { passive: true });
+document.addEventListener('touchend', e => { const t = HSS.touch; HSS.touch = null; if (!t) return; const dx = e.changedTouches[0].clientX - t.x, dy = e.changedTouches[0].clientY - t.y; if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) hsShow(t.el, HSS.i + (dx < 0 ? 1 : -1)); }, { passive: true });
+
 function pageHome(d) {
   const st = computeStandings(d);
   const nx = nextRound(d), last = lastRound(d);
@@ -640,6 +687,7 @@ function pageHome(d) {
     ${(() => { const g = [d.fantasy && d.fantasy.enabled ? ['#/fantasy', 'Fantasy', `Build a ${d.fantasy.budget || 100}M team and climb the global leaderboard.`, '★', 'ft'] : null, d.gridDraft && d.gridDraft.enabled ? ['#/griddraft', 'Grid Draft', 'Two cards, one choice, three times. Draft the highest-scoring team.', '⇄', 'gd'] : null].filter(Boolean);
       return g.length ? `<section class="games">${g.map(([h, t, sub, ic, k]) => `<a class="game-btn ${k}" href="${h}"><span class="game-ic">${ic}</span><span><b>${t.toUpperCase()}</b><small>${sub}</small></span><span class="game-go">PLAY →</span></a>`).join('')}</section>` : ''; })()}
 
+    ${homeSlides(d, 'top')}
     <section class="grid grid-3">
       <div class="card">
         <div class="card-title"><h3>${last ? `${esc(last.name)} podium` : 'Latest podium'}</h3>${last ? `<a href="#/results/${esc(last.id)}">Full result →</a>` : ''}</div>
@@ -649,9 +697,11 @@ function pageHome(d) {
       <div class="card"><div class="card-title"><h3>Constructors</h3><a href="#/standings/teams">All →</a></div>${miniT ? `<ul class="mini">${miniT}</ul>` : empty('No teams yet')}</div>
     </section>
 
+    ${homeSlides(d, 'middle')}
     ${(() => { const r = rounds(d).filter(x => dotdOf(d, x.id)).pop(); return r ? `<section>${dotdCard(d, r.id, true)}</section>` : ''; })()}
     ${fiaHomeSection(d)}
     ${ytSection(d)}
+    ${homeSlides(d, 'bottom')}
     <section>
       <div class="section-title"><h2>Latest news</h2><a href="#/news">All news →</a></div>
       ${news.length ? `<div class="news-grid">${news.map(n => newsCard(n)).join('')}</div>` : empty('No news yet', '<p>Posts written in the admin console show up here.</p>')}
@@ -2231,7 +2281,7 @@ document.getElementById('nav-toggle').addEventListener('click', () => document.g
 window.addEventListener('hashchange', () => render(true));
 
 /* expose helpers for the admin console */
-window.LG = { S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
+window.LG = { slideImg, slideLabel, S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
   rcName, HIST_ROLES, autoHistory, lapSecs, seasonName, countries, countryName, flagEmoji, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
   DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, titleCaseText, applyTitleCase, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 

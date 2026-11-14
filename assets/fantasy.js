@@ -13,8 +13,8 @@ const CODE_PREFIX = 'FTSY1.';
 const DEFAULTS = {
   enabled: false, budget: 100, captainMult: 2, pole: 1, fastestLap: 1, fastestLapTopN: 10,
   positions: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [], dnf: 0,
-  principalPct: 100, engineerPct: 50, reservePct: 100,
-  maxEngineers: 2, submitUrl: '', intro: '', prices: {}, entries: [],
+  principalPct: 100, engineerPct: 50, reservePct: 100, constructorPct: 100,
+  maxEngineers: 2, maxReserves: 2, maxConstructors: 2, submitUrl: '', intro: '', prices: {}, entries: [],
   tpMult: { enabled: true, cap: 2.5, oneTwo: 2.5, win: 2.0, podium: 1.75, bothPoints: 1.5, onePoints: 1.25, none: 1.0, bonus: 0.25 },
   engMult: { enabled: true, cap: 2.5, win: 2.5, podium: 2.0, top5: 1.75, points: 1.5, none: 1.0, fl: 0.25, gained: 0.25, gainedN: 5 }
 };
@@ -24,38 +24,40 @@ const money = v => (Math.round((Number(v) || 0) * 10) / 10).toFixed(1).replace(/
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } };
 
-/* ---------------- the market: everything you can sign ---------------- */
+/* ---------------- the market: drivers, reserve drivers, constructors ---------------- */
 function assets(d) {
   const f = cfg(d), out = [];
   const st = LG.computeStandings(d);
   const rank = id => (st.D[id] || {}).position || 99;
   const autoDriver = id => Math.max(6, Math.round((32 - (rank(id) - 1) * 1.6) * 2) / 2);
-  d.drivers.filter(x => x.active !== false).forEach(x => {
+  d.drivers.filter(x => x.active !== false && !x.reserve).forEach(x => {
     const t = byId(d.teams, x.teamId);
     out.push({ id: x.id, kind: 'driver', name: x.name, team: t, drv: x, price: Number(x.fantasyValue) || Number(f.prices[x.id]) || autoDriver(x.id) });
   });
-  const reserveIds = new Set();
   d.teams.forEach(t => {
-    const S = t.staff || {};
-    const tp = S.principal && S.principal.name ? S.principal : (t.principal ? { name: t.principal } : null);
-    const tr = (st.T[t.id] || {}).position || 10;
-    if (tp) { const id = 'tp:' + t.id; out.push({ id, kind: 'principal', name: tp.name, team: t, photo: tp.photo, country: tp.country, price: Number(f.prices[id]) || Math.max(8, 26 - (tr - 1) * 2) }); }
-    (S.race || []).filter(x => x && x.name).forEach(x => {
-      const id = `re:${t.id}:${slug(x.name)}`;
-      out.push({ id, kind: 'engineer', name: x.name, team: t, photo: x.photo, country: x.country, worksWith: x.driverId, price: Number(f.prices[id]) || Math.max(3, 9 - (tr - 1) * 0.6) });
-    });
-    (S.reserves || []).filter(x => x && x.driverId).forEach(x => reserveIds.add(x.driverId + '|' + t.id));
+    const tr = (st.T[t.id] || {}).position || 10, id = 'ct:' + t.id;
+    out.push({ id, kind: 'constructor', name: t.name, team: t, logo: t.logo || '', price: Number(f.prices[id]) || Math.max(8, 26 - (tr - 1) * 2) });
   });
-  d.drivers.filter(x => x.active === false).forEach(x => reserveIds.add(x.id + '|'));
-  const seen = new Set();
-  [...reserveIds].forEach(k => {
-    const [id, tid] = k.split('|'); if (seen.has(id)) return; seen.add(id);
+  // reserves: drivers marked as reserves + each team's listed reserve drivers
+  const res = new Map();
+  d.drivers.filter(x => x.active !== false && x.reserve).forEach(x => res.set(x.id, x.teamId || ''));
+  d.teams.forEach(t => ((t.staff || {}).reserves || []).filter(x => x && x.driverId).forEach(x => { if (!res.has(x.driverId)) res.set(x.driverId, t.id); }));
+  res.forEach((tid, id) => {
     const x = byId(d.drivers, id); if (!x) return;
     out.push({ id: 'rs:' + id, driverId: id, kind: 'reserve', name: x.name, team: byId(d.teams, tid) || byId(d.teams, x.teamId), drv: x, price: Number(f.prices['rs:' + id]) || 5 });
   });
   return out;
 }
-const KIND_LABEL = { driver: 'Driver', principal: 'Team principal', engineer: 'Race engineer', reserve: 'Reserve driver' };
+const KIND_LABEL = { driver: 'Driver', reserve: 'Reserve driver', constructor: 'Constructor' };
+/* picks: { d: [2 drivers], c: captain, rs: [≤2 reserves], k: [≤2 constructors] } — older teams (principal / engineers) are converted */
+function normPicks(p) {
+  p = p || {};
+  const arr = v => (Array.isArray(v) ? v : v ? [v] : []).filter(Boolean);
+  const k = arr(p.k);
+  if (!k.length && p.tp) k.push('ct:' + String(p.tp).replace(/^tp:/, ''));
+  return { d: arr(p.d), c: p.c || '', rs: arr(p.rs), k };
+}
+const pickIds = p => { const n = normPicks(p); return [...n.d, ...n.rs, ...n.k]; };
 
 /* ---------------- scoring ---------------- */
 function driverRoundPts(d, f, rid, did) {
@@ -144,6 +146,7 @@ function standings(d, extra) {
       else if (byId(d.drivers, id)) v = dp(rid, id).pts;
     } else if (a.kind === 'driver') v = dp(rid, a.id).pts;
     else if (a.kind === 'reserve') v = dp(rid, a.driverId).pts * (Number(f.reservePct) / 100);
+    else if (a.kind === 'constructor') { mult = tpMultiplier(f, info(rid), a.team.id); v = teamDrivers(rid, a.team.id).reduce((s, x) => s + dp(rid, x).pts, 0) * (Number(f.constructorPct) / 100) * mult.x; }
     else if (a.kind === 'principal') { mult = tpMultiplier(f, info(rid), a.team.id); v = teamDrivers(rid, a.team.id).reduce((s, x) => s + dp(rid, x).pts, 0) * (Number(f.principalPct) / 100) * mult.x; }
     else if (a.kind === 'engineer') {
       const tds = teamDrivers(rid, a.team.id);
@@ -161,25 +164,25 @@ function standings(d, extra) {
   const table = [...f.entries, ...(extra || [])].map(en => {
     let total = 0; const per = {}; let last = 0;
     done.forEach(r => {
-      const p = picksAt(en, order.indexOf(r.id), order);
-      if (!p) { per[r.id] = null; return; }
+      const raw = picksAt(en, order.indexOf(r.id), order);
+      if (!raw) { per[r.id] = null; return; }
+      const p = normPicks(raw);
       let s = 0;
-      (p.d || []).forEach(id => { const v = scoreAsset(r.id, id); s += id === p.c ? v * (Number(f.captainMult) || 1) : v; });
-      if (p.tp) s += scoreAsset(r.id, p.tp);
-      (p.re || []).forEach(id => { s += scoreAsset(r.id, id); });
-      if (p.rs) s += scoreAsset(r.id, p.rs);
+      p.d.forEach(id => { const v = scoreAsset(r.id, id); s += id === p.c ? v * (Number(f.captainMult) || 1) : v; });
+      p.rs.forEach(id => { s += scoreAsset(r.id, id); });
+      p.k.forEach(id => { s += scoreAsset(r.id, id); });
       s = Math.round(s * 10) / 10;
       per[r.id] = s; total += s; last = s;
     });
-    const cur = (en.history || []).length ? en.history[en.history.length - 1].picks : null;
+    const cur = (en.history || []).length ? normPicks(en.history[en.history.length - 1].picks) : null;
     return { entry: en, total: Math.round(total * 10) / 10, last, per, picks: cur, value: cur ? teamCost(cur, aById) : 0 };
   }).sort((a, b) => b.total - a.total || b.last - a.last);
   table.forEach((x, i) => { x.rank = i + 1; });
   const own = {};
-  table.forEach(x => { const p = x.picks; if (!p) return; [...(p.d || []), p.tp, ...(p.re || []), p.rs].filter(Boolean).forEach(id => { own[id] = (own[id] || 0) + 1; }); });
+  table.forEach(x => { if (x.picks) pickIds(x.picks).forEach(id => { own[id] = (own[id] || 0) + 1; }); });
   return { table, done, order, assets: A, aById, assetPts, own, f };
 }
-function teamCost(p, aById) { return [...(p.d || []), p.tp, ...(p.re || []), p.rs].filter(Boolean).reduce((s, id) => s + (aById[id] ? aById[id].price : 0), 0); }
+function teamCost(p, aById) { return pickIds(p).reduce((s, id) => s + (aById[id] ? aById[id].price : 0), 0); }
 
 /* ---------------- teams saved to accounts (Firebase) ---------------- */
 const AC = { docs: null, loading: false, at: 0, mine: undefined, mineFor: '', mineLoading: false };
@@ -214,10 +217,9 @@ function loadMine(s) {
   s.myFantasy().then(x => {
     AC.mine = x; AC.mineFor = s.user.uid;
     const t = myTeam(), last = x && x.history.length ? x.history[x.history.length - 1].picks : null;
-    if (last && !(t.picks.d || []).filter(Boolean).length && !t.picks.tp) { saveMy({ manager: x.manager, name: x.name, discord: t.discord || '', picks: Object.assign({ d: [], c: '', tp: '', re: [], rs: '' }, JSON.parse(JSON.stringify(last))) }); }
+    if (last && !(t.picks.d || []).filter(Boolean).length && !t.picks.rs.length && !t.picks.k.length) { const n = normPicks(last); saveMy({ manager: x.manager, name: x.name, discord: t.discord || '', picks: { d: [n.d[0] || '', n.d[1] || ''], c: n.c, rs: n.rs, k: n.k } }); }
   }).catch(() => { AC.mine = null; AC.mineFor = s.user.uid; }).finally(() => { AC.mineLoading = false; LG.render(false); });
 }
-const normPicks = p => ({ d: (p.d || []).filter(Boolean), c: p.c || '', tp: p.tp || '', re: (p.re || []).filter(Boolean), rs: p.rs || '' });
 const samePicks = (a, b) => JSON.stringify(normPicks(a || {})) === JSON.stringify(normPicks(b || {}));
 
 /* ---------------- deadlines ---------------- */
@@ -240,25 +242,34 @@ function readCodes(text) {
   (String(text).match(/FTSY1\.[A-Za-z0-9_-]+/g) || []).forEach(c => { try { out.push(JSON.parse(b64d(c.slice(CODE_PREFIX.length)))); } catch (e) { } });
   return out;
 }
-function validate(d, p) {
+function validate(d, raw) {
   const f = cfg(d), A = assets(d), byA = {}; A.forEach(a => { byA[a.id] = a; });
-  const errs = [];
-  const ds = (p.d || []).filter(Boolean);
-  if (ds.length !== 2) errs.push('pick 2 main drivers');
-  if (ds.some(id => !byA[id] || byA[id].kind !== 'driver')) errs.push('a main driver is no longer on the grid');
-  if (new Set(ds).size !== ds.length) errs.push('the two drivers must be different');
-  if (!p.tp) errs.push('pick a team principal'); else if (!byA[p.tp]) errs.push('that team principal is no longer available');
-  if ((p.re || []).length > (Number(f.maxEngineers) || 2)) errs.push('too many race engineers');
-  (p.re || []).forEach(id => { if (!byA[id]) errs.push('a race engineer is no longer available'); });
-  if (p.rs && !byA[p.rs]) errs.push('that reserve driver is no longer available');
-  if (p.c && !ds.includes(p.c)) errs.push('captain must be one of your main drivers');
+  const p = normPicks(raw), errs = [];
+  const maxR = Number(f.maxReserves) || 0, maxK = Number(f.maxConstructors) || 0;
+  if (p.d.length !== 2) errs.push('pick 2 drivers');
+  if (p.d.some(id => !byA[id] || byA[id].kind !== 'driver')) errs.push('a driver you picked is no longer on the grid');
+  if (new Set(p.d).size !== p.d.length) errs.push('the two drivers must be different');
+  if (p.rs.length > maxR) errs.push(`up to ${maxR} reserve driver${maxR === 1 ? '' : 's'}`);
+  if (p.rs.some(id => !byA[id] || byA[id].kind !== 'reserve')) errs.push('a reserve you picked is no longer available');
+  if (new Set(p.rs).size !== p.rs.length) errs.push('the reserves must be different');
+  if (p.rs.some(id => p.d.includes(String(id).replace(/^rs:/, '')))) errs.push('a reserve can’t also be one of your drivers');
+  if (p.k.length > maxK) errs.push(`up to ${maxK} constructor${maxK === 1 ? '' : 's'}`);
+  if (p.k.some(id => !byA[id] || byA[id].kind !== 'constructor')) errs.push('a constructor you picked is no longer available');
+  if (new Set(p.k).size !== p.k.length) errs.push('the constructors must be different');
+  if (p.c && !p.d.includes(p.c)) errs.push('captain must be one of your drivers');
   const cost = teamCost(p, byA);
   if (cost > Number(f.budget) + 1e-9) errs.push(`over budget (${money(cost)} of ${money(f.budget)})`);
   return { ok: !errs.length, errs, cost };
 }
 
 /* ---------------- my team (browser) ---------------- */
-function myTeam() { try { return JSON.parse(lsGet(MY_KEY) || 'null') || { manager: '', name: '', discord: '', picks: { d: [], c: '', tp: '', re: [], rs: '' } }; } catch (e) { return { manager: '', name: '', discord: '', picks: { d: [], c: '', tp: '', re: [], rs: '' } }; } }
+const EMPTY = () => ({ manager: '', name: '', discord: '', picks: { d: [], c: '', rs: [], k: [] } });
+function myTeam() {
+  let t; try { t = JSON.parse(lsGet(MY_KEY) || 'null'); } catch (e) { t = null; }
+  t = t || EMPTY();
+  const n = normPicks(t.picks); t.picks = { d: [n.d[0] || '', n.d[1] || ''], c: n.c, rs: n.rs, k: n.k };
+  return t;
+}
 const saveMy = t => lsSet(MY_KEY, JSON.stringify(t));
 let PICKER = null; // which slot is being filled
 
@@ -267,15 +278,17 @@ const head = (eyebrow, title, sub) => `<div class="page-head"><div class="eyebro
 const emptyBox = (t, s) => `<div class="empty"><b>${esc(t)}</b>${s || ''}</div>`;
 function assetFace(a) {
   if (!a) return '<span class="avatar">?</span>';
+  if (a.kind === 'constructor') return `<span class="avatar ft-logo" style="--tc:${esc(teamColor(a.team))}">${a.logo ? `<img src="${esc(LG.asset(a.logo))}" alt="" onerror="this.remove()">` : `<i class="ft-sw"></i>`}</span>`;
   if (a.drv) return LG.avatar(a.drv, a.team);
   const ini = String(a.name || '').split(/\s+/).map(z => z[0] || '').join('').slice(0, 2).toUpperCase();
   return `<span class="avatar" style="--tc:${esc(teamColor(a.team))}">${a.photo ? `<img src="${esc(LG.asset(a.photo))}" alt="" onerror="this.remove()">` : esc(ini)}</span>`;
 }
 
+const subLine = (d, a) => a.kind === 'constructor' ? d.drivers.filter(x => x.teamId === a.team.id && x.active !== false && !x.reserve).map(x => String(x.name).split(' ').pop()).join(' / ') || 'Constructor' : (a.kind === 'reserve' ? 'Reserve · ' : '') + (a.team ? a.team.name : '');
 function slotCard(d, a, slot, label, extra = '') {
   return `<button class="ft-slot ${a ? 'filled' : ''}" data-ft-slot="${slot}" style="--tc:${esc(a ? teamColor(a.team) : 'var(--line-strong)')}">
     <span class="ft-slot-l">${esc(label)}</span>
-    ${a ? `${assetFace(a)}<span class="ft-slot-n">${nameHTML(a.name)}</span><span class="ft-slot-t">${esc(a.team ? a.team.name : '')}</span><span class="ft-price">${money(a.price)}</span>${extra}`
+    ${a ? `${assetFace(a)}<span class="ft-slot-n">${a.kind === 'constructor' ? esc(a.name) : nameHTML(a.name)}</span><span class="ft-slot-t">${esc(subLine(d, a))}</span><span class="ft-price">${money(a.price)}</span>${extra}`
       : `<span class="ft-plus">+</span><span class="ft-slot-t">Tap to sign</span>`}
   </button>`;
 }
@@ -283,16 +296,18 @@ function slotCard(d, a, slot, label, extra = '') {
 function builder(d, S) {
   const f = S.f, me = myTeam(), p = me.picks, A = S.aById;
   const cost = teamCost(p, A), left = Number(f.budget) - cost;
-  const v = validate(d, Object.assign({}, p, { d: (p.d || []).filter(Boolean), re: (p.re || []).filter(Boolean) }));
+  const v = validate(d, p);
   const lock = nextLock(d);
   const existing = f.entries.find(e => slug(e.manager) === slug(me.manager) && me.manager);
   const acct = acctMode(d);
-  const kindFor = slot => slot.startsWith('d') ? 'driver' : slot === 'tp' ? 'principal' : slot.startsWith('re') ? 'engineer' : 'reserve';
+  const kindFor = slot => slot.startsWith('d') ? 'driver' : slot.startsWith('rs') ? 'reserve' : 'constructor';
+  const slotVal = slot => { const i = Number(slot.replace(/\D/g, '')) || 0; return slot.startsWith('d') ? p.d[i] : slot.startsWith('rs') ? p.rs[i] : p.k[i]; };
+  const maxR = Number(f.maxReserves) || 0, maxK = Number(f.maxConstructors) || 0;
   let market = '';
   if (PICKER) {
     const kind = kindFor(PICKER);
-    const taken = new Set([...(p.d || []), p.tp, ...(p.re || []), p.rs].filter(Boolean));
-    const curId = PICKER === 'd0' ? p.d[0] : PICKER === 'd1' ? p.d[1] : PICKER === 'tp' ? p.tp : PICKER === 're0' ? (p.re || [])[0] : PICKER === 're1' ? (p.re || [])[1] : p.rs;
+    const taken = new Set([...pickIds(p), ...p.d.filter(Boolean).map(id => 'rs:' + id), ...p.rs.map(id => String(id).slice(3))]);
+    const curId = slotVal(PICKER);
     const list = S.assets.filter(a => a.kind === kind).sort((x, y) => y.price - x.price);
     market = `<div class="ft-market card"><div class="card-title"><h3>Sign a ${KIND_LABEL[kind].toLowerCase()}</h3><button class="btn xs ghost" data-ft="close">Close</button></div>
       ${list.length ? `<div class="ft-list">${list.map(a => {
@@ -300,7 +315,7 @@ function builder(d, S) {
         const afford = (a.price - (curId && A[curId] ? A[curId].price : 0)) <= left + 1e-9;
         const pts = (S.assetPts[a.id] || {}).total || 0;
         return `<button class="ft-row ${isCur ? 'cur' : ''}" data-ft-pick="${esc(a.id)}" ${dis || (!afford && !isCur) ? 'disabled' : ''} style="--tc:${esc(teamColor(a.team))}">
-          ${assetFace(a)}<span class="ft-row-n">${nameHTML(a.name)}<small>${esc(a.team ? a.team.name : '')}${a.kind === 'engineer' && a.worksWith && byId(d.drivers, a.worksWith) ? ' · with ' + esc(byId(d.drivers, a.worksWith).name.split(' ').pop()) : ''}</small></span>
+          ${assetFace(a)}<span class="ft-row-n">${a.kind === 'constructor' ? esc(a.name) : nameHTML(a.name)}<small>${esc(subLine(d, a))}</small></span>
           <span class="ft-row-pts mono">${fmtPts(pts)}<small>${(() => { const mm = (S.assetPts[a.id] || {}).mult || {}; const last = S.done.slice().reverse().find(r => mm[r.id]); return last ? `last ${fmtX(mm[last.id].x)}` : 'pts'; })()}</small></span><span class="ft-price">${money(a.price)}</span>
           <span class="ft-row-act">${isCur ? 'Remove' : dis ? 'Signed' : !afford ? 'Too pricey' : 'Sign'}</span></button>`;
       }).join('')}</div>` : '<p class="muted">Nobody in this role yet — the admin adds them under each team.</p>'}</div>`;
@@ -311,12 +326,11 @@ function builder(d, S) {
       <div class="ft-bud-bar"><i style="width:${Math.min(100, cost / Number(f.budget) * 100)}%"></i></div>
       ${lock ? `<p class="ft-lock">🔒 Picks lock at <b>R${esc(lock.round)} ${esc(lock.name)}</b> — ${esc(fmtDate(lock.start, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}. ${acct ? 'Changes saved after that count from the next round.' : 'Codes sent after that count from the next round.'}</p>` : ''}
     </div>
-    <div class="ft-slots">
-      <div class="ft-group"><h4>Main drivers <small>tap ★ to make captain (${esc(f.captainMult)}× points)</small></h4><div class="ft-row2">
+    <div class="ft-slots" style="--ft-cols:${1 + (maxR ? 1 : 0) + (maxK ? 1 : 0)}">
+      <div class="ft-group"><h4>Drivers <small>2 required · tap ★ for captain (${esc(f.captainMult)}×)</small></h4><div class="ft-col">
         ${[0, 1].map(i => { const a = A[p.d[i]]; return slotCard(d, a, 'd' + i, 'Driver ' + (i + 1), a ? `<span class="ft-cap ${p.c === a.id ? 'on' : ''}" data-ft-cap="${esc(a.id)}" title="Make captain">★</span>` : ''); }).join('')}</div></div>
-      <div class="ft-group"><h4>Team principal</h4><div class="ft-row1">${slotCard(d, A[p.tp], 'tp', 'Team principal')}</div></div>
-      <div class="ft-group"><h4>Race engineers <small>optional · up to ${esc(f.maxEngineers)}</small></h4><div class="ft-row2">${Array.from({ length: Number(f.maxEngineers) || 2 }, (_, i) => slotCard(d, A[(p.re || [])[i]], 're' + i, 'Race engineer ' + (i + 1))).join('')}</div></div>
-      <div class="ft-group"><h4>Reserve driver <small>optional · scores when they race</small></h4><div class="ft-row1">${slotCard(d, A[p.rs], 'rs', 'Reserve')}</div></div>
+      ${maxR ? `<div class="ft-group"><h4>Reserve drivers <small>optional · up to ${maxR}</small></h4><div class="ft-col">${Array.from({ length: maxR }, (_, i) => slotCard(d, A[p.rs[i]], 'rs' + i, 'Reserve ' + (i + 1))).join('')}</div></div>` : ''}
+      ${maxK ? `<div class="ft-group"><h4>Constructors <small>optional · up to ${maxK}</small></h4><div class="ft-col">${Array.from({ length: maxK }, (_, i) => slotCard(d, A[p.k[i]], 'k' + i, 'Constructor ' + (i + 1))).join('')}</div></div>` : ''}
     </div>
     ${market}
     ${acct ? acctSubmit(d, S, v) : `<div class="ft-submit card">
@@ -349,8 +363,8 @@ function acctSubmit(d, S, v) {
   return `<div class="ft-submit card">
     <h3>${mine ? 'Your saved team' : 'Enter the league'}</h3>
     <div class="pform">
-      <label class="fld"><span>Manager name (shown on the leaderboard)</span><input id="ft-m" type="text" maxlength="40" value="${esc(man)}" placeholder="Name or nickname" ${locked ? 'disabled' : ''}></label>
-      <label class="fld"><span>Fantasy team name</span><input id="ft-t" type="text" maxlength="40" value="${esc(tn)}" placeholder="e.g. Leek Speed Racing" ${locked ? 'disabled' : ''}></label>
+      <label class="fld"><span>Manager name</span><input id="ft-m" type="text" maxlength="40" value="${esc(man)}" placeholder="Name or nickname" ${locked ? 'disabled' : ''}></label>
+      <label class="fld"><span>Team name</span><input id="ft-t" type="text" maxlength="40" value="${esc(tn)}" placeholder="e.g. Leek Speed Racing" ${locked ? 'disabled' : ''}></label>
     </div>
     ${locked ? '<p class="hint">🔒 An admin has locked your names.</p>' : ''}
     ${v.ok ? (changed ? `<p class="ok-note" style="margin:14px 0 0">✓ Team is valid${last ? ' — you have unsaved changes.' : '.'}</p>` : '') : `<p class="warn" style="margin:14px 0 0">To finish: ${esc(v.errs.join(' · '))}</p>`}
@@ -368,14 +382,14 @@ function leaderboard(d, S) {
     ${S.table.map(x => {
       const p = x.picks || {};
       const det = open === x.entry.id ? `<tr class="ft-det"><td colspan="6"><div class="ft-det-in">
-        ${[...(p.d || []).map(id => [id, id === p.c ? 'Captain' : 'Driver']), [p.tp, 'Principal'], ...(p.re || []).map(id => [id, 'Engineer']), [p.rs, 'Reserve']].filter(([id]) => id).map(([id, r]) => { const a = S.aById[id]; return `<span class="ft-chip" style="--tc:${esc(teamColor(a && a.team))}">${assetFace(a)}<span><small>${r}</small>${esc(a ? a.name : 'Unavailable')}</span><b class="mono">${fmtPts((S.assetPts[id] || {}).total || 0)}</b>${(() => { const mm = (S.assetPts[id] || {}).mult || {}; const last = S.done.slice().reverse().find(r => mm[r.id]); return last ? `<em class="ft-x" title="Last race: ${esc(mm[last.id].why)}">${fmtX(mm[last.id].x)}</em>` : ''; })()}</span>`; }).join('')}
+        ${[...(p.d || []).map(id => [id, id === p.c ? 'Captain' : 'Driver']), ...(p.rs || []).map(id => [id, 'Reserve']), ...(p.k || []).map(id => [id, 'Constructor'])].filter(([id]) => id).map(([id, r]) => { const a = S.aById[id]; return `<span class="ft-chip" style="--tc:${esc(teamColor(a && a.team))}">${assetFace(a)}<span><small>${r}</small>${esc(a ? a.name : 'Unavailable')}</span><b class="mono">${fmtPts((S.assetPts[id] || {}).total || 0)}</b>${(() => { const mm = (S.assetPts[id] || {}).mult || {}; const last = S.done.slice().reverse().find(r => mm[r.id]); return last ? `<em class="ft-x" title="Last race: ${esc(mm[last.id].why)}">${fmtX(mm[last.id].x)}</em>` : ''; })()}</span>`; }).join('')}
         <div class="ft-per">${S.done.map(r => `<span title="${esc(r.name)}"><small>R${esc(r.round)}</small><b class="mono">${x.per[r.id] === null ? '–' : fmtPts(x.per[r.id])}</b></span>`).join('')}</div></div></td></tr>` : '';
       return `<tr class="${x.rank <= 3 ? 'top' + x.rank : ''} ft-lbrow" data-ft-open="${esc(x.entry.id)}"><td class="pos">${x.rank}</td><td><b>${esc(x.entry.team || 'Unnamed team')}</b>${x.entry.uid && window.Accounts ? window.Accounts.badge(d, x.entry.uid) : ''}<small class="muted ft-sm-m"> · ${esc(x.entry.manager || '')}</small></td><td class="hide-sm muted">${esc(x.entry.manager || '')}</td><td class="r mono hide-sm">${fmtPts(x.last)}</td><td class="r mono hide-sm">${money(x.value)}</td><td class="pts">${fmtPts(x.total)}</td></tr>${det}`;
     }).join('')}</tbody></table></div><p class="hint" style="margin-top:10px">Tap a team to see its picks and round-by-round score.</p>`;
 }
 
 function marketTable(d, S) {
-  const kinds = ['driver', 'principal', 'engineer', 'reserve'];
+  const kinds = ['driver', 'reserve', 'constructor'];
   const n = S.table.length || 1;
   return kinds.map(k => {
     const list = S.assets.filter(a => a.kind === k).sort((a, b) => b.price - a.price);
@@ -402,18 +416,16 @@ function scoringInfo(d, f) {
         ${row('Captain multiplier', `${fmtPts(f.captainMult)}x Total Driver Points`, true)}
         ${Number(f.pole) ? row('Pole position', `+${fmtPts(f.pole)} Bonus PT${Number(f.pole) === 1 ? '' : 'S'}`) : ''}
         ${Number(f.fastestLap) ? row(`Fastest lap${Number(f.fastestLapTopN) ? ` (Top ${esc(f.fastestLapTopN)})` : ''}`, `+${fmtPts(f.fastestLap)} Bonus PT${Number(f.fastestLap) === 1 ? '' : 'S'}`) : ''}
-        ${row('Team principal', (Number(f.principalPct) === 100 ? 'Sum of Both Drivers\' PTS' : `${fmtPts(f.principalPct)}% of Both Drivers' PTS`) + (f.tpMult.enabled ? ` × up to ${fmtX(f.tpMult.cap).slice(1)}` : ''))}
-        ${row('Race engineer', `${fmtPts(f.engineerPct)}% of Their Driver's PTS` + (f.engMult.enabled ? ` × up to ${fmtX(f.engMult.cap).slice(1)}` : ''))}
+        ${row('Constructor', (Number(f.constructorPct) === 100 ? 'Sum of Both Drivers\' PTS' : `${fmtPts(f.constructorPct)}% of Both Drivers' PTS`) + (f.tpMult.enabled ? ` × up to ${fmtX(f.tpMult.cap).slice(1)}` : ''))}
         ${row('Reserve driver', Number(f.reservePct) === 100 ? 'Their PTS When They Race' : `${fmtPts(f.reservePct)}% of Their PTS`)}
       </div>
     </div>
-    ${f.tpMult.enabled || f.engMult.enabled ? `<div class="ft-sc-grid ft-sc-mult">
-      ${f.tpMult.enabled ? `<div><h3>Team principal success multiplier</h3><p class="muted" style="margin:-6px 0 10px;font-size:13px">Multiplies the principal's points each race, based on how their team did — up to ${fmtX(f.tpMult.cap)}.</p>
+    ${f.tpMult.enabled ? `<div class="ft-sc-grid ft-sc-mult">
+      ${f.tpMult.enabled ? `<div><h3>Constructor success multiplier</h3><p class="muted" style="margin:-6px 0 10px;font-size:13px">Multiplies a constructor's points each race, based on how the team did — up to ${fmtX(f.tpMult.cap)}.</p>
         ${row('1-2 finish', fmtX(f.tpMult.oneTwo), true)}${row('Race win', fmtX(f.tpMult.win))}${row('Podium', fmtX(f.tpMult.podium))}${row('Both cars in the points', fmtX(f.tpMult.bothPoints))}${row('One car in the points', fmtX(f.tpMult.onePoints))}${row('No points', fmtX(f.tpMult.none))}${+f.tpMult.bonus ? row('Team takes pole or fastest lap', '+' + fmtX(f.tpMult.bonus).slice(1) + ' extra') : ''}</div>` : '<div></div>'}
-      ${f.engMult.enabled ? `<div><h3>Race engineer success multiplier</h3><p class="muted" style="margin:-6px 0 10px;font-size:13px">Multiplies the engineer's points each race, based on how their driver did — up to ${fmtX(f.engMult.cap)}.</p>
-        ${row('Driver wins', fmtX(f.engMult.win), true)}${row('Podium', fmtX(f.engMult.podium))}${row('Top 5', fmtX(f.engMult.top5))}${row('Points finish (top 10)', fmtX(f.engMult.points))}${row('Outside the points / DNF', fmtX(f.engMult.none))}${+f.engMult.fl ? row('Driver sets fastest lap', '+' + fmtX(f.engMult.fl).slice(1) + ' extra') : ''}${+f.engMult.gained ? row(`Driver gains ${esc(f.engMult.gainedN)}+ places from the grid`, '+' + fmtX(f.engMult.gained).slice(1) + ' extra') : ''}</div>` : ''}
+      <div></div>
     </div>` : ''}
-    <div class="ft-sc-foot muted">Budget ${money(f.budget)} · 2 main drivers + 1 team principal required · up to ${esc(f.maxEngineers)} race engineers and 1 reserve optional · picks lock at each race start.</div>
+    <div class="ft-sc-foot muted">Budget ${money(f.budget)} · 2 drivers required · up to ${esc(f.maxReserves)} reserve drivers and ${esc(f.maxConstructors)} constructors optional · picks lock at each race start.</div>
   </div>`;
 }
 
@@ -429,7 +441,7 @@ function page(d, tab) {
   const tabs = [['leaderboard', 'Leaderboard'], ['team', 'My team'], ['market', 'Driver market'], ['scoring', 'Scoring']];
   const lock = nextLock(d);
   return `<div class="page ft">
-    ${head('Season ' + d.league.season, 'Fantasy league', f.intro ? esc(f.intro) : `Build a ${money(f.budget)} team, pick a captain and climb the global leaderboard.`)}
+    ${head('Season ' + d.league.season, 'Fantasy league', f.intro ? esc(f.intro) : `Pick 2 drivers, add reserves and constructors on a ${money(f.budget)} budget, choose a captain and climb the global leaderboard.`)}
     <div class="ft-stats">
       <div class="stat"><b>${S.table.length}</b><span>Teams entered</span></div>
       <div class="stat"><b>${S.table[0] ? esc(S.table[0].entry.team || '—') : '—'}</b><span>Leader${S.table[0] ? ' · ' + fmtPts(S.table[0].total) + ' pts' : ''}</span></div>
@@ -452,11 +464,10 @@ document.addEventListener('click', e => {
   if (pick) {
     const t = myTeam(), p = t.picks, id = pick.dataset.ftPick;
     const set = (cur, v) => cur === id ? '' : v;
-    if (PICKER === 'd0' || PICKER === 'd1') { const i = +PICKER[1]; p.d = p.d || []; const was = p.d[i]; p.d[i] = set(was, id); if (p.c === was) p.c = ''; if (!p.c && p.d.filter(Boolean).length) p.c = p.d.filter(Boolean)[0]; }
-    else if (PICKER === 'tp') p.tp = set(p.tp, id);
-    else if (PICKER === 're0' || PICKER === 're1') { const i = +PICKER[2]; p.re = p.re || []; p.re[i] = set(p.re[i], id); p.re = p.re.map(x => x || ''); }
-    else if (PICKER === 'rs') p.rs = set(p.rs, id);
-    p.d = (p.d || []).map(x => x || ''); p.re = (p.re || []).filter((x, k, arr) => x || k < arr.length);
+    const i = Number(String(PICKER).replace(/\D/g, '')) || 0;
+    if (String(PICKER).startsWith('d')) { const was = p.d[i]; p.d[i] = set(was, id); if (p.c === was) p.c = ''; if (!p.c && p.d.filter(Boolean).length) p.c = p.d.filter(Boolean)[0]; p.d = [p.d[0] || '', p.d[1] || '']; }
+    else if (String(PICKER).startsWith('rs')) { p.rs[i] = set(p.rs[i], id); p.rs = p.rs.filter(Boolean); }
+    else { p.k[i] = set(p.k[i], id); p.k = p.k.filter(Boolean); }
     saveMy(t); PICKER = null; return rerender();
   }
   if (op) { PICKER = PICKER === 'lb:' + op.dataset.ftOpen ? null : 'lb:' + op.dataset.ftOpen; return rerender(); }
@@ -477,12 +488,12 @@ document.addEventListener('click', e => {
         .catch(x => { act.disabled = false; toast('Couldn’t save: ' + (x.code || x.message) + (/permission/i.test(x.code || x.message) ? ' — the league admin may need to update the Firebase rules.' : ''), 'err'); });
       return;
     }
-    if (k === 'reset') { if (confirm('Clear your fantasy team in this browser?')) { saveMy({ manager: '', name: '', discord: '', picks: { d: [], c: '', tp: '', re: [], rs: '' } }); rerender(); } return; }
+    if (k === 'reset') { (window.Pop ? Pop.confirm(act, { title: 'Clear your picks?', text: 'Empties every slot on this page. Your saved team isn’t changed until you save again.', ok: 'Clear picks', danger: true }) : Promise.resolve(confirm('Clear your picks?'))).then(r => { if (r) { saveMy(EMPTY()); rerender(); } }); return; }
     if (k === 'code') {
       const t = myTeam(); t.manager = document.getElementById('ft-m').value.trim(); t.name = document.getElementById('ft-t').value.trim(); t.discord = document.getElementById('ft-dc').value.trim();
       if (!t.manager || !t.name) return toast('Add your name and a team name first', 'err');
       saveMy(t);
-      const p = Object.assign({}, t.picks, { d: t.picks.d.filter(Boolean), re: (t.picks.re || []).filter(Boolean) });
+      const p = normPicks(t.picks);
       const v = validate(d, p); if (!v.ok) return toast('Team not valid: ' + v.errs.join(', '), 'err');
       const code = makeCode(Object.assign({}, t, { picks: p }));
       const box = document.getElementById('ft-code'); box.hidden = false; box.querySelector('textarea').value = code;
@@ -496,5 +507,5 @@ document.addEventListener('input', e => {
   if (v('ft-m') !== null) t.manager = v('ft-m'); if (v('ft-t') !== null) t.name = v('ft-t'); if (v('ft-dc') !== null) t.discord = v('ft-dc'); saveMy(t);
 });
 
-window.Fantasy = { page, standings, accountEntries, accountRow, accountDocs, teamCost, AC, fmtX, assets, cfg, readCodes, validate, effectiveRoundFor, money, DEFAULTS, KIND_LABEL, slug };
+window.Fantasy = { page, standings, normPicks, pickIds, accountEntries, accountRow, accountDocs, teamCost, AC, fmtX, assets, cfg, readCodes, validate, effectiveRoundFor, money, DEFAULTS, KIND_LABEL, slug };
 })();
