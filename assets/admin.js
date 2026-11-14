@@ -215,7 +215,8 @@ function secDrivers(d) {
     const x = d.drivers[i];
     const t = byId(d.teams, x.teamId), key = 'drv-' + x.id, p = `drivers.${i}`;
     const search = [x.name, x.number, x.gamertag, t && t.name, x.country].filter(Boolean).join(' ').toLowerCase();
-    return `<details class="item" data-key="${key}" data-search="${esc(search)}" ${A.open[key] ? 'open' : ''}>
+    const dq = (ADS.q || '').trim().toLowerCase(), hit = !dq || dq.split(/\s+/).every(w => String(search).toLowerCase().includes(w));
+    return `<details class="item" data-key="${key}" data-search="${esc(search)}" ${A.open[key] ? 'open' : ''} ${hit ? '' : 'hidden'}>
       <summary>${canMove ? mvBtns('drivers', i, d.drivers.length) : ''}<span class="swatch" style="--tc:${esc(LG.teamColor(t))}"></span><b class="mono" style="width:34px">${esc(x.number ?? '')}</b>${LG.nameHTML(x.name)} ${LG.flag(x.country)} <span class="muted" style="font-size:13px">${esc(t ? t.name : 'No team')} · ${fmtPts((st.D[x.id] || {}).points || 0)} pts</span>${x.active === false ? '<span class="pill-inactive">inactive</span>' : ''}</summary>
       <div class="body"><div class="fgrid">
         ${F.text('Full name', p + '.name', x.name, 'data-reload')}
@@ -252,7 +253,7 @@ function secDrivers(d) {
       <div class="drv-tools-row"><span class="muted">Sort</span><div class="tabs">${sorts.map(([k, l]) => `<button data-act="drv-sort" data-s="${k}" class="${ADS.sort === k ? 'active' : ''}">${l}</button>`).join('')}</div>
         ${!custom ? `<button class="btn sm" data-act="drv-save-order" title="Make this the saved order (used for ↑ ↓ and the public pages when set to My order)">Save as my order</button>` : ''}
         <span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm ghost" data-act="drv-expand">Expand all</button><button class="btn sm ghost" data-act="drv-collapse">Collapse all</button></span></div>
-      <div class="drv-tools-row"><input type="search" id="drv-q" placeholder="Search name, number, team, gamertag…" autocomplete="off">
+      <div class="drv-tools-row"><input type="search" id="drv-q" placeholder="Search name, number, team, gamertag…" autocomplete="off" value="${esc(ADS.q || '')}">
         <select id="drv-team"><option value="">All teams</option>${d.teams.map(t => `<option value="${esc(t.id)}" ${ADS.team === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}<option value="-" ${ADS.team === '-' ? 'selected' : ''}>No team</option></select>
         <select id="drv-show">${[['all', 'Active & benched'], ['active', 'Active only'], ['benched', 'Benched only']].map(([k, l]) => `<option value="${k}" ${ADS.show === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
 </div>
@@ -2364,6 +2365,7 @@ window.addEventListener('hashchange', closeCP);
 document.addEventListener('scroll', e => { if (CP && !(e.target.closest && e.target.closest('.cpick-pop'))) placeCP(); }, true);
 document.addEventListener('input', e => {
   if (e.target.id !== 'drv-q') return;
+  ADS.q = e.target.value; // kept (this visit only) so the list stays filtered after edits redraw the page
   const q = e.target.value.trim().toLowerCase(); let n = 0;
   document.querySelectorAll('#drv-list details.item').forEach(el => { const hit = !q || q.split(/\s+/).every(w => el.dataset.search.includes(w)); el.hidden = !hit; if (hit) n++; });
   const none = document.querySelector('#drv-list .drv-none'); if (none) none.hidden = n > 0;
