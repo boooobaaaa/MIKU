@@ -1103,12 +1103,12 @@ function gdKeepSeason(d) {
 async function gdPlayerAct(what, b, d) {
   const s = window.GridDraft.store(d), uid = b.dataset.uid, name = b.dataset.name;
   if (what === 'rolls') {
-    if (!confirm(`Give ${name} all their attempts back for this reset period?`)) return;
+    if (!(await Pop.confirm(b.isConnected ? b : document.querySelector('[data-act="gd-resetpick"]'), { title: 'Reset rolls', text: `Give <b>${esc(name)}</b> all their attempts back for this reset period?`, ok: 'Reset rolls' }))) return;
     try { await s.resetPlayer(uid); const p = (GDA.players || []).find(x => x.uid === uid); if (p) p.attempts = 0; toast(`${name}'s rolls are reset`); }
     catch (x) { toast('Could not reset: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase first' : ''), 'err'); }
     return rerender();
   }
-  if (!confirm(`Fully reset ${name}?\n\nThis deletes their current team, leaderboard score and every draft they've made. They'll choose a username and start from zero next time. This can't be undone.`)) return;
+  if (!(await Pop.confirm(b.isConnected ? b : document.querySelector('[data-act="gd-wipepick"]'), { title: `Fully reset ${name}?`, text: 'Deletes their current team, leaderboard score and every draft. They choose a username and start from zero. <b>This can’t be undone.</b>', ok: 'Full reset', danger: true }))) return;
   try {
     const n = await s.wipePlayer(uid);
     GDA.players = (GDA.players || []).filter(x => x.uid !== uid); GDA.drafts = (GDA.drafts || []).filter(x => x.uid !== uid);
@@ -1819,16 +1819,16 @@ document.addEventListener('click', async e => {
       try {
         if (act === 'acc-approve') {
           const other = drvId && (ACA.links || []).find(x => x.status === 'approved' && x.driverId === drvId && x.uid !== L.uid);
-          if (other && !confirm(`${(byId(d.drivers, drvId) || {}).name} is already claimed by ${other.discordName}. Move the claim to ${L.discordName}?`)) return;
+          if (other && !(await Pop.confirm(b, { title: 'Driver already claimed', text: `<b>${esc((byId(d.drivers, drvId) || {}).name)}</b> is claimed by <b>${esc(other.discordName)}</b>. Move the claim to <b>${esc(L.discordName)}</b>?`, ok: 'Move claim' }))) return;
           if (other) { await s.reviewLink(other.uid, 'approved', other.note || '', ''); other.driverId = ''; }
           await s.reviewLink(L.uid, 'approved', '', drvId); Object.assign(L, { status: 'approved', driverId: drvId, reviewedAt: Date.now(), note: '' });
           setDriverClaim(d, L, drvId); toast(`${L.discordName} approved${drvId ? ' — Publish to show the badge on their driver page' : ''}`);
         } else if (act === 'acc-deny') {
-          const note = prompt(`Deny ${L.discordName}'s link? Optional note they'll see:`, ''); if (note === null) return;
+          const r = await Pop.form(b, { title: `Deny ${L.discordName}'s link?`, fields: [{ name: 'note', label: 'Note they’ll see (optional)', value: '', max: 500 }], ok: 'Deny', danger: true }); if (!r) return; const note = r.note;
           await s.reviewLink(L.uid, 'denied', note.slice(0, 500), L.driverId); Object.assign(L, { status: 'denied', note, reviewedAt: Date.now() });
           setDriverClaim(d, L, ''); toast('Request denied');
         } else {
-          if (!confirm(`Remove ${L.discordName}'s Discord link? Their badge and driver claim go away (they can request again).`)) return;
+          if (!(await Pop.confirm(b, { title: 'Remove this link?', text: `<b>${esc(L.discordName)}</b> loses the verified badge and driver claim. They can request again.`, ok: 'Remove', danger: true }))) return;
           await s.deleteLink(L.uid); ACA.links = ACA.links.filter(x => x.uid !== L.uid); setDriverClaim(d, L, ''); toast('Link removed');
         }
         window.Accounts.refreshApproved(); return commit();
@@ -1841,15 +1841,15 @@ document.addEventListener('click', async e => {
         if (isGd) {
           const p = (ACA.players || []).find(x => x.uid === uid); if (!p) return;
           let name = p.name, lock = !!p.nameLocked;
-          if (what === 'revert') { name = p.origName; if (!confirm(`Change “${p.name}” back to “${name}”?`)) return; lock = lock || confirm('Also lock it so they can’t change it again?'); }
-          else if (what === 'rename') { const n = prompt('New Grid Draft username (2–24 characters):', p.name); if (n === null) return; name = n.trim().slice(0, 24); if (name.length < 2) return toast('Names need at least 2 characters', 'err'); }
+          if (what === 'revert') { const r = await Pop.confirm(b, { title: 'Revert Grid Draft username', text: `Change <b>${esc(p.name)}</b> back to <b>${esc(p.origName)}</b>?`, ok: 'Revert', checks: [{ name: 'lock', label: 'Lock it so they can’t change it again', checked: true }] }); if (!r) return; name = p.origName; lock = lock || r.lock; }
+          else if (what === 'rename') { const r = await Pop.form(b, { title: 'Rename Grid Draft username', fields: [{ name: 'n', label: 'Username', value: p.name, max: 24, min: 2 }], checks: [{ name: 'lock', label: 'Lock it so they can’t change it again', checked: lock }], ok: 'Save name' }); if (!r) return; name = r.n.slice(0, 24); lock = r.lock; }
           else lock = !lock;
           await window.GridDraft.store(d).adminSetName(uid, name, lock); Object.assign(p, { name, nameLocked: lock }); window.GridDraft.G.lb = null;
         } else {
           const f = window.Fantasy.accountDocs(d).find(x => x.uid === uid); if (!f) return;
           let manager = f.manager, name = f.name, lock = !!f.nameLocked;
-          if (what === 'revert') { manager = f.origManager || f.manager; name = f.origName || f.name; if (!confirm(`Change back to “${manager}” · “${name}”?`)) return; lock = lock || confirm('Also lock it so they can’t change it again?'); }
-          else if (what === 'rename') { const m = prompt('Manager name:', f.manager); if (m === null) return; const t = prompt('Team name:', f.name); if (t === null) return; manager = m.trim().slice(0, 40); name = t.trim().slice(0, 40); if (!manager || !name) return toast('Names can’t be empty', 'err'); }
+          if (what === 'revert') { const om = f.origManager || f.manager, on = f.origName || f.name; const r = await Pop.confirm(b, { title: 'Revert Fantasy names', text: `Change back to <b>${esc(om)}</b> · <b>${esc(on)}</b>?`, ok: 'Revert', checks: [{ name: 'lock', label: 'Lock them so they can’t change it again', checked: true }] }); if (!r) return; manager = om; name = on; lock = lock || r.lock; }
+          else if (what === 'rename') { const r = await Pop.form(b, { title: 'Rename Fantasy entry', fields: [{ name: 'm', label: 'Manager name', value: f.manager, max: 40, min: 1 }, { name: 't', label: 'Team name', value: f.name, max: 40, min: 1 }], checks: [{ name: 'lock', label: 'Lock them so they can’t change it again', checked: lock }], ok: 'Save names' }); if (!r) return; manager = r.m.slice(0, 40); name = r.t.slice(0, 40); lock = r.lock; }
           else lock = !lock;
           await window.Portal.store(d).adminSetFantasyNames(uid, { manager, name, locked: lock }); Object.assign(f, { manager, name, nameLocked: lock });
         }
@@ -1870,13 +1870,7 @@ document.addEventListener('click', async e => {
       return gdPlayerAct(act === 'gd-resetpick' ? 'rolls' : 'wipe', fake, d);
     }
     case 'gd-wipe': return gdPlayerAct('wipe', b, d);
-    case 'gd-resetone': {
-      if (!confirm(`Give ${b.dataset.name} all their attempts back for this reset period?`)) return;
-      const s = window.GridDraft.store(d); b.disabled = true;
-      try { await s.resetPlayer(b.dataset.uid); const p = (GDA.players || []).find(x => x.uid === b.dataset.uid); if (p) p.attempts = 0; toast(`${b.dataset.name}'s rolls are reset`); }
-      catch (x) { toast('Could not reset: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase first' : ''), 'err'); }
-      return rerender();
-    }
+    case 'gd-resetone': return gdPlayerAct('rolls', b, d);
     case 'gd-reset': { if (!confirm('Reset everyone\'s attempts now? Unfinished drafts expire. Completed teams and the leaderboard are kept.')) return; const s = window.GridDraft.store(d); try { await s.adminReset(); toast('Global reset done'); } catch (x) { toast('Reset failed: ' + (x.code || x.message), 'err'); } return; }
     case 'seo-now': { const g = ghReady(); if (!g) return; b.disabled = true; try { const ch = await updateIndexMeta(g, d); toast(ch ? 'Link preview updated — live in about a minute' : 'Link preview was already up to date'); } catch (err) { toast('Couldn\'t update: ' + err.message, 'err'); } b.disabled = false; return; }
     case 'add-fia': { d.fiaNews = d.fiaNews || []; const x = { id: uid('fia'), title: 'New announcement', date: new Date().toISOString(), category: 'notice', body: '', roundId: '', docs: [] }; d.fiaNews.push(x); A.open['fia-' + x.id] = true; return commit(); }

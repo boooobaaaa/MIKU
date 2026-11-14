@@ -2629,3 +2629,29 @@ select option { background: var(--card-solid); color: var(--text); }
 tr.nm-changed td:first-child { box-shadow: inset 3px 0 0 var(--pink-soft); }
 #nm-q { background: color-mix(in srgb, var(--bg) 60%, transparent); border: 1px solid var(--line-strong); border-radius: 10px; color: var(--text); font: 14px var(--f-body); padding: 7px 12px; outline: none; }
 #nm-q:focus { border-color: var(--miku); }
+
+/* ===== Popovers (assets/popover.js) — replace browser prompt/confirm ===== */
+.pop { position: fixed; z-index: 9100; width: min(340px, calc(100vw - 20px)); --ax: 50%;
+  background: color-mix(in srgb, var(--card-solid) 94%, var(--miku) 6%); border: 1px solid var(--line-strong); border-radius: 14px;
+  box-shadow: 0 18px 50px -14px rgba(0, 0, 0, .65), 0 0 0 1px color-mix(in srgb, var(--miku) 8%, transparent);
+  opacity: 0; transform: translateY(-4px) scale(.98); transform-origin: var(--ax) top; transition: opacity .14s ease, transform .16s cubic-bezier(.2, .9, .3, 1.2); }
+.pop.up { transform: translateY(4px) scale(.98); transform-origin: var(--ax) bottom; }
+.pop.in { opacity: 1; transform: none; }
+.pop::before { content: ''; position: absolute; left: var(--ax); top: -6px; width: 11px; height: 11px; margin-left: -6px; transform: rotate(45deg);
+  background: inherit; border-left: 1px solid var(--line-strong); border-top: 1px solid var(--line-strong); }
+.pop.up::before { top: auto; bottom: -6px; border: 0; border-right: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
+:root[data-theme="light"] .pop { box-shadow: 0 16px 40px -16px rgba(16, 60, 60, .35); }
+.pop-in { position: relative; display: grid; gap: 12px; padding: 14px 16px; font-family: var(--f-body); color: var(--text); }
+.pop-t { font-weight: 700; font-size: 15px; }
+.pop-x { margin: -4px 0 0; color: var(--text-2); font-size: 13.5px; line-height: 1.45; }
+.pop-f { display: grid; gap: 5px; position: relative; }
+.pop-f span { font-size: 12.5px; color: var(--muted); }
+.pop-f input { width: 100%; background: color-mix(in srgb, var(--bg) 60%, transparent) !important; border: 1px solid var(--line-strong) !important; border-radius: 10px !important; color: var(--text); font: 15px var(--f-body); padding: 9px 46px 9px 12px !important; outline: none; }
+.pop-f input:focus { border-color: var(--miku) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--miku) 15%, transparent) !important; }
+.pop-n { position: absolute; right: 10px; bottom: 10px; font: 11px var(--f-mono); color: var(--muted); }
+.pop-c { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--text-2); cursor: pointer; }
+.pop-err { margin: -4px 0 0; color: var(--pink-soft); font-size: 12.5px; }
+.pop-a { display: flex; justify-content: flex-end; gap: 8px; }
+.pop.danger { border-color: color-mix(in srgb, var(--pink) 45%, transparent); }
+.pop-open { border-color: var(--miku) !important; color: var(--accent-text) !important; }
+.pop input[type=checkbox] { accent-color: var(--miku); width: 16px; height: 16px; }
