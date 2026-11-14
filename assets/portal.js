@@ -8,7 +8,9 @@
 const LG = window.LG;
 const { esc, byId, teamColor, toast } = LG;
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
-const ROLES = ['Team principal', 'Executive officer', 'Chief executive officer', 'Team manager', 'Press / Media', 'Photographer', 'Journalist'];
+const ROLES = ['Team Principal', 'Executive Officer', 'Chief Executive Officer', 'Team Manager', 'Press / Media', 'Photographer', 'Journalist'];
+/* show any stored role (older ones were saved in lower case) in Title Case */
+const roleName = r => { const hit = ROLES.find(x => x.toLowerCase() === String(r || '').toLowerCase()); return hit || String(r || '').replace(/\b([a-z])/g, c => c.toUpperCase()); };
 const isPress = m => m && !m.teamId;
 const STATUS = { pending: ['Waiting for review', 'pt-pending'], changes: ['Changes requested', 'pt-changes'], approved: ['Approved', 'pt-approved'], rejected: ['Not accepted', 'pt-rejected'] };
 
@@ -388,7 +390,7 @@ function page(d) {
     </div>
     <div class="pt-prev"><div class="pt-prev-l">Preview</div><article class="article">
       ${f.tag ? `<div class="eyebrow">${esc(f.tag)}</div>` : ''}<h1>${esc(f.title || 'Your headline')}</h1>
-      <div class="a-meta"><span>by ${esc(m.name)} · ${esc(m.role)}${t ? ', ' + esc(t.name) : ''}</span></div>
+      <div class="a-meta"><span>by ${esc(m.name)} · ${esc(roleName(m.role))}${t ? ', ' + esc(t.name) : ''}</span></div>
       ${f.image ? `<div class="a-cover"><img src="${esc(f.image)}" alt=""></div>` : ''}<div class="prose">${f.body ? LG.md(f.body) : '<p class="muted">Start writing to see a preview.</p>'}</div></article></div>
   </div>`;
   const mine = P.subs === 'loading' ? '<div class="loading">Loading…</div>' : !subs.length ? emptyBox('Nothing submitted yet') : `<div class="pt-list">${subs.map(x => `<div class="pt-item">
@@ -399,7 +401,7 @@ function page(d) {
       <div class="toolbar">${['pending', 'changes'].includes(x.status) ? `<button class="btn sm" data-pt="edit" data-id="${esc(x.id)}">Edit</button>` : ''}${x.status === 'approved' && x.newsId ? `<a class="btn sm" href="#/news/${esc(x.newsId)}">View in News</a>` : ''}${x.status === 'approved' && x.kind === 'photos' ? '<a class="btn sm" href="#/gallery">View in Gallery</a>' : ''}${['pending', 'changes', 'rejected'].includes(x.status) ? `<button class="btn sm danger" data-pt="withdraw" data-id="${esc(x.id)}">${x.status === 'rejected' ? 'Delete' : 'Withdraw'}</button>` : ''}</div>
     </div>`).join('')}</div>`;
   return `<div class="page pt">
-    <div class="pt-banner" style="--tc:${press ? 'var(--miku)' : esc(teamColor(t))}">${t && t.logo ? `<img src="${esc(LG.asset(t.logo))}" alt="" onerror="this.remove()">` : press ? '<span class="pt-press-ic">📷</span>' : ''}<div><div class="eyebrow">${press ? 'Press & media' : 'Team portal'}</div><h1>${esc(t ? t.name : press ? 'Press & media desk' : 'Team portal')}</h1><p>Signed in as <b>${esc(m.name)}</b> · ${esc(m.role)} · <button class="linkish" data-pt="signout">sign out</button></p></div></div>
+    <div class="pt-banner" style="--tc:${press ? 'var(--miku)' : esc(teamColor(t))}">${t && t.logo ? `<img src="${esc(LG.asset(t.logo))}" alt="" onerror="this.remove()">` : press ? '<span class="pt-press-ic">📷</span>' : ''}<div><div class="eyebrow">${press ? 'Press & media' : 'Team portal'}</div><h1>${esc(t ? t.name : press ? 'Press & media desk' : 'Team portal')}</h1><p>Signed in as <b>${esc(m.name)}</b> · ${esc(roleName(m.role))} · <button class="linkish" data-pt="signout">sign out</button></p></div></div>
     ${tabs}${P.tab === 'mine' ? mine : P.tab === 'photos' ? photosForm : writer}
   </div>`;
 }
@@ -461,5 +463,5 @@ document.addEventListener('click', async e => {
   } catch (err) { b.disabled = false; toast((/permission/i.test(err.code || err.message) ? 'The server refused that — your access may have been removed, or the article was already reviewed. ' : 'Something went wrong: ') + (err.code || err.message), 'err'); }
 });
 
-window.Portal = { page, store, RULES, ROLES, STATUS, badge, isPress };
+window.Portal = { page, store, RULES, ROLES, STATUS, badge, isPress, roleName };
 })();

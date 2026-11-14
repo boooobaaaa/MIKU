@@ -319,7 +319,7 @@ function staffEditor(d, t, p) {
   };
   return `<div class="staff-ed"><h4>Team personnel</h4><p class="hint" style="margin:-4px 0 12px">Shown as a "full team" section on the team page. Leave anything empty to hide it.</p>
     <div class="staff-block"><div class="staff-h"><b>Executive / team manager</b><span class="muted">title is up to you</span></div>${personRow(d, `${p}.staff.exec`, st.exec, 'exec')}</div>
-    <div class="staff-block"><div class="staff-h"><b>Team principal</b></div>${personRow(d, `${p}.staff.principal`, st.principal || (t.principal ? { name: t.principal } : {}), 'principal')}</div>
+    <div class="staff-block"><div class="staff-h"><b>Team Principal</b></div>${personRow(d, `${p}.staff.principal`, st.principal || (t.principal ? { name: t.principal } : {}), 'principal')}</div>
     ${list('race')}${list('perf')}${list('reserves')}${list('academy')}
   </div>`;
 }
@@ -1084,22 +1084,22 @@ function ptStaffCard(d, mem) {
   const AC = window.Accounts, appr = AC ? AC.approved(d) : null, links = appr ? Object.values(appr) : [];
   const uids = PTA.uids || [], has = new Set(uids.map(x => x.uid));
   const tName = id => id ? ((byId(d.teams, id) || {}).name || 'Unknown team') : 'Press / media';
-  const roleSel = id => `<select id="${id}">${window.Portal.ROLES.map(r => `<option ${r === 'Team principal' ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select>`;
+  const roleSel = (id, cur = 'Team Principal') => `<select id="${id}">${window.Portal.ROLES.map(r => `<option ${r === cur ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select>`;
   const teamSel = (id, cur) => `<select id="${id}">${d.teams.map(t => `<option value="${esc(t.id)}" ${t.id === cur ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}<option value="" ${cur === '' ? 'selected' : ''}>— None (press / media) —</option></select>`;
   const avail = links.filter(l => !has.has(l.uid)).sort((a, b) => String(a.discordName).localeCompare(String(b.discordName)));
   const rows = [
-    ...uids.map(m => `<tr><td>${m.discordId ? `<span class="ac-badge" style="margin:0">${AC.dcFace({ discordId: m.discordId, discordAvatar: m.discordAvatar })}<span>${esc(m.discordName || m.name)}</span><i>✓</i></span>` : '<span class="muted">Discord account</span>'}</td><td>${esc(m.name)}</td><td>${esc(m.role)}</td><td>${esc(tName(m.teamId))}</td><td class="c-act"><button class="iconbtn del" data-act="pt-rm-uid" data-uid="${esc(m.uid)}" data-name="${esc(m.name)}" title="Remove access">✕</button></td></tr>`),
-    ...mem.map(m => `<tr><td class="mono" style="font-size:13px">✉ ${esc(m.email)}</td><td>${esc(m.name)}</td><td>${esc(m.role)}</td><td>${esc(tName(m.teamId))}</td><td class="c-act"><button class="iconbtn del" data-act="pt-rm" data-email="${esc(m.email)}" title="Remove access">✕</button></td></tr>`)
+    ...uids.map(m => `<tr><td>${m.discordId ? `<span class="ac-badge" style="margin:0">${AC.dcFace({ discordId: m.discordId, discordAvatar: m.discordAvatar })}<span>${esc(m.discordName || m.name)}</span><i>✓</i></span>` : '<span class="muted">Discord account</span>'}</td><td>${esc(m.name)}</td><td>${esc(window.Portal.roleName(m.role))}</td><td>${esc(tName(m.teamId))}</td><td class="c-act"><button class="iconbtn del" data-act="pt-rm-uid" data-uid="${esc(m.uid)}" data-name="${esc(m.name)}" title="Remove access">✕</button></td></tr>`),
+    ...mem.map(m => `<tr><td class="mono" style="font-size:13px">✉ ${esc(m.email)}</td><td>${esc(m.name)}</td><td>${esc(window.Portal.roleName(m.role))}</td><td>${esc(tName(m.teamId))}</td><td class="c-act"><button class="iconbtn del" data-act="pt-rm" data-email="${esc(m.email)}" title="Remove access">✕</button></td></tr>`)
   ].join('');
   return `<div class="a-card" style="overflow-x:auto"><h3>Staff access</h3>
     <p class="hint" style="margin:-4px 0 12px">Give access to someone's <b>linked Discord account</b> — they link it under 👤 My account and you approve it in <a href="#/admin/accounts">Accounts</a>. No emails needed. Each person can only write for their own team.</p>
     ${rows ? `<table class="rtable"><thead><tr><th>Account</th><th>Name shown</th><th>Role</th><th>Team</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="muted">Nobody has access yet.</p>'}
     <h4 style="margin:18px 0 8px">Give access with Discord</h4>
     ${appr === null ? '<p class="muted">Loading linked accounts…</p>' : avail.length ? `<div class="fgrid pt-dc-add">
-        <label class="fld"><span>Linked Discord account</span><select id="pt-d-uid">${avail.map(l => { const drv = l.driverId && byId(d.drivers, l.driverId); return `<option value="${esc(l.uid)}" data-team="${esc(drv ? drv.teamId || '' : '')}">${esc(l.discordName)} (@${esc(l.discordUser)})${drv ? ' · ' + esc(drv.name) : ''}</option>`; }).join('')}</select></label>
-        <label class="fld"><span>Name shown on articles</span><input type="text" id="pt-d-name" placeholder="Their Discord name if empty" maxlength="60"></label>
-        <label class="fld"><span>Role</span>${roleSel('pt-d-role')}</label>
-        <label class="fld"><span>Team</span>${teamSel('pt-d-team', (() => { const l = avail[0], drv = l && l.driverId && byId(d.drivers, l.driverId); return drv ? drv.teamId || '' : (d.teams[0] || {}).id; })())}</label>
+        <label class="fld"><span>Linked Discord account</span><select id="pt-d-uid">${avail.map(l => { const f = ptDefaults(d, l); return `<option value="${esc(l.uid)}" data-team="${esc(f.teamId)}" data-name="${esc(f.name)}" data-role="${esc(f.role)}">${esc(l.discordName)} (@${esc(l.discordUser)})${f.from ? ' · ' + esc(f.from) : ''}</option>`; }).join('')}</select></label>
+        <label class="fld"><span>Name shown on articles</span><input type="text" id="pt-d-name" value="${esc(ptDefaults(d, avail[0]).name)}" maxlength="60"></label>
+        <label class="fld"><span>Role</span>${roleSel('pt-d-role', ptDefaults(d, avail[0]).role)}</label>
+        <label class="fld"><span>Team</span>${teamSel('pt-d-team', ptDefaults(d, avail[0]).teamId)}</label>
       </div><div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="pt-add-dc">+ Give access</button></div>`
       : `<p class="muted">${links.length ? 'Every approved Discord account already has access.' : 'No approved Discord accounts yet — people link theirs under 👤 My account, then you approve them in <a href="#/admin/accounts">Accounts</a>.'}</p>`}
     <details class="pt-email-add" style="margin-top:16px"><summary>Or give access by Google email (older way)</summary>
@@ -1114,11 +1114,21 @@ function ptStaffCard(d, mem) {
     </details>
   </div>`;
 }
-// picking an account pre-selects the team of the driver they claimed
+/* defaults for portal access from what the account has claimed: team personnel first, then their driver, then their Discord name */
+function ptDefaults(d, l) {
+  if (!l) return { name: '', role: 'Team Principal', teamId: (d.teams[0] || {}).id || '', from: '' };
+  const st = LG.staffOf(d, l.uid), drv = l.driverId && byId(d.drivers, l.driverId);
+  const roleFrom = r => /chief/i.test(r) ? 'Chief Executive Officer' : /exec|ceo/i.test(r) ? 'Executive Officer' : /manager/i.test(r) ? 'Team Manager' : 'Team Principal';
+  if (st) return { name: st.name, role: roleFrom(st.roles.find(r => /principal|exec|chief|manager/i.test(r)) || st.roles[0]), teamId: st.team.id, from: `${st.name} (${st.roles.join(', ')})` };
+  if (drv) return { name: drv.name, role: 'Team Principal', teamId: drv.teamId || '', from: drv.name };
+  return { name: l.discordName, role: 'Team Principal', teamId: (d.teams[0] || {}).id || '', from: '' };
+}
+// picking an account fills in its name, role and team
 document.addEventListener('change', e => {
   if (e.target.id !== 'pt-d-uid') return;
-  const o = e.target.selectedOptions[0], t = document.getElementById('pt-d-team');
-  if (o && t && o.dataset.team !== undefined && o.dataset.team !== '') t.value = o.dataset.team;
+  const o = e.target.selectedOptions[0]; if (!o) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
+  set('pt-d-name', o.dataset.name); set('pt-d-role', o.dataset.role); set('pt-d-team', o.dataset.team);
 });
 
 /* ---------------- grid draft admin ---------------- */
@@ -1366,8 +1376,10 @@ function secAccounts(d) {
       ${AC.dcFace(x, 'lg')}
       <div class="acc-who"><b>${esc(x.discordName)}</b><span class="muted">@${esc(x.discordUser)}</span><span class="muted acc-id-line">ID <span class="mono">${esc(x.discordId)}</span></span><span class="muted" style="font-size:12px">${x.status === 'pending' ? 'Requested' : x.status === 'approved' ? 'Approved' : 'Denied'} ${when(x.status === 'pending' ? x.updatedAt : x.reviewedAt || x.updatedAt)}</span>
         ${warn.map(w => `<span class="warn-sm">⚠ ${w}</span>`).join('')}${x.note ? `<span class="muted" style="font-size:12.5px">Note: ${esc(x.note)}</span>` : ''}</div>
-      <label class="fld acc-drv"><span>Driver profile${drv && x.status !== 'approved' ? ' (their pick)' : ''}</span><select id="acc-drv-${esc(x.uid)}">${AC.driverOptions(d, x.driverId, y => { const c2 = claimedBy(y.id); return c2 && c2.uid !== x.uid; })}</select></label>
-      <div class="acc-act">${x.status !== 'approved' ? `<button class="btn sm primary" data-act="acc-approve" data-uid="${esc(x.uid)}">✓ Approve</button>` : `<button class="btn sm" data-act="acc-approve" data-uid="${esc(x.uid)}">Save driver</button>`}
+      <div class="acc-claims"><label class="fld acc-drv"><span>Driver profile${drv && x.status !== 'approved' ? ' (their pick)' : ''}</span><select id="acc-drv-${esc(x.uid)}">${AC.driverOptions(d, x.driverId, y => { const c2 = claimedBy(y.id); return c2 && c2.uid !== x.uid; })}</select></label>
+      <label class="fld acc-drv"><span>Team personnel</span><select id="acc-staff-${esc(x.uid)}"><option value="">— Not team personnel —</option>${LG.staffPeople(d).map(pp => { const mine = pp.entries.some(e => e.x.discord && e.x.discord.uid === x.uid), other = pp.entries.find(e => e.x.discord && e.x.discord.uid !== x.uid); const teams = [...new Set(pp.entries.map(e => e.team.name))].join(', ');
+        return `<option value="${esc(pp.key)}" ${mine ? 'selected' : ''}>${esc(pp.name)} — ${esc(pp.entries.map(e => e.role).join(', '))} · ${esc(teams)}${other ? ' (claimed by ' + esc(other.x.discord.name || 'someone') + ')' : ''}</option>`; }).join('')}</select></label></div>
+      <div class="acc-act">${x.status !== 'approved' ? `<button class="btn sm primary" data-act="acc-approve" data-uid="${esc(x.uid)}">✓ Approve</button>` : `<button class="btn sm" data-act="acc-approve" data-uid="${esc(x.uid)}">Save</button>`}
         ${x.status === 'pending' ? `<button class="btn sm" data-act="acc-deny" data-uid="${esc(x.uid)}">Deny</button>` : ''}<button class="iconbtn del" data-act="acc-remove" data-uid="${esc(x.uid)}" title="Remove this link">✕</button></div>
     </div>`;
   };
@@ -1414,6 +1426,12 @@ function namesCard(d, approvedLinks) {
     </tbody></table>` : `<p class="muted">${q ? 'No names match that search.' : 'No players yet.'}</p>`}</div>`;
 }
 document.addEventListener('input', e => { if (e.target.id !== 'nm-q') return; ACA.q = e.target.value; const pos = e.target.selectionStart; rerender(); const el = document.getElementById('nm-q'); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (x) { } } });
+function setStaffClaim(d, link, key) {
+  LG.staffEntries(d).forEach(e => { if (e.x.discord && e.x.discord.uid === link.uid) delete e.x.discord; });
+  if (!key) return;
+  const pp = LG.staffPeople(d).find(z => z.key === key); if (!pp) return;
+  pp.entries.forEach(e => { e.x.discord = { uid: link.uid, id: link.discordId, name: link.discordName, user: link.discordUser, avatar: link.discordAvatar }; });
+}
 function setDriverClaim(d, link, driverId) {
   d.drivers.forEach(x => { if (x.discord && x.discord.uid === link.uid) delete x.discord; });
   const drv = driverId && byId(d.drivers, driverId);
@@ -1878,7 +1896,7 @@ document.addEventListener('click', async e => {
     }
     case 'pt-rm-uid': if (!await Pop.ask(b, `Remove portal access for ${b.dataset.name}?`)) return; try { await window.Portal.store(d).removeUidMember(b.dataset.uid); PTA.members = null; } catch (x) { toast('Couldn\'t remove: ' + (x.code || x.message), 'err'); } return rerender();
     case 'pt-add': {
-      const email = document.getElementById('pt-m-email').value.trim().toLowerCase(), name = document.getElementById('pt-m-name').value.trim(), role = document.getElementById('pt-m-role').value.trim() || 'Team principal', teamId = document.getElementById('pt-m-team').value;
+      const email = document.getElementById('pt-m-email').value.trim().toLowerCase(), name = document.getElementById('pt-m-name').value.trim(), role = document.getElementById('pt-m-role').value.trim() || 'Team Principal', teamId = document.getElementById('pt-m-team').value;
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast('Enter their full Google email', 'err');
       if (!name) return toast('Add the name to show on their articles', 'err');
       try { await window.Portal.store(d).setMember(email, { name, role, teamId }); toast(`${name} can now use the portal`); PTA.members = null; } catch (x) { toast('Couldn\'t save: ' + (x.code || x.message), 'err'); }
@@ -1946,21 +1964,21 @@ document.addEventListener('click', async e => {
     case 'acc-reload': ACA.links = null; return rerender();
     case 'acc-approve': case 'acc-deny': case 'acc-remove': {
       const s = window.Portal.store(d), L = (ACA.links || []).find(x => x.uid === b.dataset.uid); if (!L) return;
-      const sel = document.getElementById('acc-drv-' + L.uid), drvId = sel ? sel.value : L.driverId;
+      const sel = document.getElementById('acc-drv-' + L.uid), drvId = sel ? sel.value : L.driverId, sSel = document.getElementById('acc-staff-' + L.uid), staffKey = sSel ? sSel.value : '';
       try {
         if (act === 'acc-approve') {
           const other = drvId && (ACA.links || []).find(x => x.status === 'approved' && x.driverId === drvId && x.uid !== L.uid);
           if (other && !(await Pop.confirm(b, { title: 'Driver already claimed', text: `<b>${esc((byId(d.drivers, drvId) || {}).name)}</b> is claimed by <b>${esc(other.discordName)}</b>. Move the claim to <b>${esc(L.discordName)}</b>?`, ok: 'Move claim' }))) return;
           if (other) { await s.reviewLink(other.uid, 'approved', other.note || '', ''); other.driverId = ''; }
           await s.reviewLink(L.uid, 'approved', '', drvId); Object.assign(L, { status: 'approved', driverId: drvId, reviewedAt: Date.now(), note: '' });
-          setDriverClaim(d, L, drvId); toast(`${L.discordName} approved${drvId ? ' — Publish to show the badge on their driver page' : ''}`);
+          setDriverClaim(d, L, drvId); setStaffClaim(d, L, staffKey); toast(`${L.discordName} ${L.status === 'approved' && b.textContent.includes('Save') ? 'updated' : 'approved'}${drvId || staffKey ? ' — Publish to show the badge on their profile' : ''}`);
         } else if (act === 'acc-deny') {
           const r = await Pop.form(b, { title: `Deny ${L.discordName}'s link?`, fields: [{ name: 'note', label: 'Note they’ll see (optional)', value: '', max: 500 }], ok: 'Deny', danger: true }); if (!r) return; const note = r.note;
           await s.reviewLink(L.uid, 'denied', note.slice(0, 500), L.driverId); Object.assign(L, { status: 'denied', note, reviewedAt: Date.now() });
-          setDriverClaim(d, L, ''); toast('Request denied');
+          setDriverClaim(d, L, ''); setStaffClaim(d, L, ''); toast('Request denied');
         } else {
           if (!(await Pop.confirm(b, { title: 'Remove this link?', text: `<b>${esc(L.discordName)}</b> loses the verified badge and driver claim. They can request again.`, ok: 'Remove', danger: true }))) return;
-          await s.deleteLink(L.uid); ACA.links = ACA.links.filter(x => x.uid !== L.uid); setDriverClaim(d, L, ''); toast('Link removed');
+          await s.deleteLink(L.uid); ACA.links = ACA.links.filter(x => x.uid !== L.uid); setDriverClaim(d, L, ''); setStaffClaim(d, L, ''); toast('Link removed');
         }
         window.Accounts.refreshApproved(); return commit();
       } catch (x) { toast('Couldn’t update: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase.' : ''), 'err'); return; }

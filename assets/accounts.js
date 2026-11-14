@@ -117,6 +117,7 @@ function page(d) {
   if (l === undefined) link = '<p class="muted">Checking your Discord link…</p>';
   else if (l && l.status === 'approved') link = `<div class="ac-linked ok">${dcFace(l, 'lg')}<div><b>${esc(l.discordName)}</b><span class="muted">@${esc(l.discordUser)}</span><span class="ac-st ok">✓ ${esc(c.verifiedLabel || 'MRA Verified')}</span></div></div>
       ${drv ? `<p class="ac-claim"><span class="muted">Driver profile</span><a href="#/driver/${esc(drv.id)}" style="--tc:${esc(teamColor(byId(d.teams, drv.teamId)))}">${LG.avatar(drv, byId(d.teams, drv.teamId), 'sm')}${nameHTML(drv.name)}</a></p>` : '<p class="muted">Not linked to a driver profile.</p>'}
+      ${(() => { const st = LG.staffOf && LG.staffOf(d, s.user.uid); return st ? `<p class="ac-claim"><span class="muted">Team role</span><a href="#/team/${esc(st.team.id)}" style="--tc:${esc(teamColor(st.team))}"><b>${esc(st.roles.join(', '))}</b>&nbsp;· ${esc(st.team.name)}</a></p>` : ''; })()}
       <div class="toolbar"><button class="btn sm ghost" data-ac="unlink">Unlink Discord</button></div>`;
   else if (l && l.status === 'pending') link = `<div class="ac-linked">${dcFace(l, 'lg')}<div><b>${esc(l.discordName)}</b><span class="muted">@${esc(l.discordUser)}</span><span class="ac-st wait">⏳ Waiting for an admin to approve</span></div></div>
       <p class="muted">${drv ? `You asked to claim <b>${esc(drv.name)}</b>. ` : ''}You’ll see the verified tick here once it's approved.</p><div class="toolbar"><button class="btn sm ghost" data-ac="unlink">Cancel request</button></div>`;

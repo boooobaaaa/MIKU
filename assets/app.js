@@ -1129,7 +1129,7 @@ function pageTeam(d, id) {
       <div class="eyebrow">${x.position ? `P${x.position} in constructors'` : 'Constructor'}</div>
       <h1>${esc(T.name)}</h1>
       <dl class="kv" style="position:relative;margin-top:14px">
-        ${T.base ? `<dt>Base</dt><dd>${esc(T.base)}</dd>` : ''}${(((T.staff || {}).principal || {}).name || T.principal) ? `<dt>Team principal</dt><dd>${esc(((T.staff || {}).principal || {}).name || T.principal)}</dd>` : ''}${T.car ? `<dt>Chassis</dt><dd>${esc(T.car)}</dd>` : ''}${T.engine ? `<dt>Power unit</dt><dd>${esc(T.engine)}</dd>` : ''}
+        ${T.base ? `<dt>Base</dt><dd>${esc(T.base)}</dd>` : ''}${(((T.staff || {}).principal || {}).name || T.principal) ? `<dt>Team Principal</dt><dd>${esc(((T.staff || {}).principal || {}).name || T.principal)}</dd>` : ''}${T.car ? `<dt>Chassis</dt><dd>${esc(T.car)}</dd>` : ''}${T.engine ? `<dt>Power unit</dt><dd>${esc(T.engine)}</dd>` : ''}
       </dl>
       ${T.bio ? `<div class="bio prose">${md(T.bio)}</div>` : ''}
       ${T.carImage ? `<img class="ph-car zoomable" src="${esc(asset(T.carImage))}" alt="" onerror="this.remove()">` : ''}
@@ -1277,12 +1277,32 @@ function wideDriverCard(d, p, T, st, role) {
     ${!role ? `<div class="dc-pts"><b>${fmtPts(ps.points)}</b><span>PTS</span></div>` : ''}
   </${tag}>`;
 }
+/* every named team-personnel entry (not drivers), grouped by person so one account can claim e.g. Team Principal + Race Engineer at once */
+const STAFF_ROLE = { exec: 'Executive Officer', principal: 'Team Principal', race: 'Race Engineer', perf: 'Performance Engineer' };
+function staffEntries(d) {
+  const out = [];
+  d.teams.forEach((t, ti) => {
+    const st = t.staff || {};
+    const add = (x, key, k) => { if (x && x.name && !x.driverId) out.push({ team: t, path: `teams.${ti}.staff.${key}${k === undefined ? '' : '.' + k}`, x, role: key === 'exec' ? (x.title || STAFF_ROLE.exec) : STAFF_ROLE[key] }); };
+    add(st.exec, 'exec'); add(st.principal, 'principal');
+    (st.race || []).forEach((x, k) => add(x, 'race', k)); (st.perf || []).forEach((x, k) => add(x, 'perf', k));
+  });
+  return out;
+}
+function staffPeople(d) {
+  const m = {};
+  staffEntries(d).forEach(e => { const k = String(e.x.name).trim().toLowerCase(); (m[k] = m[k] || { key: k, name: String(e.x.name).trim(), entries: [] }).entries.push(e); });
+  return Object.values(m).sort((a, b) => a.name.localeCompare(b.name));
+}
+/* the personnel profile an account has claimed (first match), or null */
+function staffOf(d, uid) { const e = uid && staffEntries(d).filter(z => z.x.discord && z.x.discord.uid === uid); return e && e.length ? { name: e[0].x.name, team: e[0].team, roles: e.map(z => z.role), entries: e } : null; }
+
 function staffCard(d, x, role, T) {
   const w = x.driverId ? byId(d.drivers, x.driverId) : null;
   const ini = String(x.name || '').split(/\s+/).map(z => z[0] || '').join('').slice(0, 2).toUpperCase();
   return `<div class="st-card" style="--tc:${esc(teamColor(T))}">
     <span class="avatar st-av">${x.photo ? `<img src="${esc(asset(x.photo))}" alt="" loading="lazy" onerror="this.remove()">` : esc(ini)}</span>
-    <div class="st-txt"><div class="st-role">${esc(role)}</div><div class="st-name">${nameHTML(x.name)}</div>
+    <div class="st-txt"><div class="st-role">${esc(role)}</div><div class="st-name">${nameHTML(x.name)}${x.discord && x.discord.id && window.Accounts ? `<span class="ac-badge st-claim" title="Verified Discord · @${esc(x.discord.user || x.discord.name || '')}">${window.Accounts.dcFace({ discordId: x.discord.id, discordAvatar: x.discord.avatar })}<i>✓</i></span>` : ''}</div>
       ${w || x.country ? `<div class="st-sub">${flag(x.country)}${w ? `<span>with <a href="#/driver/${esc(w.id)}">#${esc(w.number ?? '')} ${esc(w.name.split(' ').pop())}</a></span>` : ''}</div>` : ''}</div>
   </div>`;
 }
@@ -1291,11 +1311,11 @@ function teamLineup(d, T, st) {
   const lineup = raceLineup(d, T), drs = lineup.main;
   const named = x => x && (x.name || x.driverId);
   const people = [];
-  if (named(S2.exec)) people.push([S2.exec, (S2.exec.title || 'Executive officer')]);
+  if (named(S2.exec)) people.push([S2.exec, (S2.exec.title || 'Executive Officer')]);
   const tp = S2.principal && S2.principal.name ? S2.principal : (T.principal ? { name: T.principal } : null);
-  if (tp) people.push([tp, 'Team principal']);
-  (S2.race || []).filter(named).forEach(x => people.push([x, 'Race engineer']));
-  (S2.perf || []).filter(named).forEach(x => people.push([x, 'Performance engineer']));
+  if (tp) people.push([tp, 'Team Principal']);
+  (S2.race || []).filter(named).forEach(x => people.push([x, 'Race Engineer']));
+  (S2.perf || []).filter(named).forEach(x => people.push([x, 'Performance Engineer']));
   // a personnel entry typed in by hand is matched to the driver with the same name, so it links to their profile and isn't shown twice
   const byName = n => d.drivers.find(z => String(z.name || '').trim().toLowerCase() === String(n || '').trim().toLowerCase());
   const linkId = x => x && (x.driverId || ((byName(x.name) || {}).id) || '');
@@ -1493,7 +1513,7 @@ function searchIndex(d) {
   d.teams.forEach(t => {
     add('Teams', t.name, [t.base, t.car].filter(Boolean).join(' · '), '#/team/' + t.id, `${t.engine || ''} ${t.principal || ''}`, { team: t });
     const S2 = t.staff || {};
-    [[S2.exec, (S2.exec || {}).title || 'Executive'], [S2.principal, 'Team principal'], ...(S2.race || []).map(x => [x, 'Race engineer']), ...(S2.perf || []).map(x => [x, 'Performance engineer']), ...(S2.reserves || []).map(x => [x, 'Reserve driver']), ...(S2.academy || []).map(x => [x, 'Academy driver'])]
+    [[S2.exec, (S2.exec || {}).title || 'Executive'], [S2.principal, 'Team Principal'], ...(S2.race || []).map(x => [x, 'Race Engineer']), ...(S2.perf || []).map(x => [x, 'Performance Engineer']), ...(S2.reserves || []).map(x => [x, 'Reserve driver']), ...(S2.academy || []).map(x => [x, 'Academy driver'])]
       .filter(([x]) => x && x.name).forEach(([x, role]) => add('People', x.name, `${role} · ${t.name}`, '#/team/' + t.id, ''));
   });
   rounds(d).forEach(r => add('Races', r.name, `Round ${r.round}${r.track ? ' · ' + r.track : ''}${r.start ? ' · ' + fmtDate(r.start) : ''}`, '#/results/' + r.id, `${r.track || ''} ${r.country || ''} r${r.round} round ${r.round}`, { flag: r.country }));
@@ -1600,7 +1620,7 @@ function progressChart(d, st) {
     <div class="prog-bar">
       ${seg('pg-kind', PG.kind, [['drv', 'Drivers'], ['team', 'Constructors']])}
       ${seg('pg-mode', PG.mode, [['graph', 'Graph'], ['race', 'Bar race']])}
-      ${seg('pg-pics', PG.pics ? 'on' : 'off', [['on', 'Photos'], ['off', 'Dots']])}
+      <button type="button" class="pg-sw ${PG.pics ? 'on' : ''}" data-pg-pics="${PG.pics ? 'off' : 'on'}" role="switch" aria-checked="${PG.pics}" title="Show driver photos instead of dots"><i></i><span>Photos</span></button>
       <div class="prog-play"><button class="btn sm primary" data-pg="play" id="pg-play">▶ Play</button><input type="range" id="pg-slider" min="0" max="${n}" step="0.01" value="${PG.t}" aria-label="Round"><span class="mono" id="pg-label"></span></div>
     </div>
     <div id="pg-stage" class="pg-stage"></div>
@@ -1704,7 +1724,7 @@ function pgPlay() {
 }
 document.addEventListener('click', e => {
   const k = e.target.closest('[data-pg-kind]'), m = e.target.closest('[data-pg-mode]'), c = e.target.closest('[data-pg-chip]'), a = e.target.closest('[data-pg]'), pp = e.target.closest('[data-pg-pics]');
-  if (pp) { PG.pics = pp.dataset.pgPics === 'on'; lsSet('league.pgPics', PG.pics ? 'on' : 'off'); document.querySelectorAll('[data-pg-pics]').forEach(b2 => b2.classList.toggle('active', b2 === pp)); pgBuild(); pgDraw(); return; }
+  if (pp) { PG.pics = pp.dataset.pgPics === 'on'; lsSet('league.pgPics', PG.pics ? 'on' : 'off'); pp.dataset.pgPics = PG.pics ? 'off' : 'on'; pp.classList.toggle('on', PG.pics); pp.setAttribute('aria-checked', PG.pics); pgBuild(); pgDraw(); return; }
   if (k) { PG.kind = k.dataset.pgKind; pgBuild(); pgDraw(); }
   else if (m) { PG.mode = m.dataset.pgMode; pgBuild(); pgDraw(); }
   else if (c) { const h = pgHidden(), i = Number(c.dataset.pgChip); h.has(i) ? h.delete(i) : h.add(i); c.classList.toggle('off'); pgDraw(); }
@@ -2334,7 +2354,7 @@ document.getElementById('nav-toggle').addEventListener('click', () => document.g
 window.addEventListener('hashchange', () => render(true));
 
 /* expose helpers for the admin console */
-window.LG = { lookFor, slideImg, slideLabel, S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
+window.LG = { staffEntries, staffPeople, staffOf, lookFor, slideImg, slideLabel, S, esc, clone, uid, md, fmtPts, fmtDate, fmtTime, byId, flag, nameHTML, teamColor, toast, normalize, emptyLeague,
   rcName, HIST_ROLES, autoHistory, lapSecs, seasonName, countries, countryName, flagEmoji, rounds, session, isDone, nextRound, classify, poleDriver, computeStandings, saveDraft, clearDraft, discardDraft, render, DEFAULT_SCORING,
   DEFAULT_THEME, MODE_KEY, applyTheme, snapshotSeason, lastRound, ASSET_CACHE, asset, isImg, avatar, plain, titleCaseText, applyTitleCase, SESSION_PRESETS, ytVideoId, parseRulebook, htmlToMd, parseTyres, tyreChip, TYRES };
 
