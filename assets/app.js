@@ -1576,7 +1576,7 @@ function dotdCard(d, rid, withRound) {
 }
 
 /* ---------------- progression: animated graph + bar race ---------------- */
-const PG = { kind: 'drv', mode: 'graph', t: null, n: 0, playing: false, hidden: {}, raf: 0, data: null };
+const PG = { kind: 'drv', mode: 'graph', t: null, n: 0, playing: false, hidden: {}, raf: 0, data: null, pics: lsGet('league.pgPics') !== 'off' };
 function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
 function progressChart(d, st) {
   const rs = rounds(d).filter(r => !r.cancelled && isDone(d, r));
@@ -1600,6 +1600,7 @@ function progressChart(d, st) {
     <div class="prog-bar">
       ${seg('pg-kind', PG.kind, [['drv', 'Drivers'], ['team', 'Constructors']])}
       ${seg('pg-mode', PG.mode, [['graph', 'Graph'], ['race', 'Bar race']])}
+      ${seg('pg-pics', PG.pics ? 'on' : 'off', [['on', 'Photos'], ['off', 'Dots']])}
       <div class="prog-play"><button class="btn sm primary" data-pg="play" id="pg-play">▶ Play</button><input type="range" id="pg-slider" min="0" max="${n}" step="0.01" value="${PG.t}" aria-label="Round"><span class="mono" id="pg-label"></span></div>
     </div>
     <div id="pg-stage" class="pg-stage"></div>
@@ -1620,7 +1621,7 @@ function pgBuild() {
     : '';
   stage.innerHTML = PG.mode === 'race'
     ? `<div class="race-head"><div class="race-round" id="pg-round"></div><div class="muted" id="pg-lead"></div></div>
-       <div class="race" style="height:${ser.length * 44}px">${ser.map((x, i) => `<div class="race-row" data-i="${i}" style="--c:${esc(x.color)}"><span class="rr-pos"></span>${x.drv ? avatar(x.drv, x.team, 'sm') : teamLogo(x.team, 'rr')}<span class="rr-name">${esc(x.short)}</span><span class="rr-track"><i></i></span><span class="rr-val"></span></div>`).join('')}</div>`
+       <div class="race" style="height:${ser.length * 44}px">${ser.map((x, i) => `<div class="race-row" data-i="${i}" style="--c:${esc(x.color)}"><span class="rr-pos"></span>${!PG.pics ? `<span class="rr-dot" style="--c:${esc(x.color)}"></span>` : x.drv ? avatar(x.drv, x.team, 'sm') : teamLogo(x.team, 'rr')}<span class="rr-name">${esc(x.short)}</span><span class="rr-track"><i></i></span><span class="rr-val"></span></div>`).join('')}</div>`
     : '';
 }
 function pgDraw() {
@@ -1670,7 +1671,7 @@ function graphSVG(ser, rs, t, hid, fmtV) {
     const path = pts.map((p, j) => `${j ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
     const dots = x.pts.slice(1, fl + 1).map((v, j) => `<circle cx="${X(j + 1).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3.2" fill="${esc(x.color)}"><title>${esc(x.name)} · R${esc(rs[j].round)}: ${fmtPts(v)} pts</title></circle>`).join('');
     const hx = X(t), hy = Y(pgVal(x, t)), HR = 12;
-    const head = x.img
+    const head = x.img && PG.pics
       ? `<g class="head-pic" transform="translate(${hx.toFixed(1)},${hy.toFixed(1)})"><circle r="${HR + 2.5}" fill="${esc(x.color)}"/><circle r="${HR}" class="hp-bg"/><image href="${esc(x.img)}" x="${x.logo ? -HR * .78 : -HR}" y="${x.logo ? -HR * .78 : -HR}" width="${x.logo ? HR * 1.56 : HR * 2}" height="${x.logo ? HR * 1.56 : HR * 2}" clip-path="url(#pgclip)" preserveAspectRatio="${x.logo ? 'xMidYMid meet' : x.face ? 'xMidYMin slice' : 'xMidYMid slice'}"/><title>${esc(x.name)} · ${fmtV(pgVal(x, t))} pts</title></g>`
       : `<circle class="head" cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="5" fill="${esc(x.color)}"/>`;
     return `<g><path class="ln" d="${path}" stroke="${esc(x.color)}"${dash[i] ? ' stroke-dasharray="7 5"' : ''}/>${dots}${head}<text class="lbl" x="${W - R + 20}" y="${(ly[i] + 4).toFixed(1)}" fill="${esc(x.color)}">${esc(x.short)} · ${fmtV(pgVal(x, t))}</text></g>`;
@@ -1678,7 +1679,14 @@ function graphSVG(ser, rs, t, hid, fmtV) {
   return `<div style="overflow-x:auto"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Points progression" style="min-width:640px"><defs><clipPath id="pgclip"><circle r="12"/></clipPath></defs>${g}${lines}</svg></div>`;
 }
 function pgButton() { const b = document.getElementById('pg-play'); if (b) b.textContent = PG.playing ? '❚❚ Pause' : PG.t >= PG.n - 0.001 ? '↺ Replay' : '▶ Play'; }
-function pgStop() { PG.playing = false; cancelAnimationFrame(PG.raf); pgButton(); pgDraw(); }
+function pgStop() {
+  PG.playing = false; cancelAnimationFrame(PG.raf); pgButton();
+  // glide to the nearest round so a paused chart always sits on a race
+  const from = PG.t, to = Math.round(PG.t), t0 = performance.now();
+  if (Math.abs(to - from) < 0.001) { PG.t = to; return pgDraw(); }
+  const step = now => { if (PG.playing) return; const k = Math.min(1, (now - t0) / 260), e2 = 1 - Math.pow(1 - k, 3); PG.t = from + (to - from) * e2; pgDraw(); if (k < 1) PG.raf = requestAnimationFrame(step); else pgButton(); };
+  PG.raf = requestAnimationFrame(step);
+}
 function pgPlay() {
   if (PG.playing) return pgStop();
   if (PG.t >= PG.n - 0.001) PG.t = 0;
@@ -1695,13 +1703,14 @@ function pgPlay() {
   PG.raf = requestAnimationFrame(step);
 }
 document.addEventListener('click', e => {
-  const k = e.target.closest('[data-pg-kind]'), m = e.target.closest('[data-pg-mode]'), c = e.target.closest('[data-pg-chip]'), a = e.target.closest('[data-pg]');
+  const k = e.target.closest('[data-pg-kind]'), m = e.target.closest('[data-pg-mode]'), c = e.target.closest('[data-pg-chip]'), a = e.target.closest('[data-pg]'), pp = e.target.closest('[data-pg-pics]');
+  if (pp) { PG.pics = pp.dataset.pgPics === 'on'; lsSet('league.pgPics', PG.pics ? 'on' : 'off'); document.querySelectorAll('[data-pg-pics]').forEach(b2 => b2.classList.toggle('active', b2 === pp)); pgBuild(); pgDraw(); return; }
   if (k) { PG.kind = k.dataset.pgKind; pgBuild(); pgDraw(); }
   else if (m) { PG.mode = m.dataset.pgMode; pgBuild(); pgDraw(); }
   else if (c) { const h = pgHidden(), i = Number(c.dataset.pgChip); h.has(i) ? h.delete(i) : h.add(i); c.classList.toggle('off'); pgDraw(); }
   else if (a) { const act = a.dataset.pg; if (act === 'play') pgPlay(); else { const h = pgHidden(); h.clear(); if (act === 'none') pgSeries().forEach((x, i) => h.add(i)); pgBuild(); pgDraw(); } }
 });
-document.addEventListener('input', e => { if (e.target.id === 'pg-slider') { PG.playing = false; cancelAnimationFrame(PG.raf); PG.t = Number(e.target.value); pgDraw(); pgButton(); } });
+document.addEventListener('input', e => { if (e.target.id === 'pg-slider') { PG.playing = false; cancelAnimationFrame(PG.raf); PG.t = Math.round(Number(e.target.value)); e.target.value = PG.t; pgDraw(); pgButton(); } });
 
 /* ---------------- hall of fame ---------------- */
 function snapshotSeason(d) {
@@ -2184,7 +2193,7 @@ function chrome() {
   const links = L.links || {};
   const ext = [['discord', 'Discord'], ['youtube', 'YouTube'], ['twitch', 'Twitch'], ['website', 'Website']].filter(([k]) => links[k]).map(([k, l]) => `<a class="soc soc-${k}" href="${esc(links[k])}" target="_blank" rel="noopener" aria-label="${l}" title="${l}">${SOCIAL_ICONS[k]}</a>`).join('');
   document.getElementById('foot').innerHTML = `<div class="inner"><div><b style="color:var(--text)">${esc(L.name)}</b> · ${esc(seasonName(L.season))}<br><span style="font-size:12px">${esc(L.footer ?? 'Fan-run sim racing league. Not affiliated with Formula 1.')}</span></div>
-    <div class="foot-r">${ext ? `<div class="socials">${ext}</div>` : ''}<div class="links"><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}</div><a class="btn sm foot-console" href="#/admin" aria-label="Console" title="Console"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></a></div></div>`;
+    <div class="foot-r">${ext ? `<div class="socials">${ext}</div>` : ''}<div class="links"><a href="#/about">About</a><a href="#/join">Join</a><a href="#/rules">Rules</a><a href="#/stewards">${esc(rcName(d))}</a><a href="#/history">Hall of fame</a>${d.portalOn ? '<a href="#/portal">Team portal</a>' : ''}</div><a class="soc soc-console foot-console" href="#/admin" aria-label="Console" title="Console"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></a></div></div>`;
 }
 
 /* Title Case for UI labels (menus, tabs, buttons, headings). Only capitalises — never lowercases names like FIA or R5. */

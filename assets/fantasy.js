@@ -14,7 +14,7 @@ const DEFAULTS = {
   enabled: false, budget: 100, captainMult: 2, pole: 1, fastestLap: 1, fastestLapTopN: 10,
   positions: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1], sprint: [], dnf: 0,
   principalPct: 100, engineerPct: 50, reservePct: 100, constructorPct: 100,
-  maxEngineers: 2, maxReserves: 2, maxConstructors: 2, submitUrl: '', intro: '', prices: {}, entries: [],
+  maxEngineers: 2, maxReserves: 2, maxConstructors: 2, minConstructors: 1, submitUrl: '', intro: '', prices: {}, entries: [],
   tpMult: { enabled: true, cap: 2.5, oneTwo: 2.5, win: 2.0, podium: 1.75, bothPoints: 1.5, onePoints: 1.25, none: 1.0, bonus: 0.25 },
   engMult: { enabled: true, cap: 2.5, win: 2.5, podium: 2.0, top5: 1.75, points: 1.5, none: 1.0, fl: 0.25, gained: 0.25, gainedN: 5 }
 };
@@ -38,13 +38,13 @@ function assets(d) {
     const tr = (st.T[t.id] || {}).position || 10, id = 'ct:' + t.id;
     out.push({ id, kind: 'constructor', name: t.name, team: t, logo: t.logo || '', price: Number(f.prices[id]) || Math.max(8, 26 - (tr - 1) * 2) });
   });
-  // reserves: drivers marked as reserves + each team's listed reserve drivers
-  const res = new Map();
-  d.drivers.filter(x => x.active !== false && x.reserve).forEach(x => res.set(x.id, x.teamId || ''));
-  d.teams.forEach(t => ((t.staff || {}).reserves || []).filter(x => x && x.driverId).forEach(x => { if (!res.has(x.driverId)) res.set(x.driverId, t.id); }));
-  res.forEach((tid, id) => {
-    const x = byId(d.drivers, id); if (!x) return;
-    out.push({ id: 'rs:' + id, driverId: id, kind: 'reserve', name: x.name, team: byId(d.teams, tid) || byId(d.teams, x.teamId), drv: x, price: Number(f.prices['rs:' + id]) || 5 });
+  // reserves: every driver on the grid can be picked as a reserve (race drivers cost the same as in the driver slots)
+  const staffTeam = {};
+  d.teams.forEach(t => ((t.staff || {}).reserves || []).filter(x => x && x.driverId).forEach(x => { staffTeam[x.driverId] = staffTeam[x.driverId] || t.id; }));
+  d.drivers.filter(x => x.active !== false).forEach(x => {
+    const id = 'rs:' + x.id, main = out.find(a => a.id === x.id);
+    out.push({ id, driverId: x.id, kind: 'reserve', name: x.name, team: byId(d.teams, x.teamId) || byId(d.teams, staffTeam[x.id]), drv: x, isRace: !x.reserve,
+      price: Number(f.prices[id]) || (main ? main.price : 5) });
   });
   return out;
 }
@@ -253,6 +253,8 @@ function validate(d, raw) {
   if (p.rs.some(id => !byA[id] || byA[id].kind !== 'reserve')) errs.push('a reserve you picked is no longer available');
   if (new Set(p.rs).size !== p.rs.length) errs.push('the reserves must be different');
   if (p.rs.some(id => p.d.includes(String(id).replace(/^rs:/, '')))) errs.push('a reserve can’t also be one of your drivers');
+  const minK = Math.min(maxK, Math.max(0, Number(f.minConstructors) || 0));
+  if (p.k.length < minK) errs.push(`pick at least ${minK} constructor${minK === 1 ? '' : 's'}`);
   if (p.k.length > maxK) errs.push(`up to ${maxK} constructor${maxK === 1 ? '' : 's'}`);
   if (p.k.some(id => !byA[id] || byA[id].kind !== 'constructor')) errs.push('a constructor you picked is no longer available');
   if (new Set(p.k).size !== p.k.length) errs.push('the constructors must be different');
@@ -330,7 +332,7 @@ function builder(d, S) {
       <div class="ft-group"><h4>Drivers <small>2 required · tap ★ for captain (${esc(f.captainMult)}×)</small></h4><div class="ft-col">
         ${[0, 1].map(i => { const a = A[p.d[i]]; return slotCard(d, a, 'd' + i, 'Driver ' + (i + 1), a ? `<span class="ft-cap ${p.c === a.id ? 'on' : ''}" data-ft-cap="${esc(a.id)}" title="Make captain">★</span>` : ''); }).join('')}</div></div>
       ${maxR ? `<div class="ft-group"><h4>Reserve drivers <small>optional · up to ${maxR}</small></h4><div class="ft-col">${Array.from({ length: maxR }, (_, i) => slotCard(d, A[p.rs[i]], 'rs' + i, 'Reserve ' + (i + 1))).join('')}</div></div>` : ''}
-      ${maxK ? `<div class="ft-group"><h4>Constructors <small>optional · up to ${maxK}</small></h4><div class="ft-col">${Array.from({ length: maxK }, (_, i) => slotCard(d, A[p.k[i]], 'k' + i, 'Constructor ' + (i + 1))).join('')}</div></div>` : ''}
+      ${maxK ? `<div class="ft-group"><h4>Constructors <small>${Number(f.minConstructors) > 0 ? `${Math.min(maxK, Number(f.minConstructors))}${maxK > Number(f.minConstructors) ? '–' + maxK : ''} required` : 'optional · up to ' + maxK}</small></h4><div class="ft-col">${Array.from({ length: maxK }, (_, i) => slotCard(d, A[p.k[i]], 'k' + i, 'Constructor ' + (i + 1))).join('')}</div></div>` : ''}
     </div>
     ${market}
     ${acct ? acctSubmit(d, S, v) : `<div class="ft-submit card">
@@ -425,7 +427,7 @@ function scoringInfo(d, f) {
         ${row('1-2 finish', fmtX(f.tpMult.oneTwo), true)}${row('Race win', fmtX(f.tpMult.win))}${row('Podium', fmtX(f.tpMult.podium))}${row('Both cars in the points', fmtX(f.tpMult.bothPoints))}${row('One car in the points', fmtX(f.tpMult.onePoints))}${row('No points', fmtX(f.tpMult.none))}${+f.tpMult.bonus ? row('Team takes pole or fastest lap', '+' + fmtX(f.tpMult.bonus).slice(1) + ' extra') : ''}</div>` : '<div></div>'}
       <div></div>
     </div>` : ''}
-    <div class="ft-sc-foot muted">Budget ${money(f.budget)} · 2 drivers required · up to ${esc(f.maxReserves)} reserve drivers and ${esc(f.maxConstructors)} constructors optional · picks lock at each race start.</div>
+    <div class="ft-sc-foot muted">Budget ${money(f.budget)} · 2 drivers${Number(f.minConstructors) > 0 ? ` and ${Math.min(Number(f.maxConstructors), Number(f.minConstructors))}–${esc(f.maxConstructors)} constructors` : ''} required · up to ${esc(f.maxReserves)} reserve drivers${Number(f.minConstructors) > 0 ? '' : ` and ${esc(f.maxConstructors)} constructors`} optional · picks lock at each race start.</div>
   </div>`;
 }
 

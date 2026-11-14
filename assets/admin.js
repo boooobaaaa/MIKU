@@ -1045,6 +1045,7 @@ async function seasonArchive(d, startNew, btn) {
 
 /* ---------------- team portal admin ---------------- */
 const PTA = { subs: null, members: null, err: '', open: '', loading: false };
+window.addEventListener('hashchange', () => { if (/^#\/admin\/portal/.test(location.hash) && window.Accounts) window.Accounts.refreshApproved(); });
 window.addEventListener('hashchange', () => { if (/^#\/admin\/portal/.test(location.hash) && !PTA.loading) { PTA.subs = null; PTA.members = null; setTimeout(rerender, 0); } });
 function secPortal(d) {
   const PT = window.Portal, s = PT.store(d);
@@ -1058,7 +1059,7 @@ function secPortal(d) {
   if (!adminList.includes(s.user.email) && !(s.siteAdmin && allowed('portal'))) return top + `<div class="warn">Signed in as ${esc(s.user.email)}, which isn't in the admin emails (Grid Draft → ①) or on the admin team with Team portal access.</div>`;
   if (!PTA.loading && (PTA.subs === null || PTA.members === null)) {
     PTA.loading = true;
-    Promise.all([s.allSubs(), s.members()]).then(([a, m]) => { PTA.subs = a.sort((x, y) => y.updatedAt - x.updatedAt); PTA.members = m; PTA.err = ''; })
+    Promise.all([s.allSubs(), s.members(), s.uidMembers ? s.uidMembers().catch(() => []) : []]).then(([a, m, u]) => { PTA.subs = a.sort((x, y) => y.updatedAt - x.updatedAt); PTA.members = m; PTA.uids = u; PTA.err = ''; })
       .catch(e => { PTA.subs = PTA.subs || []; PTA.members = PTA.members || []; PTA.err = (e.code || e.message) + (/permission/.test(e.code || e.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase (they now include the portal).' : ''); })
       .finally(() => { PTA.loading = false; rerender(); });
   }
@@ -1076,17 +1077,49 @@ function secPortal(d) {
     <div class="a-card"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0">Waiting for review (${pend.length})</h3><button class="btn sm" data-act="pt-reload">Refresh</button></div>
       ${PTA.subs === null ? '<p class="muted">Loading…</p>' : pend.map(card).join('') || '<p class="muted">Nothing waiting. 🩵</p>'}</div>
     ${done.length ? `<div class="a-card"><h3>Reviewed (${done.length})</h3>${done.map(card).join('')}</div>` : ''}
-    <div class="a-card" style="overflow-x:auto"><h3>Staff access</h3><p class="hint" style="margin:-4px 0 12px">Only these Google accounts can open the portal. Each one can only write for their own team. Emails are stored privately in Firebase — never in your public site files.</p>
-      ${mem.length ? `<table class="rtable"><thead><tr><th>Google email</th><th>Name shown</th><th>Role</th><th>Team</th><th></th></tr></thead><tbody>${mem.map(m => `<tr><td class="mono" style="font-size:13px">${esc(m.email)}</td><td>${esc(m.name)}</td><td>${esc(m.role)}</td><td>${m.teamId ? `<span class="swatch" style="--tc:${esc(LG.teamColor(byId(d.teams, m.teamId)))}"></span>${esc(tName(m.teamId))}` : '<span class="chip">📷 Press & media</span>'}</td><td class="c-act"><button class="iconbtn del" data-act="pt-rm" data-email="${esc(m.email)}">✕</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">No staff added yet.</p>'}
-      <div class="fgrid" style="margin-top:14px">
+    ${ptStaffCard(d, mem)}` + onBox;
+}
+
+function ptStaffCard(d, mem) {
+  const AC = window.Accounts, appr = AC ? AC.approved(d) : null, links = appr ? Object.values(appr) : [];
+  const uids = PTA.uids || [], has = new Set(uids.map(x => x.uid));
+  const tName = id => id ? ((byId(d.teams, id) || {}).name || 'Unknown team') : 'Press / media';
+  const roleSel = id => `<select id="${id}">${window.Portal.ROLES.map(r => `<option ${r === 'Team principal' ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select>`;
+  const teamSel = (id, cur) => `<select id="${id}">${d.teams.map(t => `<option value="${esc(t.id)}" ${t.id === cur ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}<option value="" ${cur === '' ? 'selected' : ''}>— None (press / media) —</option></select>`;
+  const avail = links.filter(l => !has.has(l.uid)).sort((a, b) => String(a.discordName).localeCompare(String(b.discordName)));
+  const rows = [
+    ...uids.map(m => `<tr><td>${m.discordId ? `<span class="ac-badge" style="margin:0">${AC.dcFace({ discordId: m.discordId, discordAvatar: m.discordAvatar })}<span>${esc(m.discordName || m.name)}</span><i>✓</i></span>` : '<span class="muted">Discord account</span>'}</td><td>${esc(m.name)}</td><td>${esc(m.role)}</td><td>${esc(tName(m.teamId))}</td><td class="c-act"><button class="iconbtn del" data-act="pt-rm-uid" data-uid="${esc(m.uid)}" data-name="${esc(m.name)}" title="Remove access">✕</button></td></tr>`),
+    ...mem.map(m => `<tr><td class="mono" style="font-size:13px">✉ ${esc(m.email)}</td><td>${esc(m.name)}</td><td>${esc(m.role)}</td><td>${esc(tName(m.teamId))}</td><td class="c-act"><button class="iconbtn del" data-act="pt-rm" data-email="${esc(m.email)}" title="Remove access">✕</button></td></tr>`)
+  ].join('');
+  return `<div class="a-card" style="overflow-x:auto"><h3>Staff access</h3>
+    <p class="hint" style="margin:-4px 0 12px">Give access to someone's <b>linked Discord account</b> — they link it under 👤 My account and you approve it in <a href="#/admin/accounts">Accounts</a>. No emails needed. Each person can only write for their own team.</p>
+    ${rows ? `<table class="rtable"><thead><tr><th>Account</th><th>Name shown</th><th>Role</th><th>Team</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="muted">Nobody has access yet.</p>'}
+    <h4 style="margin:18px 0 8px">Give access with Discord</h4>
+    ${appr === null ? '<p class="muted">Loading linked accounts…</p>' : avail.length ? `<div class="fgrid pt-dc-add">
+        <label class="fld"><span>Linked Discord account</span><select id="pt-d-uid">${avail.map(l => { const drv = l.driverId && byId(d.drivers, l.driverId); return `<option value="${esc(l.uid)}" data-team="${esc(drv ? drv.teamId || '' : '')}">${esc(l.discordName)} (@${esc(l.discordUser)})${drv ? ' · ' + esc(drv.name) : ''}</option>`; }).join('')}</select></label>
+        <label class="fld"><span>Name shown on articles</span><input type="text" id="pt-d-name" placeholder="Their Discord name if empty" maxlength="60"></label>
+        <label class="fld"><span>Role</span>${roleSel('pt-d-role')}</label>
+        <label class="fld"><span>Team</span>${teamSel('pt-d-team', (() => { const l = avail[0], drv = l && l.driverId && byId(d.drivers, l.driverId); return drv ? drv.teamId || '' : (d.teams[0] || {}).id; })())}</label>
+      </div><div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="pt-add-dc">+ Give access</button></div>`
+      : `<p class="muted">${links.length ? 'Every approved Discord account already has access.' : 'No approved Discord accounts yet — people link theirs under 👤 My account, then you approve them in <a href="#/admin/accounts">Accounts</a>.'}</p>`}
+    <details class="pt-email-add" style="margin-top:16px"><summary>Or give access by Google email (older way)</summary>
+      <div class="fgrid" style="margin-top:12px">
         <label class="fld"><span>Their Google email</span><input type="text" id="pt-m-email" placeholder="principal@gmail.com"></label>
         <label class="fld"><span>Name shown on articles</span><input type="text" id="pt-m-name"></label>
-        <label class="fld"><span>Role</span><select id="pt-m-role">${window.Portal.ROLES.map(r => `<option ${r === 'Team principal' ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></label>
-        <label class="fld"><span>Team</span><select id="pt-m-team">${d.teams.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}<option value="">— None (press / media) —</option></select></label>
+        <label class="fld"><span>Role</span>${roleSel('pt-m-role')}</label>
+        <label class="fld"><span>Team</span>${teamSel('pt-m-team', (d.teams[0] || {}).id)}</label>
       </div>
-      <div class="toolbar" style="margin-top:10px"><button class="btn sm primary" data-act="pt-add">+ Give access</button></div>
-    </div>` + onBox;
+      <div class="toolbar" style="margin-top:10px"><button class="btn sm" data-act="pt-add">+ Give access by email</button></div>
+      <p class="hint">Emails are stored privately in Firebase — never in your public site files.</p>
+    </details>
+  </div>`;
 }
+// picking an account pre-selects the team of the driver they claimed
+document.addEventListener('change', e => {
+  if (e.target.id !== 'pt-d-uid') return;
+  const o = e.target.selectedOptions[0], t = document.getElementById('pt-d-team');
+  if (o && t && o.dataset.team !== undefined && o.dataset.team !== '') t.value = o.dataset.team;
+});
 
 /* ---------------- grid draft admin ---------------- */
 const GDA = { players: null, drafts: null, err: '' };
@@ -1226,6 +1259,7 @@ function secFantasy(d) {
       ${F.check('Fantasy is open (adds the Fantasy tab)', 'fantasy.enabled', f.enabled)}
       ${F.num('Budget (millions)', 'fantasy.budget', f.budget, 'data-reload')}
       ${F.num('Max reserve drivers', 'fantasy.maxReserves', f.maxReserves, 'data-reload min="0" max="4" step="1"')}
+      ${F.num('Min constructors (required)', 'fantasy.minConstructors', f.minConstructors ?? 1, 'data-reload min="0" max="4" step="1"')}
       ${F.num('Max constructors', 'fantasy.maxConstructors', f.maxConstructors, 'data-reload min="0" max="4" step="1"')}
       ${F.text('Where fans send codes (link — defaults to your Discord)', 'fantasy.submitUrl', f.submitUrl || '', 'placeholder="https://discord.gg/…"')}
       ${F.text('Intro line on the Fantasy page', 'fantasy.intro', f.intro || '', 'wide')}
@@ -1252,7 +1286,7 @@ function secFantasy(d) {
     <div class="a-card"><h3>Market prices <span class="muted" style="font-weight:400;font-size:13px">· millions · leave empty to use the suggested price shown in grey</span></h3>
       <div class="toolbar" style="margin-bottom:12px"><button class="btn sm" data-act="ft-autoprice">Fill all with suggested prices</button><button class="btn sm danger" data-act="ft-clearprice">Clear all (back to suggested)</button></div>
       ${kinds.map(k => { const list = S.assets.filter(a => a.kind === k); return list.length ? `<div class="ft-price-h">${FT.KIND_LABEL[k]}s</div><div class="ft-price-grid">${list.map(a => `<label class="ft-price-row"><span class="swatch" style="--tc:${esc(LG.teamColor(a.team))}"></span><span class="ft-pn">${esc(a.name)}<small>${esc(a.team ? a.team.name : '')} · ${LG.fmtPts((S.assetPts[a.id] || {}).total || 0)} pts</small></span>${priceInput(a)}</label>`).join('')}</div>` : ''; }).join('') || '<p class="muted">Add drivers and team personnel first.</p>'}
-      <p class="hint">Reserve drivers are drivers marked as <b>Reserve</b> (Drivers) plus each team's listed reserves. Prices can change any time — teams already entered keep their picks.</p></div>
+      <p class="hint">Any driver can be picked as a reserve. Race drivers cost the same as in the driver slots unless you set a reserve price (rows marked “Reserve”). Prices can change any time — teams already entered keep their picks.</p></div>
     <div class="a-card"><h3>Add entries from Discord</h3>
       <p class="hint" style="margin:-4px 0 10px">Copy the messages from your fantasy channel (several at once is fine) and paste them here. Codes start with <code>FTSY1.</code> A new code from someone already in the league replaces their picks from the next race that hasn't started.</p>
       <textarea id="ft-paste" rows="4" style="width:100%" placeholder="Paste entry codes here…"></textarea>
@@ -1833,7 +1867,16 @@ document.addEventListener('click', async e => {
     case 'sea-new': return seasonArchive(d, true, b);
     case 'sea-rm': if (await Pop.ask(b, 'Remove this season from the Seasons list? (The saved file stays in your GitHub repo.)')) { d.seasons = (d.seasons || []).filter(x => x.id !== b.dataset.id); commit(); } return;
     case 'pt-signin': { try { await window.Portal.store(d).signIn(); } catch (x) { toast('Sign-in failed: ' + (x.code || x.message), 'err'); } return; }
-    case 'pt-reload': PTA.subs = null; PTA.members = null; return rerender();
+    case 'pt-reload': PTA.subs = null; PTA.members = null; if (window.Accounts) window.Accounts.refreshApproved(); return rerender();
+    case 'pt-add-dc': {
+      const uidv = document.getElementById('pt-d-uid').value, L = (window.Accounts.approved(d) || {})[uidv];
+      if (!L) return toast('Pick a linked account', 'err');
+      const name = document.getElementById('pt-d-name').value.trim() || L.discordName, role = document.getElementById('pt-d-role').value, teamId = document.getElementById('pt-d-team').value;
+      try { await window.Portal.store(d).setUidMember(uidv, { name, role, teamId, discordId: L.discordId, discordName: L.discordName, discordAvatar: L.discordAvatar }); toast(`${name} can now use the portal`); PTA.members = null; }
+      catch (x) { toast('Couldn\'t save: ' + (x.code || x.message) + (/permission/.test(x.code || x.message) ? ' — re-copy the rules from Grid Draft ③ into Firebase.' : ''), 'err'); }
+      return rerender();
+    }
+    case 'pt-rm-uid': if (!await Pop.ask(b, `Remove portal access for ${b.dataset.name}?`)) return; try { await window.Portal.store(d).removeUidMember(b.dataset.uid); PTA.members = null; } catch (x) { toast('Couldn\'t remove: ' + (x.code || x.message), 'err'); } return rerender();
     case 'pt-add': {
       const email = document.getElementById('pt-m-email').value.trim().toLowerCase(), name = document.getElementById('pt-m-name').value.trim(), role = document.getElementById('pt-m-role').value.trim() || 'Team principal', teamId = document.getElementById('pt-m-team').value;
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast('Enter their full Google email', 'err');

@@ -30,7 +30,9 @@ function fbStore(conf) {
       A.onAuthStateChanged(auth, async u => {
         s.user = u ? { uid: u.uid, email: String(u.email || '').toLowerCase(), displayName: u.displayName } : null;
         s.member = null; s.siteAdmin = null;
-        if (u && u.email) { try { const m = await F.getDoc(F.doc(db, 'portal_members', s.user.email)); s.member = m.exists() ? m.data() : null; } catch (e) { s.member = null; } }
+        // portal access: a linked Discord account (by sign-in id) first, then the older Google-email list
+        if (u) { try { const m = await F.getDoc(F.doc(db, 'portal_uids', u.uid)); s.member = m.exists() ? Object.assign({ via: 'discord' }, m.data()) : null; } catch (e) { s.member = null; } }
+        if (u && u.email && !s.member) { try { const m = await F.getDoc(F.doc(db, 'portal_members', s.user.email)); s.member = m.exists() ? m.data() : null; } catch (e) { s.member = null; } }
         if (u && u.email) { try { const m = await F.getDoc(F.doc(db, 'site_admins', s.user.email)); s.siteAdmin = m.exists() ? m.data() : null; } catch (e) { s.siteAdmin = null; } }
         s.ready = true; emit();
       });
@@ -53,6 +55,9 @@ function fbStore(conf) {
     async members() { const q = await F.getDocs(F.collection(db, 'portal_members')); return q.docs.map(x => Object.assign({ email: x.id }, x.data())); },
     async setMember(email, x) { await F.setDoc(F.doc(db, 'portal_members', email), { name: x.name, role: x.role, teamId: x.teamId }); },
     async removeMember(email) { await F.deleteDoc(F.doc(db, 'portal_members', email)); },
+    async uidMembers() { const q = await F.getDocs(F.collection(db, 'portal_uids')); return q.docs.map(x => Object.assign({ uid: x.id }, x.data())); },
+    async setUidMember(uid, x) { await F.setDoc(F.doc(db, 'portal_uids', uid), { name: x.name, role: x.role, teamId: x.teamId, discordId: x.discordId || '', discordName: x.discordName || '', discordAvatar: x.discordAvatar || '' }); },
+    async removeUidMember(uid) { await F.deleteDoc(F.doc(db, 'portal_uids', uid)); },
     /* admin team */
     async siteAdmins() { const q = await F.getDocs(F.collection(db, 'site_admins')); return q.docs.map(x => Object.assign({ email: x.id }, x.data())); },
     async setSiteAdmin(email, x) { await F.setDoc(F.doc(db, 'site_admins', email), { name: x.name, sections: x.sections }); },
@@ -126,8 +131,11 @@ function store(d) {
 const RULES = `
     // ---------------- Team portal (article submissions) ----------------
     function myEmail() { return request.auth.token.email.lower(); }
-    function isMember() { return signedIn() && request.auth.token.email_verified == true && exists(/databases/$(db)/documents/portal_members/$(myEmail())); }
-    function member() { return get(/databases/$(db)/documents/portal_members/$(myEmail())).data; }
+    // access by linked Discord account (stored under the person's sign-in id) or by Google email
+    function isUidMember() { return signedIn() && exists(/databases/$(db)/documents/portal_uids/$(request.auth.uid)); }
+    function isEmailMember() { return signedIn() && request.auth.token.email_verified == true && exists(/databases/$(db)/documents/portal_members/$(myEmail())); }
+    function isMember() { return isUidMember() || isEmailMember(); }
+    function member() { return isUidMember() ? get(/databases/$(db)/documents/portal_uids/$(request.auth.uid)).data : get(/databases/$(db)/documents/portal_members/$(myEmail())).data; }
     function validSub(s) {
       return s.title is string && s.title.size() > 0 && s.title.size() <= 140
         && s.tag is string && s.tag.size() <= 40
@@ -135,6 +143,10 @@ const RULES = `
         && s.image is string && s.image.size() <= 750000
         && s.kind in ['article', 'photos'] && s.images is list && s.images.size() <= 4 && s.roundId is string
         && (s.kind == 'photos' ? s.images.size() > 0 : s.body.size() > 0);
+    }
+    match /portal_uids/{uid} {
+      allow read: if canReview() || (signedIn() && request.auth.uid == uid);
+      allow write: if canReview();
     }
     match /portal_members/{email} {
       allow read: if canReview() || (signedIn() && request.auth.token.email_verified == true && myEmail() == email);
@@ -340,7 +352,7 @@ function page(d) {
   if (s.error) return `<div class="page pt">${top}${emptyBox('Can’t connect right now', `<p>${esc(s.error)}</p>`)}</div>`;
   if (!s.ready) return `<div class="page pt">${top}<div class="loading">Checking your access…</div></div>`;
   if (!s.user) return `<div class="page pt">${top}<div class="card pt-lock"><div class="pt-lock-ic">🔒</div><h3>Staff only</h3><p class="muted">Sign in with the Google account a league admin registered for your team.</p><button class="btn primary" data-pt="signin">Sign in with Google</button></div></div>`;
-  if (!s.member) return `<div class="page pt">${top}<div class="card pt-lock"><div class="pt-lock-ic">🔒</div><h3>This account isn’t registered as team staff</h3><p class="muted">You’re signed in as <b>${esc(s.user.email)}</b>. Ask a league admin to add this email to the team portal, then reload this page.</p><button class="btn" data-pt="signout">Use a different account</button></div></div>`;
+  if (!s.member) return `<div class="page pt">${top}<div class="card pt-lock"><div class="pt-lock-ic">🔒</div><h3>This account isn’t registered as team staff</h3><p class="muted">${d.accounts && d.accounts.enabled ? `Link your Discord under <a href="#/account">👤 My account</a> and ask a league admin to give it portal access — then reload this page.` : `You’re signed in with Google. Ask a league admin to give this account portal access, then reload this page.`}</p><button class="btn" data-pt="signout">Use a different account</button></div></div>`;
   const m = s.member, t = byId(d.teams, m.teamId), press = isPress(m);
   if (P.subs === null) { P.subs = 'loading'; s.mySubs().then(x => { P.subs = x.sort((a, b) => b.updatedAt - a.updatedAt); LG.render(false); }).catch(e => { P.subs = []; toast('Couldn’t load your articles: ' + (e.code || e.message), 'err'); LG.render(false); }); }
   const subs = Array.isArray(P.subs) ? P.subs : [];

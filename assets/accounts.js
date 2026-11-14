@@ -153,6 +153,9 @@ function page(d) {
       <div class="ac-names-act"><button class="btn primary" ${(!gp || gp.nameLocked) && (!fdoc || fdoc.nameLocked) ? 'disabled' : ''}>Save names</button></div>
     </form>
     <p class="hint">Keep it friendly — admins can reset any name that breaks the league's rules.</p></section>` : '';
+  const pm = s.member;
+  const portal = pm ? `<a class="ac-game" href="#/portal"><span class="ac-gi">✎</span><span><b>Team portal</b><small>${esc(pm.role || 'Staff')}${pm.teamId && byId(d.teams, pm.teamId) ? ' · ' + esc(byId(d.teams, pm.teamId).name) : ''}</small></span><span class="ac-go">›</span></a>` : '';
+  if (portal) gd = portal + gd;
   return `<div class="page ac">${top}
     <div class="ac-grid">
       <section class="card"><h3>Signed in</h3><p class="ac-who"><b>${esc(s.user.displayName || 'Google account')}</b><span class="muted">Google · your email stays private</span></p><button class="btn sm ghost" data-ac="signout">Sign out</button></section>

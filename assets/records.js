@@ -168,10 +168,11 @@ function block() {
       return `<div class="rec-top ${k === 0 ? 'on' : ''}" style="--tc:${esc(w.color)}" data-tc="${esc(w.color)}"><span class="rec-pic">${pic}</span><div class="rec-who"><b>${R.kind === 'teams' ? esc(w.name) : LG.nameHTML(w.name)}</b>${extra && extra(o.x) ? `<small>${esc(extra(o.x))}</small>` : ''}</div><div class="rec-val"><b class="mono">${esc(fmt(o.v))}</b>${unit ? `<small>${esc(unit)}</small>` : ''}</div></div>`;
     };
     const tie = leaders.length > 1;
+    const miniPic = w => { const src = R.kind === 'teams' ? w.logo : (w.headshot || w.photo); return `<span class="rec-mini ${R.kind === 'teams' ? 'logo' : ''}">${src ? `<img src="${esc(LG.asset(src))}" alt="" loading="lazy" onerror="this.remove()">` : ''}<i>${esc(String(w.name || '?')[0])}</i></span>`; };
     return `<div class="rec-card ${tie ? 'tied' : ''}" style="--tc:${esc(leaders[0].x.who.color)}">${blossoms()}<h4>${esc(title)}${tie ? `<span class="rec-tie">Tied · <b>1</b>/${leaders.length}</span>` : ''}</h4>
       <div class="rec-tops" ${tie ? `data-rec-rot="${leaders.length}"` : ''}>${leaders.map(slide).join('')}</div>
       ${tie ? `<div class="rec-dots">${leaders.map((_, k) => `<i class="${k === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}
-      ${rest.length ? `<ol class="rec-rest">${rest.map((o, k) => `<li style="--tc:${esc(o.x.who.color)}" data-n="${leaders.length + k + 1}"><span>${esc(o.x.who.name)}${extra && extra(o.x) ? ` <small class="muted">${esc(extra(o.x))}</small>` : ''}</span><b class="mono">${esc(fmt(o.v))}</b></li>`).join('')}</ol>` : ''}</div>`;
+      ${rest.length ? `<ol class="rec-rest">${rest.map((o, k) => `<li style="--tc:${esc(o.x.who.color)}" data-n="${leaders.length + k + 1}">${miniPic(o.x.who)}<span>${esc(o.x.who.name)}${extra && extra(o.x) ? ` <small class="muted">${esc(extra(o.x))}</small>` : ''}</span><b class="mono">${esc(fmt(o.v))}</b></li>`).join('')}</ol>` : ''}</div>`;
   };
   return head + (R.err ? `<div class="warn">${esc(R.err)}</div>` : '') + defs(R.kind, R.scope === 'all' ? 'all' : 'one').map(([cat, list]) => `<section class="rec-cat"><div class="section-title"><h2>${esc(cat)}</h2></div><div class="rec-grid">${list.map(card).join('')}</div></section>`).join('')
     + `<p class="hint rec-note">Percentages and averages only count ${R.kind === 'teams' ? 'teams' : 'drivers'} with at least ${minRate} race start${minRate === 1 ? '' : 's'}. ${R.kind === 'teams' ? 'Team podium % and points finishes count every car; win, pole % and starts count races entered.' : ''} Streaks count consecutive race starts.</p>`;
